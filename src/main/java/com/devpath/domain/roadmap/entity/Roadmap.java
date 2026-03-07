@@ -46,4 +46,7 @@ public class Roadmap {
     public void delete() {
         this.isDeleted = true;
     }
+    public void deleteRoadmap() {
+        this.isDeleted = true;
+    }
 }

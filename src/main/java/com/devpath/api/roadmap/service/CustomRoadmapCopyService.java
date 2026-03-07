@@ -1,66 +1,33 @@
-package com.devpath.api.roadmap.service;
+package com.devpath.domain.roadmap.port;
 
-import com.devpath.common.exception.CustomException;
-import com.devpath.common.exception.ErrorCode;
-import com.devpath.domain.roadmap.port.OfficialRoadmapReader;
-import com.devpath.domain.roadmap.port.OfficialRoadmapSnapshot;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
-public class CustomRoadmapCopyService {
+@Profile("local") // ✅ 로컬에서만 활성화 (원하면 제거 가능)
+@Component
+public class InMemoryOfficialRoadmapReader implements OfficialRoadmapReader {
 
-    private final OfficialRoadmapReader officialRoadmapReader;
+    @Override
+    public OfficialRoadmapSnapshot loadSnapshot(Long roadmapId) {
+        if (roadmapId == null) return null;
 
-    /**
-     * ✅ B-2 단계 목표:
-     * - A 없이도 개발 가능하도록 "딥카피 저장"이 아니라
-     *   "복사 플랜 생성"까지만 완성한다.
-     * - A가 data.sql + RoadmapNode/Prerequisite 엔티티를 올리면
-     *   B-3에서 실제 DB Insert(saveAll)로 이어간다.
-     */
-    public CustomRoadmapCopyPlan buildCopyPlan(Long roadmapId) {
-        OfficialRoadmapSnapshot snapshot = officialRoadmapReader.loadSnapshot(roadmapId);
-        if (snapshot == null) {
-            throw new CustomException(ErrorCode.ROADMAP_NOT_FOUND);
-        }
+        List<OfficialRoadmapSnapshot.NodeItem> nodes = List.of(
+                new OfficialRoadmapSnapshot.NodeItem(1L, null, "Spring Basics", "intro", 1),
+                new OfficialRoadmapSnapshot.NodeItem(2L, 1L, "DI", "dependency injection", 2),
+                new OfficialRoadmapSnapshot.NodeItem(3L, 1L, "JPA", "jpa basics", 3)
+        );
 
-        List<CustomRoadmapCopyPlan.CustomNodePlan> nodePlans = snapshot.nodes().stream()
-                .sorted(Comparator.comparing(OfficialRoadmapSnapshot.NodeItem::orderIndex))
-                .map(n -> new CustomRoadmapCopyPlan.CustomNodePlan(
-                        n.nodeId(),
-                        n.parentNodeId(),
-                        n.title(),
-                        n.description(),
-                        n.orderIndex()
-                ))
-                .toList();
+        List<OfficialRoadmapSnapshot.PrerequisiteEdge> edges = List.of(
+                new OfficialRoadmapSnapshot.PrerequisiteEdge(2L, 3L) // DI -> JPA
+        );
 
-        List<CustomRoadmapCopyPlan.PrerequisitePlan> prereqPlans = snapshot.prerequisiteEdges().stream()
-                .map(e -> new CustomRoadmapCopyPlan.PrerequisitePlan(
-                        e.prerequisiteNodeId(),
-                        e.nodeId()
-                ))
-                .toList();
-
-        Map<Long, Integer> orderIndexByOriginalNodeId = snapshot.nodes().stream()
-                .collect(Collectors.toMap(
-                        OfficialRoadmapSnapshot.NodeItem::nodeId,
-                        OfficialRoadmapSnapshot.NodeItem::orderIndex
-                ));
-
-        return new CustomRoadmapCopyPlan(
-                snapshot.roadmapId(),
-                snapshot.roadmapTitle(),
-                nodePlans,
-                prereqPlans,
-                orderIndexByOriginalNodeId
+        return new OfficialRoadmapSnapshot(
+                roadmapId,
+                "Backend Roadmap (Dummy)",
+                nodes,
+                edges
         );
     }
 }

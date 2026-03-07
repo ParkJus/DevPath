@@ -1,7 +1,9 @@
 package com.devpath.api.roadmap.controller;
 
 import com.devpath.api.roadmap.dto.CustomRoadmapCopyDto;
+import com.devpath.api.roadmap.dto.MyRoadmapDto;
 import com.devpath.api.roadmap.service.CustomRoadmapCopyService;
+import com.devpath.api.roadmap.service.CustomRoadmapQueryService;
 import com.devpath.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,9 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.devpath.api.roadmap.dto.MyRoadmapDto;
-import com.devpath.api.roadmap.service.CustomRoadmapQueryService;
-import java.util.List;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Custom Roadmap", description = "학습자 커스텀 로드맵 API")
@@ -26,7 +25,9 @@ public class CustomRoadmapController {
     @PostMapping("/copy")
     public ResponseEntity<ApiResponse<CustomRoadmapCopyDto.Response>> copy(@Valid @RequestBody CustomRoadmapCopyDto.Request request) {
         Long customRoadmapId = customRoadmapCopyService.copyToCustomRoadmap(request.getUserId(), request.getRoadmapId());
-        return ResponseEntity.ok(ApiResponse.ok(CustomRoadmapCopyDto.Response.of(customRoadmapId)));
+        return ResponseEntity.ok(
+                ApiResponse.success("커스텀 로드맵이 생성되었습니다.", CustomRoadmapCopyDto.Response.of(customRoadmapId))
+        );
     }
 
     private final CustomRoadmapQueryService customRoadmapQueryService;
@@ -35,6 +36,6 @@ public class CustomRoadmapController {
     @DeleteMapping("/{customRoadmapId}")
     public ResponseEntity<ApiResponse<Void>> deleteMyRoadmap(@RequestParam Long userId, @PathVariable Long customRoadmapId) {
         customRoadmapQueryService.deleteMyRoadmap(userId, customRoadmapId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        return ResponseEntity.ok(ApiResponse.success("커스텀 로드맵이 삭제되었습니다.", null));
     }
 }

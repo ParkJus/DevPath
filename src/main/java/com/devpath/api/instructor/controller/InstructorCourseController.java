@@ -1,9 +1,11 @@
 package com.devpath.api.instructor.controller;
 
+import com.devpath.api.common.dto.CourseDetailResponse;
 import com.devpath.api.instructor.dto.InstructorCourseDto;
 import com.devpath.api.instructor.dto.InstructorLessonDto;
 import com.devpath.api.instructor.dto.InstructorMaterialDto;
 import com.devpath.api.instructor.dto.InstructorSectionDto;
+import com.devpath.api.instructor.service.InstructorCourseQueryService;
 import com.devpath.api.instructor.service.InstructorCourseService;
 import com.devpath.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorCourseController {
 
   private final InstructorCourseService instructorCourseService;
+  private final InstructorCourseQueryService instructorCourseQueryService;
 
   // 강사가 새 강의를 생성한다.
   @Operation(summary = "강의 생성")
@@ -38,6 +42,16 @@ public class InstructorCourseController {
       @Valid @RequestBody InstructorCourseDto.CreateCourseRequest request) {
     Long courseId = instructorCourseService.createCourse(userId, request);
     return ApiResponse.success("강의가 생성되었습니다.", courseId);
+  }
+
+  // 강사가 자신의 강의 상세 정보를 조회한다.
+  @Operation(summary = "강의 상세 조회")
+  @GetMapping("/courses/{courseId}")
+  public ApiResponse<CourseDetailResponse> getCourseDetail(
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
+      @PathVariable Long courseId) {
+    CourseDetailResponse response = instructorCourseQueryService.getCourseDetail(userId, courseId);
+    return ApiResponse.success("강의 상세 정보를 조회했습니다.", response);
   }
 
   // 강사가 자신의 강의 기본 정보를 수정한다.

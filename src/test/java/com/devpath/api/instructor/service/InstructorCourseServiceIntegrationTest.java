@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.devpath.api.common.dto.CourseDetailResponse;
+import com.devpath.api.instructor.dto.InstructorAnnouncementDto;
 import com.devpath.api.instructor.dto.InstructorCourseDto;
 import com.devpath.api.instructor.dto.InstructorLessonDto;
 import com.devpath.api.instructor.dto.InstructorMaterialDto;
 import com.devpath.api.instructor.dto.InstructorSectionDto;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
+import com.devpath.domain.course.repository.CourseAnnouncementRepository;
 import com.devpath.domain.course.repository.CourseMaterialRepository;
 import com.devpath.domain.course.repository.CourseRepository;
 import com.devpath.domain.course.repository.CourseSectionRepository;
@@ -45,11 +47,18 @@ import org.springframework.test.util.ReflectionTestUtils;
       "spring.jpa.defer-datasource-initialization=false"
     })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@Import({InstructorCourseService.class, InstructorCourseQueryService.class})
+@Import({
+  InstructorCourseService.class,
+  InstructorCourseQueryService.class,
+  InstructorAnnouncementService.class,
+  InstructorAnnouncementQueryService.class
+})
 class InstructorCourseServiceIntegrationTest {
 
   @Autowired private InstructorCourseService instructorCourseService;
   @Autowired private InstructorCourseQueryService instructorCourseQueryService;
+  @Autowired private InstructorAnnouncementService instructorAnnouncementService;
+  @Autowired private InstructorAnnouncementQueryService instructorAnnouncementQueryService;
 
   @Autowired private UserRepository userRepository;
   @Autowired private UserProfileRepository userProfileRepository;
@@ -57,6 +66,7 @@ class InstructorCourseServiceIntegrationTest {
   @Autowired private TagRepository tagRepository;
 
   @Autowired private CourseRepository courseRepository;
+  @Autowired private CourseAnnouncementRepository courseAnnouncementRepository;
   @Autowired private CourseSectionRepository courseSectionRepository;
   @Autowired private LessonRepository lessonRepository;
   @Autowired private LessonPrerequisiteRepository lessonPrerequisiteRepository;
@@ -339,6 +349,53 @@ class InstructorCourseServiceIntegrationTest {
         .isEqualTo(ErrorCode.INVALID_INPUT);
   }
 
+  @Test
+  @DisplayName("강의 공지를 생성 조회 수정 삭제한다")
+  void announcementCrudFlow() {
+    Long courseId = instructorCourseService.createCourse(instructorId, createCourseRequest());
+
+    Long announcementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createAnnouncementRequest());
+    flushAndClear();
+
+    assertThat(courseAnnouncementRepository.findById(announcementId)).isPresent();
+
+    List<InstructorAnnouncementDto.AnnouncementSummaryResponse> announcements =
+        instructorAnnouncementQueryService.getAnnouncements(instructorId, courseId);
+
+    assertThat(announcements).hasSize(1);
+    assertThat(announcements.get(0).getAnnouncementId()).isEqualTo(announcementId);
+    assertThat(announcements.get(0).getType()).isEqualTo("NOTICE");
+    assertThat(announcements.get(0).getTitle()).isEqualTo("Spring Security 강의 업데이트 안내");
+
+    InstructorAnnouncementDto.AnnouncementDetailResponse detail =
+        instructorAnnouncementQueryService.getAnnouncementDetail(instructorId, announcementId);
+
+    assertThat(detail.getAnnouncementId()).isEqualTo(announcementId);
+    assertThat(detail.getCourseId()).isEqualTo(courseId);
+    assertThat(detail.getContent()).isEqualTo("3강과 4강 자료가 추가되었습니다.");
+    assertThat(detail.getPinned()).isFalse();
+
+    instructorAnnouncementService.updateAnnouncement(
+        instructorId, announcementId, updateAnnouncementRequest());
+    flushAndClear();
+
+    InstructorAnnouncementDto.AnnouncementDetailResponse updatedDetail =
+        instructorAnnouncementQueryService.getAnnouncementDetail(instructorId, announcementId);
+
+    assertThat(updatedDetail.getType()).isEqualTo("NEWS");
+    assertThat(updatedDetail.getTitle()).isEqualTo("Spring Security 강의 소식");
+    assertThat(updatedDetail.getContent()).isEqualTo("실습 예제가 최신 버전 기준으로 수정되었습니다.");
+    assertThat(updatedDetail.getPinned()).isTrue();
+    assertThat(updatedDetail.getDisplayOrder()).isEqualTo(1);
+
+    instructorAnnouncementService.deleteAnnouncement(instructorId, announcementId);
+    flushAndClear();
+
+    assertThat(courseAnnouncementRepository.findById(announcementId)).isEmpty();
+  }
+
   private InstructorCourseDto.CreateCourseRequest createCourseRequest() {
     InstructorCourseDto.CreateCourseRequest request = new InstructorCourseDto.CreateCourseRequest();
     ReflectionTestUtils.setField(request, "title", "Spring Security 완전 정복");
@@ -452,6 +509,40 @@ class InstructorCourseServiceIntegrationTest {
     ReflectionTestUtils.setField(request, "language", "ko");
     ReflectionTestUtils.setField(request, "hasCertificate", false);
     ReflectionTestUtils.setField(request, "tagIds", List.of(javaTagId, jpaTagId));
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createAnnouncementRequest() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request =
+        new InstructorAnnouncementDto.CreateAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "type", "notice");
+    ReflectionTestUtils.setField(request, "title", "Spring Security 강의 업데이트 안내");
+    ReflectionTestUtils.setField(request, "content", "3강과 4강 자료가 추가되었습니다.");
+    ReflectionTestUtils.setField(request, "pinned", false);
+    ReflectionTestUtils.setField(request, "displayOrder", 0);
+    ReflectionTestUtils.setField(
+        request, "publishedAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
+    ReflectionTestUtils.setField(
+        request, "exposureStartAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
+    ReflectionTestUtils.setField(
+        request, "exposureEndAt", java.time.LocalDateTime.of(2026, 3, 30, 23, 59, 59));
+    return request;
+  }
+
+  private InstructorAnnouncementDto.UpdateAnnouncementRequest updateAnnouncementRequest() {
+    InstructorAnnouncementDto.UpdateAnnouncementRequest request =
+        new InstructorAnnouncementDto.UpdateAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "type", "news");
+    ReflectionTestUtils.setField(request, "title", "Spring Security 강의 소식");
+    ReflectionTestUtils.setField(request, "content", "실습 예제가 최신 버전 기준으로 수정되었습니다.");
+    ReflectionTestUtils.setField(request, "pinned", true);
+    ReflectionTestUtils.setField(request, "displayOrder", 1);
+    ReflectionTestUtils.setField(
+        request, "publishedAt", java.time.LocalDateTime.of(2026, 3, 16, 11, 0, 0));
+    ReflectionTestUtils.setField(
+        request, "exposureStartAt", java.time.LocalDateTime.of(2026, 3, 16, 11, 0, 0));
+    ReflectionTestUtils.setField(
+        request, "exposureEndAt", java.time.LocalDateTime.of(2026, 3, 31, 23, 59, 59));
     return request;
   }
 

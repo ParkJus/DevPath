@@ -30,7 +30,7 @@ public class CourseEnrollmentService {
     @Transactional
     public CourseEnrollment enroll(Long userId, Long courseId) {
         // 1. 이미 수강 중인지 확인
-        if (courseEnrollmentRepository.existsByUser_UserIdAndCourse_CourseId(userId, courseId)) {
+        if (courseEnrollmentRepository.existsByUser_IdAndCourse_CourseId(userId, courseId)) {
             throw new CustomException(ErrorCode.ALREADY_EXISTS, "이미 수강 중인 강의입니다.");
         }
 
@@ -69,7 +69,7 @@ public class CourseEnrollmentService {
      * 수강 여부 확인
      */
     public boolean isEnrolled(Long userId, Long courseId) {
-        return courseEnrollmentRepository.existsByUser_UserIdAndCourse_CourseId(userId, courseId);
+        return courseEnrollmentRepository.existsByUser_IdAndCourse_CourseId(userId, courseId);
     }
 
     /**
@@ -78,7 +78,7 @@ public class CourseEnrollmentService {
     @Transactional
     public void updateProgress(Long userId, Long courseId, Integer progressPercentage) {
         CourseEnrollment enrollment = courseEnrollmentRepository
-                .findByUser_UserIdAndCourse_CourseId(userId, courseId)
+                .findByUser_IdAndCourse_CourseId(userId, courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ENROLLMENT_NOT_FOUND));
 
         enrollment.updateProgress(progressPercentage);
@@ -90,7 +90,7 @@ public class CourseEnrollmentService {
     @Transactional
     public void updateLastAccessed(Long userId, Long courseId) {
         CourseEnrollment enrollment = courseEnrollmentRepository
-                .findByUser_UserIdAndCourse_CourseId(userId, courseId)
+                .findByUser_IdAndCourse_CourseId(userId, courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ENROLLMENT_NOT_FOUND));
 
         enrollment.updateLastAccessed();

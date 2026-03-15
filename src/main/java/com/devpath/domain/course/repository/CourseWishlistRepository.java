@@ -13,24 +13,24 @@ public interface CourseWishlistRepository extends JpaRepository<CourseWishlist, 
     /**
      * 특정 사용자의 특정 강의 찜 여부 확인
      */
-    boolean existsByUser_UserIdAndCourse_CourseId(Long userId, Long courseId);
+    boolean existsByUser_IdAndCourse_CourseId(Long userId, Long courseId);
 
     /**
      * 특정 사용자의 특정 강의 찜 조회
      */
-    Optional<CourseWishlist> findByUser_UserIdAndCourse_CourseId(Long userId, Long courseId);
+    Optional<CourseWishlist> findByUser_IdAndCourse_CourseId(Long userId, Long courseId);
 
     /**
      * 특정 사용자의 모든 찜 목록 조회 (최신순)
      */
     @Query("SELECT w FROM CourseWishlist w " +
            "JOIN FETCH w.course c " +
-           "WHERE w.user.userId = :userId " +
+           "WHERE w.user.id = :userId " +
            "ORDER BY w.createdAt DESC")
     List<CourseWishlist> findAllByUserIdWithCourse(@Param("userId") Long userId);
 
     /**
      * 특정 사용자의 찜 개수
      */
-    long countByUser_UserId(Long userId);
+    long countByUser_Id(Long userId);
 }

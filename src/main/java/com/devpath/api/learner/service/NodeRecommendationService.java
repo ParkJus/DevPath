@@ -41,7 +41,7 @@ public class NodeRecommendationService {
 
         // 기존 PENDING 상태 추천 만료 처리
         List<NodeRecommendation> existingPending = nodeRecommendationRepository
-                .findByUser_UserIdAndRoadmap_RoadmapIdAndStatus(
+                .findByUser_IdAndRoadmap_RoadmapIdAndStatus(
                         userId, roadmapId, RecommendationStatus.PENDING
                 );
 
@@ -91,7 +91,7 @@ public class NodeRecommendationService {
      * 로드맵의 모든 추천 조회
      */
     public List<NodeRecommendation> getRecommendations(Long userId, Long roadmapId) {
-        return nodeRecommendationRepository.findByUser_UserIdAndRoadmap_RoadmapId(userId, roadmapId);
+        return nodeRecommendationRepository.findByUser_IdAndRoadmap_RoadmapId(userId, roadmapId);
     }
 
     /**
@@ -99,7 +99,7 @@ public class NodeRecommendationService {
      */
     public List<NodeRecommendation> getPendingRecommendations(Long userId, Long roadmapId) {
         List<NodeRecommendation> pending = nodeRecommendationRepository
-                .findByUser_UserIdAndRoadmap_RoadmapIdAndStatus(
+                .findByUser_IdAndRoadmap_RoadmapIdAndStatus(
                         userId, roadmapId, RecommendationStatus.PENDING
                 );
 

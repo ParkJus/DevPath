@@ -11,13 +11,13 @@ import java.util.List;
 
 public interface NodeRecommendationRepository extends JpaRepository<NodeRecommendation, Long> {
 
-    List<NodeRecommendation> findByUser_UserIdAndRoadmap_RoadmapId(Long userId, Long roadmapId);
+    List<NodeRecommendation> findByUser_IdAndRoadmap_RoadmapId(Long userId, Long roadmapId);
 
-    List<NodeRecommendation> findByUser_UserIdAndRoadmap_RoadmapIdAndStatus(
+    List<NodeRecommendation> findByUser_IdAndRoadmap_RoadmapIdAndStatus(
             Long userId, Long roadmapId, RecommendationStatus status);
 
     @Query("SELECT nr FROM NodeRecommendation nr " +
-           "WHERE nr.user.userId = :userId " +
+           "WHERE nr.user.id = :userId " +
            "AND nr.roadmap.roadmapId = :roadmapId " +
            "AND nr.status = 'PENDING' " +
            "AND nr.expiresAt < :now")

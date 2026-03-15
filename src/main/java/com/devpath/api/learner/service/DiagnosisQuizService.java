@@ -30,7 +30,7 @@ public class DiagnosisQuizService {
     @Transactional
     public DiagnosisQuiz createDiagnosisQuiz(Long userId, Long roadmapId, QuizDifficulty difficulty) {
         // 이미 진단 퀴즈를 수행했는지 확인
-        if (diagnosisQuizRepository.existsByUser_UserIdAndRoadmap_RoadmapId(userId, roadmapId)) {
+        if (diagnosisQuizRepository.existsByUser_IdAndRoadmap_RoadmapId(userId, roadmapId)) {
             throw new CustomException(ErrorCode.QUIZ_ALREADY_TAKEN);
         }
 
@@ -58,7 +58,7 @@ public class DiagnosisQuizService {
      */
     @Transactional
     public DiagnosisResult submitQuizAnswer(Long userId, Long quizId, Map<Integer, String> answers) {
-        DiagnosisQuiz quiz = diagnosisQuizRepository.findByQuizIdAndUser_UserId(quizId, userId)
+        DiagnosisQuiz quiz = diagnosisQuizRepository.findByQuizIdAndUser_Id(quizId, userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.QUIZ_NOT_FOUND));
 
         if (quiz.getSubmittedAt() != null) {
@@ -95,7 +95,7 @@ public class DiagnosisQuizService {
      * 진단 결과 조회
      */
     public DiagnosisResult getDiagnosisResult(Long userId, Long resultId) {
-        return diagnosisResultRepository.findByResultIdAndUser_UserId(resultId, userId)
+        return diagnosisResultRepository.findByResultIdAndUser_Id(resultId, userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 

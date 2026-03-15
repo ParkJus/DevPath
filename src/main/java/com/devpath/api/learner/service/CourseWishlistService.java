@@ -29,7 +29,7 @@ public class CourseWishlistService {
     @Transactional
     public void addToWishlist(Long userId, Long courseId) {
         // 1. 이미 찜했는지 확인
-        if (courseWishlistRepository.existsByUser_UserIdAndCourse_CourseId(userId, courseId)) {
+        if (courseWishlistRepository.existsByUser_IdAndCourse_CourseId(userId, courseId)) {
             throw new CustomException(ErrorCode.ALREADY_EXISTS, "이미 찜한 강의입니다.");
         }
 
@@ -56,7 +56,7 @@ public class CourseWishlistService {
     @Transactional
     public void removeFromWishlist(Long userId, Long courseId) {
         CourseWishlist wishlist = courseWishlistRepository
-                .findByUser_UserIdAndCourse_CourseId(userId, courseId)
+                .findByUser_IdAndCourse_CourseId(userId, courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.WISHLIST_NOT_FOUND));
 
         courseWishlistRepository.delete(wishlist);
@@ -73,6 +73,6 @@ public class CourseWishlistService {
      * 찜 여부 확인
      */
     public boolean isWishlisted(Long userId, Long courseId) {
-        return courseWishlistRepository.existsByUser_UserIdAndCourse_CourseId(userId, courseId);
+        return courseWishlistRepository.existsByUser_IdAndCourse_CourseId(userId, courseId);
     }
 }

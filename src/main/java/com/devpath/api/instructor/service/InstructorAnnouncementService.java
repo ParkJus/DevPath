@@ -9,6 +9,7 @@ import com.devpath.domain.course.entity.CourseAnnouncementType;
 import com.devpath.domain.course.repository.CourseAnnouncementRepository;
 import com.devpath.domain.course.repository.CourseRepository;
 import com.devpath.domain.user.repository.UserRepository;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +34,20 @@ public class InstructorAnnouncementService {
     validateAuthenticatedUser(instructorId);
 
     Course course = getOwnedCourse(instructorId, courseId);
+    CourseAnnouncementType announcementType = toAnnouncementType(request.getType());
+
     validateExposurePeriod(request.getExposureStartAt(), request.getExposureEndAt());
+    validateEventFields(
+        announcementType,
+        request.getExposureStartAt(),
+        request.getExposureEndAt(),
+        request.getEventBannerText(),
+        request.getEventLink());
 
     CourseAnnouncement courseAnnouncement =
         CourseAnnouncement.builder()
             .course(course)
-            .type(toAnnouncementType(request.getType()))
+            .type(announcementType)
             .title(request.getTitle())
             .content(request.getContent())
             .pinned(request.getPinned())
@@ -46,6 +55,8 @@ public class InstructorAnnouncementService {
             .publishedAt(request.getPublishedAt())
             .exposureStartAt(request.getExposureStartAt())
             .exposureEndAt(request.getExposureEndAt())
+            .eventBannerText(normalizeBlank(request.getEventBannerText()))
+            .eventLink(normalizeBlank(request.getEventLink()))
             .build();
 
     CourseAnnouncement savedAnnouncement = courseAnnouncementRepository.save(courseAnnouncement);
@@ -61,17 +72,27 @@ public class InstructorAnnouncementService {
     validateAuthenticatedUser(instructorId);
 
     CourseAnnouncement courseAnnouncement = getOwnedAnnouncement(instructorId, announcementId);
+    CourseAnnouncementType announcementType = toAnnouncementType(request.getType());
+
     validateExposurePeriod(request.getExposureStartAt(), request.getExposureEndAt());
+    validateEventFields(
+        announcementType,
+        request.getExposureStartAt(),
+        request.getExposureEndAt(),
+        request.getEventBannerText(),
+        request.getEventLink());
 
     courseAnnouncement.update(
-        toAnnouncementType(request.getType()),
+        announcementType,
         request.getTitle(),
         request.getContent(),
         request.getPinned(),
         request.getDisplayOrder(),
         request.getPublishedAt(),
         request.getExposureStartAt(),
-        request.getExposureEndAt());
+        request.getExposureEndAt(),
+        normalizeBlank(request.getEventBannerText()),
+        normalizeBlank(request.getEventLink()));
   }
 
   // 강의 공지를 삭제한다.
@@ -129,6 +150,50 @@ public class InstructorAnnouncementService {
     }
   }
 
+  // 이벤트 공지 필수값과 일반 공지 허용값을 검증한다.
+  private void validateEventFields(
+      CourseAnnouncementType type,
+      LocalDateTime exposureStartAt,
+      LocalDateTime exposureEndAt,
+      String eventBannerText,
+      String eventLink) {
+    if (type == CourseAnnouncementType.EVENT) {
+      if (isBlank(eventBannerText) || isBlank(eventLink)) {
+        throw new CustomException(ErrorCode.INVALID_INPUT);
+      }
+
+      if (exposureStartAt == null || exposureEndAt == null) {
+        throw new CustomException(ErrorCode.INVALID_INPUT);
+      }
+
+      validateHttpUrl(eventLink);
+      return;
+    }
+
+    if (!isBlank(eventBannerText) || !isBlank(eventLink)) {
+      throw new CustomException(ErrorCode.INVALID_INPUT);
+    }
+  }
+
+  // 이벤트 링크가 http 또는 https URL인지 검증한다.
+  private void validateHttpUrl(String value) {
+    try {
+      URI uri = URI.create(value);
+
+      if (uri.getScheme() == null || uri.getHost() == null) {
+        throw new CustomException(ErrorCode.INVALID_INPUT);
+      }
+
+      String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+
+      if (!scheme.equals("http") && !scheme.equals("https")) {
+        throw new CustomException(ErrorCode.INVALID_INPUT);
+      }
+    } catch (IllegalArgumentException e) {
+      throw new CustomException(ErrorCode.INVALID_INPUT);
+    }
+  }
+
   // 문자열 공지 타입을 enum으로 변환한다.
   private CourseAnnouncementType toAnnouncementType(String type) {
     try {
@@ -136,5 +201,19 @@ public class InstructorAnnouncementService {
     } catch (Exception e) {
       throw new CustomException(ErrorCode.INVALID_INPUT);
     }
+  }
+
+  // 비어 있는 문자열은 null로 정규화한다.
+  private String normalizeBlank(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    return value.trim();
+  }
+
+  // 문자열이 비어 있는지 확인한다.
+  private boolean isBlank(String value) {
+    return value == null || value.isBlank();
   }
 }

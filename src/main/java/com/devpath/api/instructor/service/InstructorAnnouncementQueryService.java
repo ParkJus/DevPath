@@ -95,6 +95,8 @@ public class InstructorAnnouncementQueryService {
         .publishedAt(courseAnnouncement.getPublishedAt())
         .exposureStartAt(courseAnnouncement.getExposureStartAt())
         .exposureEndAt(courseAnnouncement.getExposureEndAt())
+        .eventBannerText(courseAnnouncement.getEventBannerText())
+        .eventLink(courseAnnouncement.getEventLink())
         .build();
   }
 
@@ -112,6 +114,8 @@ public class InstructorAnnouncementQueryService {
         .publishedAt(courseAnnouncement.getPublishedAt())
         .exposureStartAt(courseAnnouncement.getExposureStartAt())
         .exposureEndAt(courseAnnouncement.getExposureEndAt())
+        .eventBannerText(courseAnnouncement.getEventBannerText())
+        .eventLink(courseAnnouncement.getEventLink())
         .createdAt(courseAnnouncement.getCreatedAt())
         .updatedAt(courseAnnouncement.getUpdatedAt())
         .build();

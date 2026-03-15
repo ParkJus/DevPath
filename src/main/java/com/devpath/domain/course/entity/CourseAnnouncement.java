@@ -63,6 +63,12 @@ public class CourseAnnouncement {
   @Column(name = "exposure_end_at")
   private LocalDateTime exposureEndAt;
 
+  @Column(name = "event_banner_text", length = 255)
+  private String eventBannerText;
+
+  @Column(name = "event_link", length = 500)
+  private String eventLink;
+
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt;
@@ -80,7 +86,9 @@ public class CourseAnnouncement {
       Integer displayOrder,
       LocalDateTime publishedAt,
       LocalDateTime exposureStartAt,
-      LocalDateTime exposureEndAt) {
+      LocalDateTime exposureEndAt,
+      String eventBannerText,
+      String eventLink) {
     this.type = type;
     this.title = title;
     this.content = content;
@@ -89,6 +97,8 @@ public class CourseAnnouncement {
     this.publishedAt = publishedAt;
     this.exposureStartAt = exposureStartAt;
     this.exposureEndAt = exposureEndAt;
+    this.eventBannerText = eventBannerText;
+    this.eventLink = eventLink;
   }
 
   // 고정 여부를 변경한다.

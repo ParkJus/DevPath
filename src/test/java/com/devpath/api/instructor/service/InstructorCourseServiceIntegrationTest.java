@@ -356,7 +356,7 @@ class InstructorCourseServiceIntegrationTest {
 
     Long announcementId =
         instructorAnnouncementService.createAnnouncement(
-            instructorId, courseId, createAnnouncementRequest());
+            instructorId, courseId, createEventAnnouncementRequest());
     flushAndClear();
 
     assertThat(courseAnnouncementRepository.findById(announcementId)).isPresent();
@@ -366,7 +366,10 @@ class InstructorCourseServiceIntegrationTest {
 
     assertThat(announcements).hasSize(1);
     assertThat(announcements.get(0).getAnnouncementId()).isEqualTo(announcementId);
-    assertThat(announcements.get(0).getType()).isEqualTo("NOTICE");
+    assertThat(announcements.get(0).getType()).isEqualTo("EVENT");
+    assertThat(announcements.get(0).getEventBannerText()).isEqualTo("3월 한정 오프라인 특강 모집");
+    assertThat(announcements.get(0).getEventLink())
+        .isEqualTo("https://devpath.com/events/security-special");
     assertThat(announcements.get(0).getTitle()).isEqualTo("Spring Security 강의 업데이트 안내");
 
     InstructorAnnouncementDto.AnnouncementDetailResponse detail =
@@ -374,26 +377,85 @@ class InstructorCourseServiceIntegrationTest {
 
     assertThat(detail.getAnnouncementId()).isEqualTo(announcementId);
     assertThat(detail.getCourseId()).isEqualTo(courseId);
+    assertThat(detail.getType()).isEqualTo("EVENT");
     assertThat(detail.getContent()).isEqualTo("3강과 4강 자료가 추가되었습니다.");
-    assertThat(detail.getPinned()).isFalse();
+    assertThat(detail.getPinned()).isTrue();
+    assertThat(detail.getEventBannerText()).isEqualTo("3월 한정 오프라인 특강 모집");
+    assertThat(detail.getEventLink()).isEqualTo("https://devpath.com/events/security-special");
 
     instructorAnnouncementService.updateAnnouncement(
-        instructorId, announcementId, updateAnnouncementRequest());
+        instructorId, announcementId, updateNormalAnnouncementRequest());
     flushAndClear();
 
     InstructorAnnouncementDto.AnnouncementDetailResponse updatedDetail =
         instructorAnnouncementQueryService.getAnnouncementDetail(instructorId, announcementId);
 
-    assertThat(updatedDetail.getType()).isEqualTo("NEWS");
+    assertThat(updatedDetail.getType()).isEqualTo("NORMAL");
     assertThat(updatedDetail.getTitle()).isEqualTo("Spring Security 강의 소식");
     assertThat(updatedDetail.getContent()).isEqualTo("실습 예제가 최신 버전 기준으로 수정되었습니다.");
     assertThat(updatedDetail.getPinned()).isTrue();
     assertThat(updatedDetail.getDisplayOrder()).isEqualTo(1);
+    assertThat(updatedDetail.getEventBannerText()).isNull();
+    assertThat(updatedDetail.getEventLink()).isNull();
 
     instructorAnnouncementService.deleteAnnouncement(instructorId, announcementId);
     flushAndClear();
 
     assertThat(courseAnnouncementRepository.findById(announcementId)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("이벤트 공지 validation을 위반하면 저장하지 않는다")
+  void announcementValidationRejectsInvalidCases() {
+    Long courseId = instructorCourseService.createCourse(instructorId, createCourseRequest());
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidEventRequestWithoutBanner()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidEventRequestWithoutLink()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidEventRequestWithoutExposure()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidEventRequestWithUnsupportedUrl()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidNormalRequestWithEventFields()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.createAnnouncement(
+                    instructorId, courseId, createInvalidRequestWithReversedExposurePeriod()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
   }
 
   private InstructorCourseDto.CreateCourseRequest createCourseRequest() {
@@ -512,13 +574,13 @@ class InstructorCourseServiceIntegrationTest {
     return request;
   }
 
-  private InstructorAnnouncementDto.CreateAnnouncementRequest createAnnouncementRequest() {
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createEventAnnouncementRequest() {
     InstructorAnnouncementDto.CreateAnnouncementRequest request =
         new InstructorAnnouncementDto.CreateAnnouncementRequest();
-    ReflectionTestUtils.setField(request, "type", "notice");
+    ReflectionTestUtils.setField(request, "type", "event");
     ReflectionTestUtils.setField(request, "title", "Spring Security 강의 업데이트 안내");
     ReflectionTestUtils.setField(request, "content", "3강과 4강 자료가 추가되었습니다.");
-    ReflectionTestUtils.setField(request, "pinned", false);
+    ReflectionTestUtils.setField(request, "pinned", true);
     ReflectionTestUtils.setField(request, "displayOrder", 0);
     ReflectionTestUtils.setField(
         request, "publishedAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
@@ -526,13 +588,16 @@ class InstructorCourseServiceIntegrationTest {
         request, "exposureStartAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
     ReflectionTestUtils.setField(
         request, "exposureEndAt", java.time.LocalDateTime.of(2026, 3, 30, 23, 59, 59));
+    ReflectionTestUtils.setField(request, "eventBannerText", "3월 한정 오프라인 특강 모집");
+    ReflectionTestUtils.setField(
+        request, "eventLink", "https://devpath.com/events/security-special");
     return request;
   }
 
-  private InstructorAnnouncementDto.UpdateAnnouncementRequest updateAnnouncementRequest() {
+  private InstructorAnnouncementDto.UpdateAnnouncementRequest updateNormalAnnouncementRequest() {
     InstructorAnnouncementDto.UpdateAnnouncementRequest request =
         new InstructorAnnouncementDto.UpdateAnnouncementRequest();
-    ReflectionTestUtils.setField(request, "type", "news");
+    ReflectionTestUtils.setField(request, "type", "normal");
     ReflectionTestUtils.setField(request, "title", "Spring Security 강의 소식");
     ReflectionTestUtils.setField(request, "content", "실습 예제가 최신 버전 기준으로 수정되었습니다.");
     ReflectionTestUtils.setField(request, "pinned", true);
@@ -543,6 +608,60 @@ class InstructorCourseServiceIntegrationTest {
         request, "exposureStartAt", java.time.LocalDateTime.of(2026, 3, 16, 11, 0, 0));
     ReflectionTestUtils.setField(
         request, "exposureEndAt", java.time.LocalDateTime.of(2026, 3, 31, 23, 59, 59));
+    ReflectionTestUtils.setField(request, "eventBannerText", null);
+    ReflectionTestUtils.setField(request, "eventLink", null);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidEventRequestWithoutBanner() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request = createEventAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "eventBannerText", null);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidEventRequestWithoutLink() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request = createEventAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "eventLink", null);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidEventRequestWithoutExposure() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request = createEventAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "exposureStartAt", null);
+    ReflectionTestUtils.setField(request, "exposureEndAt", null);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidEventRequestWithUnsupportedUrl() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request = createEventAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "eventLink", "ftp://devpath.com/events/security-special");
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidNormalRequestWithEventFields() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request =
+        new InstructorAnnouncementDto.CreateAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "type", "normal");
+    ReflectionTestUtils.setField(request, "title", "Spring Security 媛뺤쓽 ?뚯떇");
+    ReflectionTestUtils.setField(request, "content", "?ㅼ뒿 ?덉젣媛 理쒖떊 踰꾩쟾 湲곗??쇰줈 ?섏젙?섏뿀?듬땲??");
+    ReflectionTestUtils.setField(request, "pinned", true);
+    ReflectionTestUtils.setField(request, "displayOrder", 1);
+    ReflectionTestUtils.setField(
+        request, "publishedAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
+    ReflectionTestUtils.setField(request, "exposureStartAt", null);
+    ReflectionTestUtils.setField(request, "exposureEndAt", null);
+    ReflectionTestUtils.setField(request, "eventBannerText", "허용되지 않는 배너");
+    ReflectionTestUtils.setField(
+        request, "eventLink", "https://devpath.com/events/security-special");
+    return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createInvalidRequestWithReversedExposurePeriod() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request = createEventAnnouncementRequest();
+    ReflectionTestUtils.setField(
+        request, "exposureStartAt", java.time.LocalDateTime.of(2026, 3, 31, 23, 59, 59));
+    ReflectionTestUtils.setField(
+        request, "exposureEndAt", java.time.LocalDateTime.of(2026, 3, 16, 10, 0, 0));
     return request;
   }
 

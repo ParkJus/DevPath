@@ -1,6 +1,6 @@
 package com.devpath.api.learner.controller;
 
-import com.devpath.api.common.dto.ApiResponse;
+import com.devpath.common.response.ApiResponse;
 import com.devpath.api.learner.dto.NodeRecommendationDto;
 import com.devpath.api.learner.service.NodeRecommendationService;
 import com.devpath.common.exception.CustomException;
@@ -45,7 +45,7 @@ public class NodeRecommendationController {
         NodeRecommendationDto.GenerateRecommendationsResponse response =
                 NodeRecommendationDto.GenerateRecommendationsResponse.from(roadmapId, recommendations);
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/roadmaps/{roadmapId}/recommendations")
@@ -97,7 +97,7 @@ public class NodeRecommendationController {
                         )
                         .build();
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @PatchMapping("/recommendations/{recommendationId}/accept")
@@ -116,7 +116,7 @@ public class NodeRecommendationController {
                         "추천 노드가 로드맵에 추가되었습니다."
                 );
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @PatchMapping("/recommendations/{recommendationId}/reject")
@@ -135,7 +135,7 @@ public class NodeRecommendationController {
                         "추천을 거절했습니다."
                 );
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @PatchMapping("/recommendations/{recommendationId}/expire")
@@ -154,6 +154,6 @@ public class NodeRecommendationController {
                         "추천이 만료되었습니다."
                 );
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

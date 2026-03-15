@@ -6,8 +6,8 @@ import com.devpath.domain.roadmap.entity.NodeRequiredTag;
 import com.devpath.domain.roadmap.entity.Roadmap;
 import com.devpath.domain.roadmap.repository.NodeRequiredTagRepository;
 import com.devpath.domain.roadmap.repository.RoadmapRepository;
-import com.devpath.domain.tag.entity.Tag;
-import com.devpath.domain.tag.repository.TagRepository;
+import com.devpath.domain.user.entity.Tag;
+import com.devpath.domain.user.repository.TagRepository;
 import com.devpath.domain.user.entity.User;
 import com.devpath.domain.user.entity.UserTechStack;
 import com.devpath.domain.user.repository.UserRepository;
@@ -88,7 +88,7 @@ public class SkillCheckService {
                     .orElseGet(() -> {
                         Tag newTag = Tag.builder()
                                 .name(tagName)
-                                .description("사용자 등록 스킬")
+                                .isOfficial(false)
                                 .build();
                         return tagRepository.save(newTag);
                     });

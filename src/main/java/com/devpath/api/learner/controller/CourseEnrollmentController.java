@@ -7,13 +7,13 @@ import com.devpath.domain.course.entity.CourseEnrollment;
 import com.devpath.domain.course.entity.EnrollmentStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +37,7 @@ public class CourseEnrollmentController {
         CourseEnrollment enrollment = courseEnrollmentService.enroll(userId, request.getCourseId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(CourseEnrollmentDto.EnrollResponse.from(enrollment)));
+                .body(ApiResponse.ok(CourseEnrollmentDto.EnrollResponse.from(enrollment)));
     }
 
     /**
@@ -54,7 +54,7 @@ public class CourseEnrollmentController {
                 .map(CourseEnrollmentDto.EnrollmentResponse::from)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     /**
@@ -72,7 +72,7 @@ public class CourseEnrollmentController {
                 .map(CourseEnrollmentDto.EnrollmentResponse::from)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     /**
@@ -87,7 +87,7 @@ public class CourseEnrollmentController {
     ) {
         courseEnrollmentService.updateProgress(userId, courseId, request.getProgressPercentage());
 
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
     /**
@@ -101,6 +101,6 @@ public class CourseEnrollmentController {
     ) {
         courseEnrollmentService.updateLastAccessed(userId, courseId);
 
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

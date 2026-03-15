@@ -1,6 +1,6 @@
 package com.devpath.api.learner.controller;
 
-import com.devpath.api.common.dto.ApiResponse;
+import com.devpath.common.response.ApiResponse;
 import com.devpath.api.learner.dto.SkillCheckDto;
 import com.devpath.api.learner.service.SkillCheckService;
 import com.devpath.domain.roadmap.entity.Roadmap;
@@ -54,7 +54,7 @@ public class SkillCheckController {
                 .existingSkills(alreadyOwned)
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/roadmaps/{roadmapId}/skill-suggestions")
@@ -95,7 +95,7 @@ public class SkillCheckController {
                 .skillCoveragePercent(Math.round(coveragePercent * 10) / 10.0)
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/roadmaps/{roadmapId}/lock-status")
@@ -125,6 +125,6 @@ public class SkillCheckController {
                 .nodeLockStatus(nodeLockStatus)
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

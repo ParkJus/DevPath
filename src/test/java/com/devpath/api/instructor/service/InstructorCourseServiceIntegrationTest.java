@@ -8,9 +8,14 @@ import com.devpath.api.instructor.dto.InstructorAnnouncementDto;
 import com.devpath.api.instructor.dto.InstructorCourseDto;
 import com.devpath.api.instructor.dto.InstructorLessonDto;
 import com.devpath.api.instructor.dto.InstructorMaterialDto;
+import com.devpath.api.instructor.dto.InstructorNodeClassificationDto;
 import com.devpath.api.instructor.dto.InstructorSectionDto;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
+import com.devpath.domain.roadmap.entity.NodeRequiredTag;
+import com.devpath.domain.roadmap.entity.Roadmap;
+import com.devpath.domain.roadmap.entity.RoadmapNode;
+import com.devpath.domain.roadmap.service.TagValidationService;
 import com.devpath.domain.course.repository.CourseAnnouncementRepository;
 import com.devpath.domain.course.repository.CourseMaterialRepository;
 import com.devpath.domain.course.repository.CourseRepository;
@@ -51,7 +56,9 @@ import org.springframework.test.util.ReflectionTestUtils;
   InstructorCourseService.class,
   InstructorCourseQueryService.class,
   InstructorAnnouncementService.class,
-  InstructorAnnouncementQueryService.class
+  InstructorAnnouncementQueryService.class,
+  InstructorNodeClassificationQueryService.class,
+  TagValidationService.class
 })
 class InstructorCourseServiceIntegrationTest {
 
@@ -59,6 +66,8 @@ class InstructorCourseServiceIntegrationTest {
   @Autowired private InstructorCourseQueryService instructorCourseQueryService;
   @Autowired private InstructorAnnouncementService instructorAnnouncementService;
   @Autowired private InstructorAnnouncementQueryService instructorAnnouncementQueryService;
+  @Autowired
+  private InstructorNodeClassificationQueryService instructorNodeClassificationQueryService;
 
   @Autowired private UserRepository userRepository;
   @Autowired private UserProfileRepository userProfileRepository;
@@ -80,6 +89,7 @@ class InstructorCourseServiceIntegrationTest {
   private Long springBootTagId;
   private Long jpaTagId;
   private Long springSecurityTagId;
+  private Long jwtTagId;
 
   @BeforeEach
   void setUp() {
@@ -117,11 +127,14 @@ class InstructorCourseServiceIntegrationTest {
     Tag springSecurityTag =
         tagRepository.save(
             Tag.builder().name("Spring Security").category("Backend").isOfficial(true).build());
+    Tag jwtTag =
+        tagRepository.save(Tag.builder().name("JWT").category("Backend").isOfficial(true).build());
 
     javaTagId = javaTag.getTagId();
     springBootTagId = springBootTag.getTagId();
     jpaTagId = jpaTag.getTagId();
     springSecurityTagId = springSecurityTag.getTagId();
+    jwtTagId = jwtTag.getTagId();
 
     userTechStackRepository.save(UserTechStack.builder().user(instructor).tag(javaTag).build());
     userTechStackRepository.save(
@@ -551,6 +564,127 @@ class InstructorCourseServiceIntegrationTest {
         .isEqualTo(ErrorCode.INVALID_INPUT);
   }
 
+  @Test
+  @DisplayName("강의 태그가 노드 필수 태그를 모두 포함하면 자동 분류 preview를 반환한다")
+  void getAutoClassificationsReturnsFullyMatchedNodesOnly() {
+    Long courseId =
+        instructorCourseService.createCourse(instructorId, createNodeClassificationCourseRequest());
+
+    User instructor = userRepository.findById(instructorId).orElseThrow();
+
+    Roadmap publicRoadmap =
+        Roadmap.builder()
+            .title("백엔드 Spring 로드맵")
+            .description("태그 기반 자동 분류 테스트용")
+            .creator(instructor)
+            .isOfficial(true)
+            .isPublic(true)
+            .isDeleted(false)
+            .build();
+    entityManager.persist(publicRoadmap);
+
+    Roadmap privateRoadmap =
+        Roadmap.builder()
+            .title("비공개 로드맵")
+            .description("조회 제외 테스트용")
+            .creator(instructor)
+            .isOfficial(true)
+            .isPublic(false)
+            .isDeleted(false)
+            .build();
+    entityManager.persist(privateRoadmap);
+
+    RoadmapNode matchedConceptNode =
+        RoadmapNode.builder()
+            .roadmap(publicRoadmap)
+            .title("Spring Security")
+            .content("매칭되어야 하는 노드")
+            .nodeType("CONCEPT")
+            .sortOrder(4)
+            .build();
+    entityManager.persist(matchedConceptNode);
+
+    RoadmapNode matchedPracticeNode =
+        RoadmapNode.builder()
+            .roadmap(publicRoadmap)
+            .title("JWT 인증")
+            .content("매칭되어야 하는 실습 노드")
+            .nodeType("PRACTICE")
+            .sortOrder(5)
+            .build();
+    entityManager.persist(matchedPracticeNode);
+
+    RoadmapNode missingTagNode =
+        RoadmapNode.builder()
+            .roadmap(publicRoadmap)
+            .title("고급 Java 보안")
+            .content("Java 태그가 없어 제외되어야 하는 노드")
+            .nodeType("CONCEPT")
+            .sortOrder(6)
+            .build();
+    entityManager.persist(missingTagNode);
+
+    RoadmapNode noRequiredTagNode =
+        RoadmapNode.builder()
+            .roadmap(publicRoadmap)
+            .title("필수 태그 없는 노드")
+            .content("필수 태그가 없어 제외되어야 하는 노드")
+            .nodeType("CONCEPT")
+            .sortOrder(7)
+            .build();
+    entityManager.persist(noRequiredTagNode);
+
+    RoadmapNode privateRoadmapNode =
+        RoadmapNode.builder()
+            .roadmap(privateRoadmap)
+            .title("비공개 로드맵 노드")
+            .content("로드맵 공개 조건으로 제외되어야 하는 노드")
+            .nodeType("CONCEPT")
+            .sortOrder(1)
+            .build();
+    entityManager.persist(privateRoadmapNode);
+
+    Tag springBootTag = tagRepository.findById(springBootTagId).orElseThrow();
+    Tag springSecurityTag = tagRepository.findById(springSecurityTagId).orElseThrow();
+    Tag jwtTag = tagRepository.findById(jwtTagId).orElseThrow();
+    Tag javaTag = tagRepository.findById(javaTagId).orElseThrow();
+
+    entityManager.persist(NodeRequiredTag.builder().node(matchedConceptNode).tag(springBootTag).build());
+    entityManager.persist(
+        NodeRequiredTag.builder().node(matchedConceptNode).tag(springSecurityTag).build());
+    entityManager.persist(NodeRequiredTag.builder().node(matchedConceptNode).tag(jwtTag).build());
+
+    entityManager.persist(NodeRequiredTag.builder().node(matchedPracticeNode).tag(jwtTag).build());
+    entityManager.persist(
+        NodeRequiredTag.builder().node(matchedPracticeNode).tag(springSecurityTag).build());
+
+    entityManager.persist(NodeRequiredTag.builder().node(missingTagNode).tag(javaTag).build());
+    entityManager.persist(NodeRequiredTag.builder().node(missingTagNode).tag(jwtTag).build());
+
+    entityManager.persist(NodeRequiredTag.builder().node(privateRoadmapNode).tag(jwtTag).build());
+    entityManager.persist(
+        NodeRequiredTag.builder().node(privateRoadmapNode).tag(springSecurityTag).build());
+
+    flushAndClear();
+
+    InstructorNodeClassificationDto.AutoClassificationResponse response =
+        instructorNodeClassificationQueryService.getAutoClassifications(instructorId, courseId);
+
+    assertThat(response.getCourseId()).isEqualTo(courseId);
+    assertThat(response.getCourseTitle()).isEqualTo("Spring Security 완전 정복");
+    assertThat(response.getCourseTags())
+        .containsExactly("JWT", "Spring Boot", "Spring Security");
+    assertThat(response.getTotalMatchedNodes()).isEqualTo(2);
+    assertThat(response.getMatchedNodes()).hasSize(2);
+    assertThat(response.getMatchedNodes())
+        .extracting(InstructorNodeClassificationDto.MatchedNodeItem::getNodeTitle)
+        .containsExactly("Spring Security", "JWT 인증");
+    assertThat(response.getMatchedNodes().get(0).getRequiredTags())
+        .containsExactly("Spring Boot", "Spring Security", "JWT");
+    assertThat(response.getMatchedNodes().get(1).getRequiredTags())
+        .containsExactly("JWT", "Spring Security");
+  }
+
   private InstructorCourseDto.CreateCourseRequest createCourseRequest() {
     InstructorCourseDto.CreateCourseRequest request = new InstructorCourseDto.CreateCourseRequest();
     ReflectionTestUtils.setField(request, "title", "Spring Security 완전 정복");
@@ -563,6 +697,22 @@ class InstructorCourseServiceIntegrationTest {
     ReflectionTestUtils.setField(request, "language", "ko");
     ReflectionTestUtils.setField(request, "hasCertificate", true);
     ReflectionTestUtils.setField(request, "tagIds", List.of(javaTagId, springBootTagId));
+    return request;
+  }
+
+  private InstructorCourseDto.CreateCourseRequest createNodeClassificationCourseRequest() {
+    InstructorCourseDto.CreateCourseRequest request = new InstructorCourseDto.CreateCourseRequest();
+    ReflectionTestUtils.setField(request, "title", "Spring Security 완전 정복");
+    ReflectionTestUtils.setField(request, "subtitle", "JWT, Spring Boot, Security 집중 과정");
+    ReflectionTestUtils.setField(request, "description", "자동 노드 분류 preview 테스트용 강의");
+    ReflectionTestUtils.setField(request, "price", new BigDecimal("99000"));
+    ReflectionTestUtils.setField(request, "originalPrice", new BigDecimal("129000"));
+    ReflectionTestUtils.setField(request, "currency", "KRW");
+    ReflectionTestUtils.setField(request, "difficultyLevel", "intermediate");
+    ReflectionTestUtils.setField(request, "language", "ko");
+    ReflectionTestUtils.setField(request, "hasCertificate", true);
+    ReflectionTestUtils.setField(
+        request, "tagIds", List.of(jwtTagId, springBootTagId, springSecurityTagId));
     return request;
   }
 

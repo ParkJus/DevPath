@@ -1,3 +1,6 @@
+ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;
+
 INSERT INTO roles (role_name, description)
 SELECT 'ROLE_LEARNER', 'General learner'
 WHERE NOT EXISTS (
@@ -71,7 +74,18 @@ UPDATE users
 SET password = '$2a$10$RcdWJBwl.kuttYmqm/BN..6aZKeLNlq9DiNFHbZgZxfTzzNDD33o2'
 WHERE email IN ('learner@devpath.com', 'instructor@devpath.com', 'admin@devpath.com');
 
-INSERT INTO user_profiles (user_id, profile_image, channel_name, bio, phone, github_url, blog_url, created_at, updated_at)
+INSERT INTO user_profiles (
+    user_id,
+    profile_image,
+    channel_name,
+    bio,
+    phone,
+    github_url,
+    blog_url,
+    is_public,
+    created_at,
+    updated_at
+)
 SELECT
     u.user_id,
     '/images/profiles/instructor-hong.png',
@@ -80,6 +94,7 @@ SELECT
     '010-0000-0001',
     'https://github.com/instructor-hong',
     'https://blog.devpath.com/hong',
+    TRUE,
     NOW(),
     NOW()
 FROM users u
@@ -90,7 +105,18 @@ WHERE u.email = 'instructor@devpath.com'
       WHERE up.user_id = u.user_id
   );
 
-INSERT INTO user_profiles (user_id, profile_image, channel_name, bio, phone, github_url, blog_url, created_at, updated_at)
+INSERT INTO user_profiles (
+    user_id,
+    profile_image,
+    channel_name,
+    bio,
+    phone,
+    github_url,
+    blog_url,
+    is_public,
+    created_at,
+    updated_at
+)
 SELECT
     u.user_id,
     '/images/profiles/admin-park.png',
@@ -99,6 +125,7 @@ SELECT
     '010-0000-0002',
     'https://github.com/admin-park',
     'https://blog.devpath.com/admin',
+    TRUE,
     NOW(),
     NOW()
 FROM users u

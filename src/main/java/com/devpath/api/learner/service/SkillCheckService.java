@@ -47,11 +47,11 @@ public class SkillCheckService {
         List<String> userSkills = userTechStackRepository.findTagNamesByUserId(userId);
 
         // 로드맵의 모든 노드 조회
-        List<RoadmapNode> roadmapNodes = roadmapNodeRepository.findByRoadmap(roadmap);
+        List<RoadmapNode> roadmapNodes = roadmapNodeRepository.findAllByRoadmapRoadmapId(roadmapId);
         
         // 각 노드의 필수 태그 수집
         Set<String> allRequiredSkills = roadmapNodes.stream()
-                .flatMap(node -> nodeRequiredTagRepository.findByRoadmapNode(node).stream())
+                .flatMap(node -> nodeRequiredTagRepository.findAllByNodeId(node.getNodeId()).stream())
                 .map(nrt -> nrt.getTag().getName())
                 .collect(Collectors.toSet());
 

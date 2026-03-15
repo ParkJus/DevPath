@@ -267,15 +267,23 @@ class InstructorCourseServiceIntegrationTest {
     assertThat(lessonWithMaterial.getMaterials().get(0).getOriginalFileName())
         .isEqualTo("week1-slide.pdf");
 
+    Long announcementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createNormalAnnouncementRequest());
+    flushAndClear();
+
     instructorCourseService.deleteCourse(instructorId, courseId);
     flushAndClear();
 
     assertThat(courseRepository.findById(courseId)).isEmpty();
+    assertThat(courseAnnouncementRepository.findById(announcementId)).isEmpty();
     assertThat(courseSectionRepository.findAllByCourseCourseIdOrderByOrderIndexAsc(courseId)).isEmpty();
     assertThat(lessonRepository.findAllBySectionSectionIdOrderByOrderIndexAsc(sectionId)).isEmpty();
     assertThat(courseMaterialRepository.findAllByLessonLessonIdOrderByDisplayOrderAsc(lessonId1))
         .isEmpty();
     assertThat(courseTagMapRepository.findAllByCourseCourseId(courseId)).isEmpty();
+    assertThat(countRowsByCourseId("course_prerequisites", courseId)).isZero();
+    assertThat(countRowsByCourseId("course_job_relevance", courseId)).isZero();
   }
 
   @Test
@@ -1191,6 +1199,16 @@ class InstructorCourseServiceIntegrationTest {
     ReflectionTestUtils.setField(request, "fileSize", 1048576);
     ReflectionTestUtils.setField(request, "displayOrder", 0);
     return request;
+  }
+
+  private int countRowsByCourseId(String tableName, Long courseId) {
+    Number count =
+        (Number)
+            entityManager
+                .createNativeQuery("select count(*) from " + tableName + " where course_id = :courseId")
+                .setParameter("courseId", courseId)
+                .getSingleResult();
+    return count.intValue();
   }
 
   private void flushAndClear() {

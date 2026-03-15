@@ -882,3 +882,147 @@ WHERE c.title = 'JPA Practical Design'
       WHERE ctm.course_id = c.course_id
         AND ctm.tag_id = t.tag_id
   );
+
+INSERT INTO tags (name, category, is_official)
+SELECT 'JWT', 'Backend', TRUE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM tags
+    WHERE name = 'JWT'
+);
+
+INSERT INTO node_required_tags (node_id, tag_id)
+SELECT n.node_id, t.tag_id
+FROM roadmap_nodes n, tags t
+WHERE n.title = 'Security and JWT'
+  AND t.name = 'Spring Security'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM node_required_tags req
+      WHERE req.node_id = n.node_id
+        AND req.tag_id = t.tag_id
+  );
+
+INSERT INTO node_required_tags (node_id, tag_id)
+SELECT n.node_id, t.tag_id
+FROM roadmap_nodes n, tags t
+WHERE n.title = 'Security and JWT'
+  AND t.name = 'JWT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM node_required_tags req
+      WHERE req.node_id = n.node_id
+        AND req.tag_id = t.tag_id
+  );
+
+INSERT INTO node_required_tags (node_id, tag_id)
+SELECT n.node_id, t.tag_id
+FROM roadmap_nodes n, tags t
+WHERE n.title = 'Docker Deployment Basics'
+  AND t.name = 'Docker'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM node_required_tags req
+      WHERE req.node_id = n.node_id
+        AND req.tag_id = t.tag_id
+  );
+
+INSERT INTO course_tag_maps (course_id, tag_id, proficiency_level)
+SELECT c.course_id, t.tag_id, 3
+FROM courses c, tags t
+WHERE c.title = 'Spring Boot Intro'
+  AND t.name = 'Spring Security'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_tag_maps ctm
+      WHERE ctm.course_id = c.course_id
+        AND ctm.tag_id = t.tag_id
+  );
+
+INSERT INTO course_tag_maps (course_id, tag_id, proficiency_level)
+SELECT c.course_id, t.tag_id, 3
+FROM courses c, tags t
+WHERE c.title = 'Spring Boot Intro'
+  AND t.name = 'JWT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_tag_maps ctm
+      WHERE ctm.course_id = c.course_id
+        AND ctm.tag_id = t.tag_id
+  );
+
+INSERT INTO course_announcements (
+    course_id,
+    announcement_type,
+    title,
+    content,
+    is_pinned,
+    display_order,
+    published_at,
+    exposure_start_at,
+    exposure_end_at,
+    event_banner_text,
+    event_link,
+    created_at,
+    updated_at
+)
+SELECT
+    c.course_id,
+    'EVENT',
+    'Offline security special event',
+    'Join the offline Spring Security special lecture and Q&A session.',
+    TRUE,
+    0,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    TIMESTAMP '2099-12-31 23:59:59',
+    'March offline special lecture',
+    'https://devpath.com/events/security-special',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM courses c
+WHERE c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_announcements ca
+      WHERE ca.course_id = c.course_id
+        AND ca.title = 'Offline security special event'
+  );
+
+INSERT INTO course_announcements (
+    course_id,
+    announcement_type,
+    title,
+    content,
+    is_pinned,
+    display_order,
+    published_at,
+    exposure_start_at,
+    exposure_end_at,
+    event_banner_text,
+    event_link,
+    created_at,
+    updated_at
+)
+SELECT
+    c.course_id,
+    'NORMAL',
+    'Course material update',
+    'The latest Spring Boot Intro materials and examples have been updated.',
+    FALSE,
+    1,
+    CURRENT_TIMESTAMP,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM courses c
+WHERE c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_announcements ca
+      WHERE ca.course_id = c.course_id
+        AND ca.title = 'Course material update'
+  );

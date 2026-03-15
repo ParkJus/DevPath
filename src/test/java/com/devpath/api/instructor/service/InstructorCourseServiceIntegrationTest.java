@@ -13,10 +13,12 @@ import com.devpath.api.instructor.dto.InstructorNodeCoverageDto;
 import com.devpath.api.instructor.dto.InstructorSectionDto;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
+import com.devpath.domain.course.entity.Course;
 import com.devpath.domain.roadmap.entity.NodeRequiredTag;
 import com.devpath.domain.roadmap.entity.Roadmap;
 import com.devpath.domain.roadmap.entity.RoadmapNode;
 import com.devpath.domain.roadmap.service.TagValidationService;
+import com.devpath.domain.course.entity.CourseNodeMapping;
 import com.devpath.domain.course.repository.CourseAnnouncementRepository;
 import com.devpath.domain.course.repository.CourseMaterialRepository;
 import com.devpath.domain.course.repository.CourseRepository;
@@ -270,6 +272,29 @@ class InstructorCourseServiceIntegrationTest {
     Long announcementId =
         instructorAnnouncementService.createAnnouncement(
             instructorId, courseId, createNormalAnnouncementRequest());
+
+    Course course = courseRepository.findById(courseId).orElseThrow();
+    User instructor = userRepository.findById(instructorId).orElseThrow();
+    Roadmap roadmap =
+        entityManager.merge(
+            Roadmap.builder()
+                .title("Deletion validation roadmap")
+                .description("Ensures course-node mappings are cleaned up with the course.")
+                .creator(instructor)
+                .isOfficial(true)
+                .isPublic(true)
+                .isDeleted(false)
+                .build());
+    RoadmapNode mappedNode =
+        entityManager.merge(
+            RoadmapNode.builder()
+                .roadmap(roadmap)
+                .title("Mapped node")
+                .content("Mapped node content")
+                .nodeType("CONCEPT")
+                .sortOrder(1)
+                .build());
+    entityManager.persist(CourseNodeMapping.builder().course(course).node(mappedNode).build());
     flushAndClear();
 
     instructorCourseService.deleteCourse(instructorId, courseId);
@@ -282,6 +307,7 @@ class InstructorCourseServiceIntegrationTest {
     assertThat(courseMaterialRepository.findAllByLessonLessonIdOrderByDisplayOrderAsc(lessonId1))
         .isEmpty();
     assertThat(courseTagMapRepository.findAllByCourseCourseId(courseId)).isEmpty();
+    assertThat(countRowsByCourseId("course_node_mappings", courseId)).isZero();
     assertThat(countRowsByCourseId("course_prerequisites", courseId)).isZero();
     assertThat(countRowsByCourseId("course_job_relevance", courseId)).isZero();
   }
@@ -829,6 +855,104 @@ class InstructorCourseServiceIntegrationTest {
     assertThat(response.getNodeCoverages().get(2).getMatchedTags()).isEmpty();
     assertThat(response.getNodeCoverages().get(2).getMissingTags())
         .containsExactly("Java", "JPA");
+  }
+
+  @Test
+  @DisplayName("다른 강사는 강의 하위 리소스와 공지 및 노드 조회 API에 접근할 수 없다")
+  void ownershipValidationRejectsDifferentInstructor() {
+    User otherInstructor =
+        userRepository.save(
+            User.builder()
+                .email("other-instructor@devpath.com")
+                .password("encoded-password")
+                .name("Other Instructor")
+                .role(UserRole.ROLE_INSTRUCTOR)
+                .build());
+    Long otherInstructorId = otherInstructor.getId();
+
+    Long courseId =
+        instructorCourseService.createCourse(instructorId, createNodeClassificationCourseRequest());
+    Long sectionId =
+        instructorCourseService.createSection(instructorId, courseId, createSectionRequest());
+    Long lessonId =
+        instructorCourseService.createLesson(instructorId, sectionId, createLessonRequest1());
+    Long announcementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createNormalAnnouncementRequest());
+    flushAndClear();
+
+    assertThatThrownBy(
+            () -> instructorCourseQueryService.getCourseDetail(otherInstructorId, courseId))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorCourseService.createSection(
+                    otherInstructorId, courseId, createSectionRequest()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorCourseService.createLesson(
+                    otherInstructorId, sectionId, createLessonRequest2()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorCourseService.updateLessonPrerequisites(
+                    otherInstructorId, lessonId, updateLessonPrerequisitesRequest(List.of())))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncement(
+                    otherInstructorId, announcementId, updateNormalAnnouncementRequest()))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncementPin(
+                    otherInstructorId,
+                    courseId,
+                    announcementId,
+                    updateAnnouncementPinRequest(true)))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncementDisplayOrder(
+                    otherInstructorId,
+                    courseId,
+                    updateAnnouncementOrderRequest(List.of(announcementOrderItem(announcementId, 0)))))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () ->
+                instructorNodeClassificationQueryService.getAutoClassifications(
+                    otherInstructorId, courseId))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
+
+    assertThatThrownBy(
+            () -> instructorNodeCoverageQueryService.getNodeCoverages(otherInstructorId, courseId))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.FORBIDDEN);
   }
 
   private InstructorCourseDto.CreateCourseRequest createCourseRequest() {

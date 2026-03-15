@@ -19,6 +19,7 @@ import com.devpath.domain.course.entity.LessonPrerequisite;
 import com.devpath.domain.course.entity.LessonType;
 import com.devpath.domain.course.repository.CourseAnnouncementRepository;
 import com.devpath.domain.course.repository.CourseMaterialRepository;
+import com.devpath.domain.course.repository.CourseNodeMappingRepository;
 import com.devpath.domain.course.repository.CourseObjectiveRepository;
 import com.devpath.domain.course.repository.CourseRepository;
 import com.devpath.domain.course.repository.CourseSectionRepository;
@@ -27,6 +28,7 @@ import com.devpath.domain.course.repository.CourseTargetAudienceRepository;
 import com.devpath.domain.course.repository.LessonPrerequisiteRepository;
 import com.devpath.domain.course.repository.LessonRepository;
 import com.devpath.domain.user.entity.Tag;
+import com.devpath.domain.user.entity.User;
 import com.devpath.domain.user.repository.TagRepository;
 import com.devpath.domain.user.repository.UserRepository;
 import java.util.ArrayList;
@@ -55,6 +57,7 @@ public class InstructorCourseService {
   private final LessonRepository lessonRepository;
   private final LessonPrerequisiteRepository lessonPrerequisiteRepository;
   private final CourseAnnouncementRepository courseAnnouncementRepository;
+  private final CourseNodeMappingRepository courseNodeMappingRepository;
   private final CourseMaterialRepository courseMaterialRepository;
   private final CourseObjectiveRepository courseObjectiveRepository;
   private final CourseTargetAudienceRepository courseTargetAudienceRepository;
@@ -64,10 +67,14 @@ public class InstructorCourseService {
   @Transactional
   public Long createCourse(Long instructorId, InstructorCourseDto.CreateCourseRequest request) {
     validateAuthenticatedUser(instructorId);
+    User instructor =
+        userRepository
+            .findById(instructorId)
+            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
     Course course =
         Course.builder()
-            .instructorId(instructorId)
+            .instructor(instructor)
             .title(request.getTitle())
             .subtitle(request.getSubtitle())
             .description(request.getDescription())
@@ -526,6 +533,7 @@ public class InstructorCourseService {
 
     deleteLessonPrerequisiteLinks(lessonIds);
 
+    courseNodeMappingRepository.deleteAllByCourseCourseId(courseId);
     courseAnnouncementRepository.deleteAllByCourseCourseId(courseId);
     courseMaterialRepository.deleteAllByLessonSectionCourseCourseId(courseId);
     lessonRepository.deleteAllBySectionCourseCourseId(courseId);

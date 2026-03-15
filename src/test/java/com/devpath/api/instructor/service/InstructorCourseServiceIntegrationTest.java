@@ -458,6 +458,99 @@ class InstructorCourseServiceIntegrationTest {
         .isEqualTo(ErrorCode.INVALID_INPUT);
   }
 
+  @Test
+  @DisplayName("강의 공지 고정 여부와 노출 순서를 변경한다")
+  void announcementPinAndOrderFlow() {
+    Long courseId = instructorCourseService.createCourse(instructorId, createCourseRequest());
+
+    Long firstAnnouncementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createEventAnnouncementRequest());
+    Long secondAnnouncementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createNormalAnnouncementRequest());
+    flushAndClear();
+
+    instructorAnnouncementService.updateAnnouncementPin(
+        instructorId, courseId, secondAnnouncementId, updateAnnouncementPinRequest(true));
+    instructorAnnouncementService.updateAnnouncementDisplayOrder(
+        instructorId,
+        courseId,
+        updateAnnouncementOrderRequest(
+            List.of(
+                announcementOrderItem(firstAnnouncementId, 2),
+                announcementOrderItem(secondAnnouncementId, 1))));
+    flushAndClear();
+
+    List<InstructorAnnouncementDto.AnnouncementSummaryResponse> announcements =
+        instructorAnnouncementQueryService.getAnnouncements(instructorId, courseId);
+
+    assertThat(announcements).hasSize(2);
+    assertThat(announcements.get(0).getAnnouncementId()).isEqualTo(secondAnnouncementId);
+    assertThat(announcements.get(0).getPinned()).isTrue();
+    assertThat(announcements.get(0).getDisplayOrder()).isEqualTo(1);
+    assertThat(announcements.get(1).getAnnouncementId()).isEqualTo(firstAnnouncementId);
+    assertThat(announcements.get(1).getPinned()).isTrue();
+    assertThat(announcements.get(1).getDisplayOrder()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("강의 공지 순서 변경 요청이 현재 공지 목록과 다르면 실패한다")
+  void announcementOrderRejectsInvalidCases() {
+    Long courseId = instructorCourseService.createCourse(instructorId, createCourseRequest());
+    Long otherCourseId = instructorCourseService.createCourse(instructorId, createCourseRequest());
+
+    Long firstAnnouncementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createEventAnnouncementRequest());
+    Long secondAnnouncementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, courseId, createNormalAnnouncementRequest());
+    Long foreignAnnouncementId =
+        instructorAnnouncementService.createAnnouncement(
+            instructorId, otherCourseId, createNormalAnnouncementRequest());
+    flushAndClear();
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncementDisplayOrder(
+                    instructorId,
+                    courseId,
+                    updateAnnouncementOrderRequest(
+                        List.of(
+                            announcementOrderItem(firstAnnouncementId, 0),
+                            announcementOrderItem(foreignAnnouncementId, 1)))))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncementDisplayOrder(
+                    instructorId,
+                    courseId,
+                    updateAnnouncementOrderRequest(
+                        List.of(
+                            announcementOrderItem(firstAnnouncementId, 0),
+                            announcementOrderItem(firstAnnouncementId, 1)))))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+
+    assertThatThrownBy(
+            () ->
+                instructorAnnouncementService.updateAnnouncementDisplayOrder(
+                    instructorId,
+                    courseId,
+                    updateAnnouncementOrderRequest(
+                        List.of(
+                            announcementOrderItem(firstAnnouncementId, 1),
+                            announcementOrderItem(secondAnnouncementId, 1)))))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INVALID_INPUT);
+  }
+
   private InstructorCourseDto.CreateCourseRequest createCourseRequest() {
     InstructorCourseDto.CreateCourseRequest request = new InstructorCourseDto.CreateCourseRequest();
     ReflectionTestUtils.setField(request, "title", "Spring Security 완전 정복");
@@ -592,6 +685,48 @@ class InstructorCourseServiceIntegrationTest {
     ReflectionTestUtils.setField(
         request, "eventLink", "https://devpath.com/events/security-special");
     return request;
+  }
+
+  private InstructorAnnouncementDto.CreateAnnouncementRequest createNormalAnnouncementRequest() {
+    InstructorAnnouncementDto.CreateAnnouncementRequest request =
+        new InstructorAnnouncementDto.CreateAnnouncementRequest();
+    ReflectionTestUtils.setField(request, "type", "normal");
+    ReflectionTestUtils.setField(request, "title", "Spring Security 강의 소식");
+    ReflectionTestUtils.setField(request, "content", "실습 예제가 최신 버전 기준으로 수정되었습니다.");
+    ReflectionTestUtils.setField(request, "pinned", false);
+    ReflectionTestUtils.setField(request, "displayOrder", 1);
+    ReflectionTestUtils.setField(
+        request, "publishedAt", java.time.LocalDateTime.of(2026, 3, 16, 11, 0, 0));
+    ReflectionTestUtils.setField(request, "exposureStartAt", null);
+    ReflectionTestUtils.setField(request, "exposureEndAt", null);
+    ReflectionTestUtils.setField(request, "eventBannerText", null);
+    ReflectionTestUtils.setField(request, "eventLink", null);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.UpdateAnnouncementPinRequest updateAnnouncementPinRequest(
+      boolean pinned) {
+    InstructorAnnouncementDto.UpdateAnnouncementPinRequest request =
+        new InstructorAnnouncementDto.UpdateAnnouncementPinRequest();
+    ReflectionTestUtils.setField(request, "pinned", pinned);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.UpdateAnnouncementOrderRequest updateAnnouncementOrderRequest(
+      List<InstructorAnnouncementDto.AnnouncementOrderItem> announcementOrders) {
+    InstructorAnnouncementDto.UpdateAnnouncementOrderRequest request =
+        new InstructorAnnouncementDto.UpdateAnnouncementOrderRequest();
+    ReflectionTestUtils.setField(request, "announcementOrders", announcementOrders);
+    return request;
+  }
+
+  private InstructorAnnouncementDto.AnnouncementOrderItem announcementOrderItem(
+      Long announcementId, int displayOrder) {
+    InstructorAnnouncementDto.AnnouncementOrderItem item =
+        new InstructorAnnouncementDto.AnnouncementOrderItem();
+    ReflectionTestUtils.setField(item, "announcementId", announcementId);
+    ReflectionTestUtils.setField(item, "displayOrder", displayOrder);
+    return item;
   }
 
   private InstructorAnnouncementDto.UpdateAnnouncementRequest updateNormalAnnouncementRequest() {

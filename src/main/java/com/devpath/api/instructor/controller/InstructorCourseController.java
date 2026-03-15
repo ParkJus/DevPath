@@ -104,6 +104,29 @@ public class InstructorCourseController {
     return ApiResponse.success("강의 공지 목록을 조회했습니다.", response);
   }
 
+  // 강사가 특정 공지의 고정 여부를 변경한다.
+  @Operation(summary = "강의 공지 고정 여부 변경")
+  @PatchMapping("/courses/{courseId}/announcements/{announcementId}/pin")
+  public ApiResponse<Void> updateAnnouncementPin(
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
+      @PathVariable Long courseId,
+      @PathVariable Long announcementId,
+      @Valid @RequestBody InstructorAnnouncementDto.UpdateAnnouncementPinRequest request) {
+    instructorAnnouncementService.updateAnnouncementPin(userId, courseId, announcementId, request);
+    return ApiResponse.success("강의 공지 고정 여부가 변경되었습니다.", null);
+  }
+
+  // 강사가 특정 강의의 공지 노출 순서를 일괄 변경한다.
+  @Operation(summary = "강의 공지 노출 순서 변경")
+  @PatchMapping("/courses/{courseId}/announcements/order")
+  public ApiResponse<Void> updateAnnouncementOrder(
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
+      @PathVariable Long courseId,
+      @Valid @RequestBody InstructorAnnouncementDto.UpdateAnnouncementOrderRequest request) {
+    instructorAnnouncementService.updateAnnouncementDisplayOrder(userId, courseId, request);
+    return ApiResponse.success("강의 공지 노출 순서가 변경되었습니다.", null);
+  }
+
   // 강사가 특정 공지의 상세 정보를 조회한다.
   @Operation(summary = "강의 공지 상세 조회")
   @GetMapping("/announcements/{announcementId}")

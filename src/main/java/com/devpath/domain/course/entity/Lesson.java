@@ -11,13 +11,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "lessons")
@@ -26,7 +24,6 @@ import org.hibernate.annotations.CreationTimestamp;
 @AllArgsConstructor
 @Builder
 public class Lesson {
-
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "lesson_id")
@@ -36,45 +33,90 @@ public class Lesson {
   @JoinColumn(name = "section_id", nullable = false)
   private CourseSection section;
 
-  @Column(nullable = false, length = 150)
+  @Column(nullable = false)
   private String title;
 
+  @Column(columnDefinition = "TEXT")
+  private String description;
+
   @Enumerated(EnumType.STRING)
-  @Column(name = "lesson_type", nullable = false, length = 30)
+  @Column(name = "lesson_type")
   private LessonType lessonType;
 
-  @Column(name = "lesson_order", nullable = false)
-  private Integer sortOrder;
+  @Column(name = "video_url")
+  private String videoUrl;
 
-  @Column(nullable = false)
-  private Boolean previewable;
+  @Column(name = "video_asset_key")
+  private String videoId;
+
+  @Column(name = "video_provider")
+  private String videoProvider;
+
+  @Column(name = "thumbnail_url")
+  private String thumbnailUrl;
 
   @Column(name = "duration_seconds")
   private Integer durationSeconds;
 
-  @Column(name = "video_asset_key", length = 255)
-  private String videoAssetKey;
+  @Column(name = "is_preview")
+  private Boolean isPreview;
 
-  @CreationTimestamp
-  @Column(name = "created_at", updatable = false)
-  private LocalDateTime createdAt;
+  @Column(name = "is_published")
+  private Boolean isPublished;
 
-  // 레슨의 기본 정보를 수정한다.
+  @Column(name = "sort_order")
+  private Integer orderIndex;
+
   public void updateInfo(
       String title,
+      String description,
       LessonType lessonType,
-      String videoAssetKey,
+      String videoId,
+      String videoUrl,
+      String videoProvider,
+      String thumbnailUrl,
       Integer durationSeconds,
-      Boolean previewable) {
+      Boolean isPreview,
+      Boolean isPublished) {
     this.title = title;
+    this.description = description;
     this.lessonType = lessonType;
-    this.videoAssetKey = videoAssetKey;
+    this.videoId = videoId;
+    this.videoUrl = videoUrl;
+    this.videoProvider = videoProvider;
+    this.thumbnailUrl = thumbnailUrl;
     this.durationSeconds = durationSeconds;
-    this.previewable = previewable;
+    this.isPreview = isPreview;
+    this.isPublished = isPublished;
   }
 
-  // 레슨의 정렬 순서를 변경한다.
+  public void updateInfo(
+      String title,
+      String description,
+      LessonType lessonType,
+      String videoUrl,
+      String videoAssetKey,
+      String thumbnailUrl,
+      Integer durationSeconds,
+      Boolean isPreview,
+      Boolean isPublished) {
+    this.title = title;
+    this.description = description;
+    this.lessonType = lessonType;
+    this.videoUrl = videoUrl;
+    this.videoId = videoAssetKey;
+    this.videoProvider = null;
+    this.thumbnailUrl = thumbnailUrl;
+    this.durationSeconds = durationSeconds;
+    this.isPreview = isPreview;
+    this.isPublished = isPublished;
+  }
+
   public void changeSortOrder(Integer sortOrder) {
-    this.sortOrder = sortOrder;
+    this.orderIndex = sortOrder;
+  }
+
+  public void changeOrderIndex(Integer orderIndex) {
+    this.orderIndex = orderIndex;
   }
 }

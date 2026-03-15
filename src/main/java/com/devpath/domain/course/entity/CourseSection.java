@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class CourseSection {
-
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "section_id")
@@ -32,19 +31,32 @@ public class CourseSection {
   @JoinColumn(name = "course_id", nullable = false)
   private Course course;
 
-  @Column(nullable = false, length = 150)
+  @Column(nullable = false)
   private String title;
 
-  @Column(name = "section_order", nullable = false)
-  private Integer sortOrder;
+  @Column(columnDefinition = "TEXT")
+  private String description;
 
-  // 섹션의 기본 정보를 수정한다.
-  public void updateInfo(String title) {
+  @Column(name = "sort_order")
+  private Integer orderIndex;
+
+  @Column(name = "is_published")
+  private Boolean isPublished;
+
+  public void updateInfo(String title, String description) {
     this.title = title;
+    this.description = description;
   }
 
-  // 섹션의 정렬 순서를 변경한다.
+  public void changeOrderIndex(Integer orderIndex) {
+    this.orderIndex = orderIndex;
+  }
+
   public void changeSortOrder(Integer sortOrder) {
-    this.sortOrder = sortOrder;
+    this.orderIndex = sortOrder;
+  }
+
+  public void changePublished(Boolean isPublished) {
+    this.isPublished = isPublished;
   }
 }

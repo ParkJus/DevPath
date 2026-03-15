@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class CourseTargetAudience {
-
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "target_audience_id")
@@ -32,19 +31,17 @@ public class CourseTargetAudience {
   @JoinColumn(name = "course_id", nullable = false)
   private Course course;
 
-  @Column(nullable = false, length = 255)
-  private String content;
+  @Column(name = "audience_description", nullable = false)
+  private String audienceDescription;
 
-  @Column(name = "sort_order", nullable = false)
-  private Integer sortOrder;
+  @Column(name = "display_order")
+  private Integer displayOrder;
 
-  // 강의 수강 대상 설명을 수정한다.
   public void updateAudienceDescription(String audienceDescription) {
-    this.content = audienceDescription;
+    this.audienceDescription = audienceDescription;
   }
 
-  // 강의 수강 대상 표시 순서를 변경한다.
   public void changeDisplayOrder(Integer displayOrder) {
-    this.sortOrder = displayOrder;
+    this.displayOrder = displayOrder;
   }
 }

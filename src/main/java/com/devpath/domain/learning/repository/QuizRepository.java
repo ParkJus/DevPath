@@ -4,6 +4,8 @@ import com.devpath.domain.learning.entity.Quiz;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
@@ -11,5 +13,14 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     Optional<Quiz> findByIdAndIsDeletedFalse(Long id);
 
     // 특정 로드맵 노드에 연결된 퀴즈를 최신 생성순으로 조회한다.
-    List<Quiz> findAllByRoadmapNodeNodeIdAndIsDeletedFalseOrderByCreatedAtDesc(Long nodeId);
+    @Query(
+            """
+            select q
+            from Quiz q
+            where q.roadmapNode.nodeId = :nodeId
+              and q.isDeleted = false
+            order by q.createdAt desc
+            """
+    )
+    List<Quiz> findAllByRoadmapNodeIdAndIsDeletedFalseOrderByCreatedAtDesc(@Param("nodeId") Long nodeId);
 }

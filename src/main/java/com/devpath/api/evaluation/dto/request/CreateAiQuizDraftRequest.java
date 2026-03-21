@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class CreateAiQuizDraftRequest {
 
   @NotNull
-  @Schema(description = "로드맵 노드 ID", example = "10")
+  @Schema(description = "AI 초안을 생성할 로드맵 노드 ID", example = "10")
   private Long nodeId;
 
   @NotBlank
@@ -33,16 +33,16 @@ public class CreateAiQuizDraftRequest {
 
   @NotBlank
   @Schema(
-      description = "AI 생성 근거 원문",
+      description = "AI가 문항을 생성할 때 참고한 근거 원문",
       example = "Spring Security는 인증과 인가를 담당하는 프레임워크다.")
   private String sourceText;
 
-  @Schema(description = "근거 구간", example = "12:10-13:20")
+  @Schema(description = "영상 기반 생성일 경우 참고한 타임스탬프 구간", example = "12:10-13:20")
   private String sourceTimestamp;
 
   @Min(1)
   @Max(10)
-  @Schema(description = "생성 문제 개수", example = "3")
+  @Schema(description = "생성할 문항 개수", example = "3")
   private Integer questionCount;
 
   @Schema(description = "선호 문항 유형", example = "MULTIPLE_CHOICE")

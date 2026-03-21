@@ -26,7 +26,7 @@ public class QuestionBankStatsResponse {
   @Schema(description = "주관식 문제 수", example = "14")
   private Long shortAnswerCount;
 
-  @Schema(description = "최근 생성 문제 수", example = "6")
+  @Schema(description = "최근 7일 내 생성된 문제 수", example = "6")
   private Long recentCreatedQuestionCount;
 
   @Schema(description = "채택된 AI 초안 수", example = "5")
@@ -67,7 +67,7 @@ public class QuestionBankStatsResponse {
     @Schema(description = "퀴즈 생성 방식", example = "AI_VIDEO")
     private QuizType quizType;
 
-    @Schema(description = "문제 수", example = "5")
+    @Schema(description = "해당 퀴즈의 문제 수", example = "5")
     private Integer questionCount;
 
     @Builder

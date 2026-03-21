@@ -34,19 +34,19 @@ public class AiQuizDraftResponse {
   @Schema(description = "초안 상태", example = "DRAFT")
   private String status;
 
-  @Schema(description = "근거 구간", example = "12:10-13:20")
+  @Schema(description = "근거 타임스탬프 구간", example = "12:10-13:20")
   private String sourceTimestamp;
 
-  @Schema(description = "문항 개수", example = "3")
+  @Schema(description = "초안 문항 개수", example = "3")
   private Integer questionCount;
 
-  @Schema(description = "채택된 실제 퀴즈 ID", example = "101")
+  @Schema(description = "채택 후 생성된 실제 퀴즈 ID", example = "101")
   private Long adoptedQuizId;
 
   @Schema(description = "거부 사유", example = "정확도 보완 필요")
   private String rejectedReason;
 
-  @Schema(description = "생성 시각", example = "2026-03-21T10:00:00")
+  @Schema(description = "초안 생성 시각", example = "2026-03-21T10:00:00")
   private LocalDateTime createdAt;
 
   @Schema(description = "초안 문항 목록")
@@ -94,19 +94,19 @@ public class AiQuizDraftResponse {
     @Schema(description = "문항 본문", example = "Spring Security의 핵심 역할은 무엇인가?")
     private String questionText;
 
-    @Schema(description = "해설", example = "인증과 인가를 지원합니다.")
+    @Schema(description = "문항 해설", example = "인증과 인가를 지원하는 것이 핵심 역할입니다.")
     private String explanation;
 
-    @Schema(description = "배점", example = "5")
+    @Schema(description = "문항 배점", example = "5")
     private Integer points;
 
-    @Schema(description = "노출 순서", example = "1")
+    @Schema(description = "문항 노출 순서", example = "1")
     private Integer displayOrder;
 
-    @Schema(description = "근거 구간", example = "12:10-13:20")
+    @Schema(description = "문항별 근거 타임스탬프", example = "12:10-13:20")
     private String sourceTimestamp;
 
-    @Schema(description = "선택지 목록")
+    @Schema(description = "문항 선택지 목록")
     private List<OptionDraftItem> options = new ArrayList<>();
 
     @Builder
@@ -144,7 +144,7 @@ public class AiQuizDraftResponse {
     @Schema(description = "정답 여부", example = "true")
     private Boolean correct;
 
-    @Schema(description = "노출 순서", example = "1")
+    @Schema(description = "선택지 노출 순서", example = "1")
     private Integer displayOrder;
 
     @Builder

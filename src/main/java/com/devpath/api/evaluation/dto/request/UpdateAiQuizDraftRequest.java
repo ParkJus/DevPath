@@ -15,14 +15,14 @@ import lombok.NoArgsConstructor;
 @Schema(description = "AI 퀴즈 초안 수정 요청 DTO")
 public class UpdateAiQuizDraftRequest {
 
-  @Schema(description = "수정할 제목", example = "Spring Security 수정된 초안 퀴즈")
+  @Schema(description = "수정할 초안 제목", example = "Spring Security 수정된 초안 퀴즈")
   private String title;
 
-  @Schema(description = "수정할 설명", example = "강사 검토 후 초안을 일부 수정했습니다.")
+  @Schema(description = "수정할 초안 설명", example = "강사 검토 후 초안을 일부 수정했습니다.")
   private String description;
 
   @Valid
-  @Schema(description = "수정할 문항 목록")
+  @Schema(description = "초안 문항 전체 교체에 사용할 문항 목록")
   private List<DraftQuestionUpdateRequest> questions = new ArrayList<>();
 
   @Builder
@@ -47,20 +47,20 @@ public class UpdateAiQuizDraftRequest {
     @Schema(description = "문항 본문", example = "Spring Security의 핵심 역할은 무엇인가?")
     private String questionText;
 
-    @Schema(description = "해설", example = "인증과 인가를 지원하는 것이 핵심 역할입니다.")
+    @Schema(description = "문항 해설", example = "인증과 인가를 지원하는 것이 핵심 역할입니다.")
     private String explanation;
 
-    @Schema(description = "배점", example = "5")
+    @Schema(description = "문항 배점", example = "5")
     private Integer points;
 
-    @Schema(description = "노출 순서", example = "1")
+    @Schema(description = "문항 노출 순서", example = "1")
     private Integer displayOrder;
 
-    @Schema(description = "근거 구간", example = "12:10-13:20")
+    @Schema(description = "문항별 근거 타임스탬프", example = "12:10-13:20")
     private String sourceTimestamp;
 
     @Valid
-    @Schema(description = "수정할 선택지 목록")
+    @Schema(description = "문항에 포함할 선택지 목록")
     private List<DraftOptionUpdateRequest> options = new ArrayList<>();
 
     @Builder
@@ -98,7 +98,7 @@ public class UpdateAiQuizDraftRequest {
     @Schema(description = "정답 여부", example = "true")
     private Boolean correct;
 
-    @Schema(description = "노출 순서", example = "1")
+    @Schema(description = "선택지 노출 순서", example = "1")
     private Integer displayOrder;
 
     @Builder

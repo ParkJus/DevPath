@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class RejectAiQuizDraftRequest {
 
   @NotBlank
-  @Schema(description = "거부 사유", example = "문항 정확도가 낮아 재생성이 필요합니다.")
+  @Schema(description = "AI 초안을 거부하는 사유", example = "문항 정확도가 낮아 재생성이 필요합니다.")
   private String reason;
 
   @Builder

@@ -1,7 +1,9 @@
 package com.devpath.api.community.service;
 
+import com.devpath.api.community.dto.MyPostResponse;
 import com.devpath.api.community.dto.PostRequest;
 import com.devpath.api.community.dto.PostResponse;
+import com.devpath.api.community.dto.PostUpdateRequest;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
 import com.devpath.domain.community.entity.CommunityCategory;
@@ -9,15 +11,13 @@ import com.devpath.domain.community.entity.Post;
 import com.devpath.domain.community.repository.PostRepository;
 import com.devpath.domain.user.entity.User;
 import com.devpath.domain.user.repository.UserRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Service
-@RequiredArgsConstructor // 생성자 주입 원칙 (Lombok)
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CommunityService {
 
@@ -26,8 +26,7 @@ public class CommunityService {
 
     @Transactional
     public PostResponse createPost(Long userId, PostRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        User user = getUser(userId);
 
         Post post = Post.builder()
                 .user(user)
@@ -44,21 +43,64 @@ public class CommunityService {
         return postRepository.findByCategoryAndIsDeletedFalseOrderByCreatedAtDesc(category)
                 .stream()
                 .map(PostResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
     public PostResponse getPostDetail(Long postId) {
-        Post post = postRepository.findById(postId)
-                // 수정: NOT_FOUND -> POST_NOT_FOUND
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        Post post = getActivePost(postId);
 
-        if (post.isDeleted()) {
-            // 수정: NOT_FOUND -> POST_NOT_FOUND
-            throw new CustomException(ErrorCode.POST_NOT_FOUND);
-        }
+        post.incrementViewCount();
 
-        post.incrementViewCount(); // 조회수 증가 (비즈니스 메서드 사용)
         return PostResponse.from(post);
+    }
+
+    @Transactional
+    public PostResponse updatePost(Long userId, Long postId, PostUpdateRequest request) {
+        Post post = getActivePost(postId);
+
+        validatePostOwner(userId, post);
+
+        post.updatePost(
+                request.getTitle(),
+                request.getContent(),
+                request.getCategory()
+        );
+
+        return PostResponse.from(post);
+    }
+
+    @Transactional
+    public void deletePost(Long userId, Long postId) {
+        Post post = getActivePost(postId);
+
+        validatePostOwner(userId, post);
+
+        post.deletePost();
+    }
+
+    public List<MyPostResponse> getMyPosts(Long userId) {
+        getUser(userId);
+
+        return postRepository.findAllByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(MyPostResponse::from)
+                .toList();
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private Post getActivePost(Long postId) {
+        return postRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private void validatePostOwner(Long userId, Post post) {
+        if (!post.getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_ACTION);
+        }
     }
 }

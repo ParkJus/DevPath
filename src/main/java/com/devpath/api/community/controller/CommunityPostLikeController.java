@@ -3,6 +3,7 @@ package com.devpath.api.community.controller;
 import com.devpath.api.community.dto.PostLikeResponse;
 import com.devpath.api.community.service.CommunityPostLikeService;
 import com.devpath.common.response.ApiResponse;
+import com.devpath.common.swagger.SwaggerDocConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
-@Tag(name = "Community Like API", description = "커뮤니티 게시글 좋아요 API")
+@Tag(
+        name = "Community Like API",
+        description = "커뮤니티 게시글 좋아요 API입니다. Swagger 테스트 기준으로 userId=2를 상호작용 사용자로 사용하면 됩니다."
+)
 public class CommunityPostLikeController {
 
     private final CommunityPostLikeService communityPostLikeService;
@@ -25,9 +29,9 @@ public class CommunityPostLikeController {
     @PostMapping("/{postId}/likes")
     @Operation(summary = "게시글 좋아요", description = "특정 게시글에 좋아요를 등록합니다.")
     public ApiResponse<PostLikeResponse> likePost(
-            @Parameter(description = "좋아요 요청 사용자 ID", example = "1")
+            @Parameter(description = SwaggerDocConstants.DUMMY_USER_ID_DESCRIPTION, example = "2")
             @RequestParam Long userId,
-            @Parameter(description = "게시글 ID", example = "10")
+            @Parameter(description = "좋아요를 누를 게시글 ID입니다.", example = "10")
             @PathVariable Long postId
     ) {
         PostLikeResponse response = communityPostLikeService.likePost(userId, postId);
@@ -37,9 +41,9 @@ public class CommunityPostLikeController {
     @DeleteMapping("/{postId}/likes")
     @Operation(summary = "게시글 좋아요 취소", description = "특정 게시글의 좋아요를 취소합니다.")
     public ApiResponse<PostLikeResponse> unlikePost(
-            @Parameter(description = "좋아요 취소 요청 사용자 ID", example = "1")
+            @Parameter(description = SwaggerDocConstants.DUMMY_USER_ID_DESCRIPTION, example = "2")
             @RequestParam Long userId,
-            @Parameter(description = "게시글 ID", example = "10")
+            @Parameter(description = "좋아요를 취소할 게시글 ID입니다.", example = "10")
             @PathVariable Long postId
     ) {
         PostLikeResponse response = communityPostLikeService.unlikePost(userId, postId);

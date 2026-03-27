@@ -1,0 +1,47 @@
+package com.devpath.api.instructor.entity;
+
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "qna_answer_draft")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
+@EntityListeners(AuditingEntityListener.class)
+public class QnaAnswerDraft {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long questionId;
+
+    @Column(nullable = false)
+    private Long instructorId;
+
+    @Column(columnDefinition = "TEXT")
+    private String draftContent;
+
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    @CreatedDate
+    private LocalDateTime savedAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    public void updateDraft(String content) {
+        this.draftContent = content;
+    }
+}

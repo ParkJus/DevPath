@@ -1,0 +1,30 @@
+package com.devpath.api.instructor.dto.qna;
+
+import com.devpath.domain.qna.entity.Answer;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Builder
+public class QnaAnswerResponse {
+
+    private Long answerId;
+    private Long questionId;
+    private Long instructorId;
+    private String content;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public static QnaAnswerResponse from(Answer answer) {
+        return QnaAnswerResponse.builder()
+                .answerId(answer.getId())
+                .questionId(answer.getQuestion().getId())
+                .instructorId(answer.getUser().getId())
+                .content(answer.getContent())
+                .createdAt(answer.getCreatedAt())
+                .updatedAt(answer.getUpdatedAt())
+                .build();
+    }
+}

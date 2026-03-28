@@ -7,6 +7,10 @@ import com.devpath.api.admin.dto.PolicyGovernanceResponses.CourseMappingCandidat
 import com.devpath.api.admin.dto.PolicyGovernanceResponses.MappingCandidatesResponse;
 import com.devpath.api.admin.dto.PolicyGovernanceResponses.NodeCandidateItem;
 import com.devpath.api.admin.dto.PolicyGovernanceResponses.SystemPolicyResponse;
+import com.devpath.api.admin.dto.governance.CourseNodeMappingCandidateResponse;
+import com.devpath.api.admin.dto.governance.CourseNodeMappingRequest;
+import com.devpath.api.admin.dto.governance.StreamingPolicyUpdateRequest;
+import com.devpath.api.admin.dto.governance.SystemPolicyUpdateRequest;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
 import com.devpath.domain.course.entity.Course;
@@ -29,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -338,6 +343,79 @@ public class AdminPolicyAndMappingService {
     return BigDecimal.valueOf(matchedCount)
         .multiply(HUNDRED)
         .divide(BigDecimal.valueOf(requiredCount), 1, RoundingMode.HALF_UP);
+  }
+
+  // ===== 신규 거버넌스 API 메서드 =====
+
+  @Transactional(readOnly = true)
+  public List<CourseNodeMappingCandidateResponse> getMappingCandidatesSimple() {
+    MappingCandidatesResponse existing = getMappingCandidates();
+    return existing.getCourses().stream()
+        .map(item -> CourseNodeMappingCandidateResponse.builder()
+            .courseId(item.getCourseId())
+            .courseTitle(item.getCourseTitle())
+            .suggestedNodeIds(item.getCandidates().stream()
+                .map(NodeCandidateItem::getNodeId)
+                .collect(Collectors.toList()))
+            .tagMatchRate(item.getCandidates().isEmpty() ? 0.0 :
+                item.getCandidates().stream()
+                    .mapToDouble(c -> c.getCoveragePercent().doubleValue())
+                    .average().orElse(0.0))
+            .build())
+        .collect(Collectors.toList());
+  }
+
+  public void applyNodeMapping(Long courseId, CourseNodeMappingRequest request) {
+    Course course = courseRepository.findById(courseId)
+        .orElseThrow(() -> new CustomException(ErrorCode.COURSE_NOT_FOUND));
+    List<Long> nodeIds = normalizeUniqueIds(request == null ? null : request.getNodeIds());
+    List<RoadmapNode> nodes = loadNodes(nodeIds);
+    courseNodeMappingRepository.deleteAllByCourseCourseId(courseId);
+    if (nodes.isEmpty()) {
+      return;
+    }
+    List<com.devpath.domain.course.entity.CourseNodeMapping> mappings = nodes.stream()
+        .map(node -> com.devpath.domain.course.entity.CourseNodeMapping.builder().course(course).node(node).build())
+        .toList();
+    courseNodeMappingRepository.saveAll(mappings);
+  }
+
+  @Transactional(readOnly = true)
+  public com.devpath.api.admin.dto.governance.SystemPolicyResponse getSystemPoliciesSimple() {
+    SystemSetting setting = systemSettingRepository.findTopByOrderBySettingIdAsc().orElse(null);
+    Integer platformFeeRate = setting != null
+        ? setting.getPlatformFeeRate().intValue() : 20;
+    return com.devpath.api.admin.dto.governance.SystemPolicyResponse.builder()
+        .platformFeeRate(platformFeeRate)
+        .refundPolicyDays(7)
+        .maxCoursePrice(null)
+        .updatedAt(null)
+        .build();
+  }
+
+  public void updateSystemPoliciesSimple(SystemPolicyUpdateRequest request) {
+    // TODO: refundPolicyDays, maxCoursePrice 실제 정책 저장 연동 예정
+    if (request != null && request.getPlatformFeeRate() != null) {
+      SystemSetting setting = getOrCreateSystemSetting();
+      BigDecimal platformFeeRate = normalizeRate(request.getPlatformFeeRate().doubleValue());
+      BigDecimal instructorSettlementRate = HUNDRED.subtract(platformFeeRate);
+      validateRatePair(platformFeeRate, instructorSettlementRate);
+      setting.updateSystemPolicy(platformFeeRate, instructorSettlementRate);
+    }
+  }
+
+  public void updateStreamingPolicySimple(StreamingPolicyUpdateRequest request) {
+    // TODO: maxResolution, watermarkEnabled 실제 정책 저장 연동 예정
+    SystemSetting setting = getOrCreateSystemSetting();
+    Boolean hlsEncrypted = request != null && request.getHlsEnabled() != null
+        ? request.getHlsEnabled() : setting.getIsHlsEncrypted();
+    Integer maxConcurrentDevices = setting.getMaxConcurrentDevices();
+
+    if (hlsEncrypted == null || maxConcurrentDevices == null || maxConcurrentDevices <= 0) {
+      throw new CustomException(ErrorCode.INVALID_INPUT);
+    }
+
+    setting.updateStreamingPolicy(hlsEncrypted, maxConcurrentDevices);
   }
 
   private SystemSetting getOrCreateSystemSetting() {

@@ -1225,3 +1225,282 @@ WHERE NOT EXISTS (
     FROM qna_question_templates
     WHERE template_type = 'PROJECT'
 );
+
+-- ===========================
+-- B 담당 샘플 데이터
+-- ===========================
+
+-- [1] review (5건)
+INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
+SELECT c.course_id, u.user_id, 5, '강의 내용이 너무 좋아요! 핵심 개념을 쉽게 설명해줘서 많은 도움이 되었습니다.', 'ANSWERED', FALSE, FALSE, NULL, '2026-01-20 00:00:00', '2026-01-20 00:00:00'
+FROM courses c, users u
+WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = '강의 내용이 너무 좋아요! 핵심 개념을 쉽게 설명해줘서 많은 도움이 되었습니다.');
+
+INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
+SELECT c.course_id, u.user_id, 4, 'JPA 실전 패턴이 정말 유용했습니다. 다만 QueryDSL 부분이 조금 더 상세했으면 좋겠어요.', 'UNANSWERED', FALSE, FALSE, NULL, '2026-01-22 00:00:00', '2026-01-22 00:00:00'
+FROM courses c, users u
+WHERE c.title = 'JPA Practical Design' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'JPA 실전 패턴이 정말 유용했습니다. 다만 QueryDSL 부분이 조금 더 상세했으면 좋겠어요.');
+
+INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
+SELECT c.course_id, u.user_id, 3, '설명은 이해하기 쉬우나 실습 예제가 좀 더 다양했으면 좋겠습니다.', 'ANSWERED', FALSE, FALSE, NULL, '2026-01-25 00:00:00', '2026-01-25 00:00:00'
+FROM courses c, users u
+WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = '설명은 이해하기 쉬우나 실습 예제가 좀 더 다양했으면 좋겠습니다.');
+
+INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
+SELECT c.course_id, u.user_id, 5, 'N+1 문제 해결 방법을 실제 프로젝트에 바로 적용할 수 있었습니다. 강력 추천합니다!', 'UNANSWERED', FALSE, FALSE, NULL, '2026-01-28 00:00:00', '2026-01-28 00:00:00'
+FROM courses c, users u
+WHERE c.title = 'JPA Practical Design' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'N+1 문제 해결 방법을 실제 프로젝트에 바로 적용할 수 있었습니다. 강력 추천합니다!');
+
+INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
+SELECT c.course_id, u.user_id, 2, '강의 내용은 좋지만 설명 속도가 너무 빨라서 따라가기 어려웠습니다.', 'UNSATISFIED', FALSE, FALSE, NULL, '2026-02-01 00:00:00', '2026-02-01 00:00:00'
+FROM courses c, users u
+WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = '강의 내용은 좋지만 설명 속도가 너무 빨라서 따라가기 어려웠습니다.');
+
+-- [2] review_reply (3건)
+INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
+SELECT r.id, u.user_id, '소중한 리뷰 감사합니다! 앞으로도 더 좋은 강의로 보답하겠습니다. 궁금한 점은 언제든지 질문해 주세요.', FALSE, '2026-01-21 00:00:00', '2026-01-21 00:00:00'
+FROM review r, users u
+WHERE r.content = '강의 내용이 너무 좋아요! 핵심 개념을 쉽게 설명해줘서 많은 도움이 되었습니다.'
+  AND u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
+
+INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
+SELECT r.id, u.user_id, '피드백 감사합니다. 말씀하신 실습 예제 부분을 보완하여 곧 업데이트하겠습니다. 다음 업데이트를 기대해 주세요!', FALSE, '2026-01-26 00:00:00', '2026-01-26 00:00:00'
+FROM review r, users u
+WHERE r.content = '설명은 이해하기 쉬우나 실습 예제가 좀 더 다양했으면 좋겠습니다.'
+  AND u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
+
+INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
+SELECT r.id, u.user_id, '강의 속도에 대한 솔직한 피드백 감사드립니다. 설명 속도를 조절한 개정판을 준비 중입니다. 불편을 드려 죄송합니다.', FALSE, '2026-02-02 00:00:00', '2026-02-02 00:00:00'
+FROM review r, users u
+WHERE r.content = '강의 내용은 좋지만 설명 속도가 너무 빨라서 따라가기 어려웠습니다.'
+  AND u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
+
+-- [3] review_template (3건)
+INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, '감사 인사', '수강해 주셔서 진심으로 감사드립니다. 좋은 리뷰는 강의를 더욱 발전시키는 큰 원동력이 됩니다. 앞으로도 최고의 강의로 보답하겠습니다!', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = '감사 인사' AND rt.instructor_id = u.user_id);
+
+INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, '개선 약속', '소중한 피드백 감사합니다. 말씀해 주신 부분을 꼼꼼히 검토하여 더 나은 강의로 업데이트하겠습니다. 지속적인 관심과 응원 부탁드립니다.', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = '개선 약속' AND rt.instructor_id = u.user_id);
+
+INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, '질문 유도', '강의를 수강해 주셔서 감사합니다. 학습 중 궁금한 점이 있으시면 Q&A 게시판을 통해 질문해 주세요. 최대한 빠르게 답변드리겠습니다!', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = '질문 유도' AND rt.instructor_id = u.user_id);
+
+-- [4] refund_request (3건)
+INSERT INTO refund_request (learner_id, course_id, reason, status, is_deleted, requested_at, processed_at)
+SELECT u.user_id, c.course_id, '강의 품질 불만족', 'PENDING', FALSE, '2026-02-05 00:00:00', NULL
+FROM users u, courses c
+WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = '강의 품질 불만족' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
+
+INSERT INTO refund_request (learner_id, course_id, reason, status, is_deleted, requested_at, processed_at)
+SELECT u.user_id, c.course_id, '중복 수강', 'APPROVED', FALSE, '2026-02-08 00:00:00', '2026-02-10 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'learner@devpath.com' AND c.title = 'JPA Practical Design'
+  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = '중복 수강' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
+
+INSERT INTO refund_request (learner_id, course_id, reason, status, is_deleted, requested_at, processed_at)
+SELECT u.user_id, c.course_id, '개인 사정', 'REJECTED', FALSE, '2026-02-12 00:00:00', '2026-02-13 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = '개인 사정' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
+
+-- [5] settlement (3건)
+INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
+SELECT u.user_id, 690000, 'COMPLETED', FALSE, '2026-01-31 00:00:00', '2026-01-31 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 690000 AND s.created_at = '2026-01-31 00:00:00');
+
+INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
+SELECT u.user_id, 385000, 'PENDING', FALSE, NULL, '2026-02-15 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 385000 AND s.created_at = '2026-02-15 00:00:00');
+
+INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
+SELECT u.user_id, 1980000, 'HELD', FALSE, NULL, '2026-02-28 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 1980000 AND s.created_at = '2026-02-28 00:00:00');
+
+-- [6] coupon (2건)
+INSERT INTO coupon (instructor_id, coupon_code, discount_type, discount_value, target_course_id, max_usage_count, usage_count, expires_at, is_deleted, created_at)
+SELECT u.user_id, 'HELLO2026', 'RATE', 30, NULL, 100, 45, '2026-02-28 23:59:59', FALSE, '2026-01-20 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM coupon c WHERE c.coupon_code = 'HELLO2026');
+
+INSERT INTO coupon (instructor_id, coupon_code, discount_type, discount_value, target_course_id, max_usage_count, usage_count, expires_at, is_deleted, created_at)
+SELECT u.user_id, 'JAVA_LAUNCH', 'FIXED', 15000, c.course_id, 200, 82, '2026-03-15 23:59:59', FALSE, '2026-01-20 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'instructor@devpath.com' AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (SELECT 1 FROM coupon cp WHERE cp.coupon_code = 'JAVA_LAUNCH');
+
+-- [7] promotion (2건)
+INSERT INTO promotion (instructor_id, course_id, promotion_type, discount_rate, start_at, end_at, is_active, is_deleted, created_at)
+SELECT u.user_id, c.course_id, 'TIMESALE', 20, '2026-02-01 00:00:00', '2026-02-07 23:59:59', TRUE, FALSE, '2026-01-30 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'instructor@devpath.com' AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (SELECT 1 FROM promotion p WHERE p.course_id = c.course_id AND p.promotion_type = 'TIMESALE' AND p.start_at = '2026-02-01 00:00:00');
+
+INSERT INTO promotion (instructor_id, course_id, promotion_type, discount_rate, start_at, end_at, is_active, is_deleted, created_at)
+SELECT u.user_id, c.course_id, 'GENERAL', 15, '2026-02-15 00:00:00', '2026-03-15 23:59:59', TRUE, FALSE, '2026-02-10 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'instructor@devpath.com' AND c.title = 'JPA Practical Design'
+  AND NOT EXISTS (SELECT 1 FROM promotion p WHERE p.course_id = c.course_id AND p.promotion_type = 'GENERAL' AND p.start_at = '2026-02-15 00:00:00');
+
+-- [8] notice (3건)
+INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
+SELECT u.user_id, '서비스 점검 안내', '안녕하세요, DevPath입니다. 서비스 품질 향상을 위해 2026년 2월 15일 오전 2시부터 4시까지 서비스 점검이 진행됩니다. 점검 시간 동안에는 강의 수강 및 Q&A 이용이 일시적으로 제한될 수 있습니다. 이용에 불편을 드려 죄송합니다.', TRUE, FALSE, '2026-02-10 00:00:00', '2026-02-10 00:00:00'
+FROM users u
+WHERE u.email = 'admin@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = '서비스 점검 안내');
+
+INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
+SELECT u.user_id, '개인정보처리방침 개정 안내', '개인정보 보호법 개정에 따라 DevPath의 개인정보처리방침이 2026년 3월 1일부로 변경됩니다. 주요 변경 내용은 수집 항목 일부 조정 및 보유 기간 명확화입니다. 변경된 방침은 서비스 하단에서 확인하실 수 있습니다.', FALSE, FALSE, '2026-02-20 00:00:00', '2026-02-20 00:00:00'
+FROM users u
+WHERE u.email = 'admin@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = '개인정보처리방침 개정 안내');
+
+INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
+SELECT u.user_id, '신규 기능 출시 안내', 'DevPath에 새로운 기능이 추가되었습니다! 이번 업데이트에서는 강사 채널 구독 기능, 쿠폰 적용 기능, AI 기반 학습 경로 추천 기능이 출시되었습니다. 새로운 기능을 통해 더욱 효율적인 학습 경험을 즐겨보세요.', FALSE, FALSE, '2026-03-01 00:00:00', '2026-03-01 00:00:00'
+FROM users u
+WHERE u.email = 'admin@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = '신규 기능 출시 안내');
+
+-- [9] admin_role (3건)
+INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
+SELECT 'SUPER_ADMIN', '모든 시스템 기능에 대한 최고 권한을 보유하며 사용자 권한 관리, 시스템 설정 변경, 데이터 접근 전반을 담당합니다.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'SUPER_ADMIN');
+
+INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
+SELECT 'CONTENT_MANAGER', '강의 콘텐츠 검수, 승인, 반려 및 태그 거버넌스를 담당합니다. 사용자 데이터 접근 권한은 없습니다.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'CONTENT_MANAGER');
+
+INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
+SELECT 'CS_MANAGER', '환불 요청 처리, 사용자 문의 응대 및 신고 콘텐츠 모니터링을 담당합니다.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
+WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'CS_MANAGER');
+
+-- [10] instructor_post (5건)
+INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, '[공지] 수강생 여러분께 드리는 안내', '안녕하세요, 강사입니다. 이번 달부터 매주 토요일 오후 2시에 라이브 Q&A 세션을 진행합니다. 수강생 여러분의 많은 참여 바랍니다!', 'NOTICE', 0, 0, FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = '[공지] 수강생 여러분께 드리는 안내');
+
+INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'Spring Boot와 JPA를 함께 사용할 때 주의할 점', 'Spring Boot 프로젝트에서 JPA를 사용할 때 가장 흔히 겪는 문제는 N+1 문제입니다. FetchType.LAZY를 기본으로 설정하고, 필요한 경우 fetch join을 활용하는 습관을 들이세요. 오늘도 즐거운 학습 되세요!', 'GENERAL', 0, 0, FALSE, '2026-01-20 00:00:00', '2026-01-20 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'Spring Boot와 JPA를 함께 사용할 때 주의할 점');
+
+INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, '백엔드 개발자가 꼭 알아야 할 HTTP 상태 코드 정리', '200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error... REST API 설계에서 자주 사용되는 HTTP 상태 코드를 정리해 보았습니다. 실무에서 적절한 상태 코드를 반환하는 것이 얼마나 중요한지 느껴보세요.', 'GENERAL', 0, 0, FALSE, '2026-01-25 00:00:00', '2026-01-25 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = '백엔드 개발자가 꼭 알아야 할 HTTP 상태 코드 정리');
+
+INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'Docker 컨테이너로 개발 환경 통일하기', '팀 프로젝트에서 "내 컴퓨터에서는 되는데..."라는 말, 이제는 하지 마세요. Docker Compose로 개발 환경을 코드로 관리하면 팀원 모두가 동일한 환경에서 개발할 수 있습니다. Spring Boot + PostgreSQL Docker Compose 설정 방법을 공유합니다.', 'GENERAL', 0, 0, FALSE, '2026-02-03 00:00:00', '2026-02-03 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'Docker 컨테이너로 개발 환경 통일하기');
+
+INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'JWT 인증 구현 시 보안을 위해 반드시 지켜야 할 사항', 'JWT를 구현할 때 Refresh Token은 반드시 HttpOnly Cookie에 저장하세요. Access Token은 만료 시간을 짧게(15분~1시간) 설정하고, 민감한 정보는 절대 Payload에 포함하지 마세요. 보안은 처음부터 올바르게 설계해야 합니다.', 'GENERAL', 0, 0, FALSE, '2026-02-10 00:00:00', '2026-02-10 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'JWT 인증 구현 시 보안을 위해 반드시 지켜야 할 사항');
+
+-- [11] instructor_comment (5건)
+INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
+SELECT ip.id, u.user_id, NULL, '라이브 Q&A 세션 정말 기대됩니다! 꼭 참여하겠습니다.', 0, FALSE, '2026-01-16 00:00:00'
+FROM instructor_post ip, users u
+WHERE ip.title = '[공지] 수강생 여러분께 드리는 안내' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = '라이브 Q&A 세션 정말 기대됩니다! 꼭 참여하겠습니다.');
+
+INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
+SELECT ip.id, u.user_id, NULL, '강사님 덕분에 N+1 문제를 드디어 이해했어요. fetch join 예시가 정말 도움이 됐습니다!', 0, FALSE, '2026-01-21 00:00:00'
+FROM instructor_post ip, users u
+WHERE ip.title = 'Spring Boot와 JPA를 함께 사용할 때 주의할 점' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = '강사님 덕분에 N+1 문제를 드디어 이해했어요. fetch join 예시가 정말 도움이 됐습니다!');
+
+INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
+SELECT ip.id, u.user_id, NULL, 'HTTP 상태 코드 정리 감사합니다. 면접 준비할 때 자주 참고하겠습니다!', 0, FALSE, '2026-01-26 00:00:00'
+FROM instructor_post ip, users u
+WHERE ip.title = '백엔드 개발자가 꼭 알아야 할 HTTP 상태 코드 정리' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'HTTP 상태 코드 정리 감사합니다. 면접 준비할 때 자주 참고하겠습니다!');
+
+INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
+SELECT ip.id, u.user_id, NULL, 'Docker Compose 예시 코드도 공유해 주시면 좋겠어요! 개인 프로젝트에 적용해보고 싶습니다.', 0, FALSE, '2026-02-04 00:00:00'
+FROM instructor_post ip, users u
+WHERE ip.title = 'Docker 컨테이너로 개발 환경 통일하기' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'Docker Compose 예시 코드도 공유해 주시면 좋겠어요! 개인 프로젝트에 적용해보고 싶습니다.');
+
+INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
+SELECT ip.id, u.user_id, NULL, 'JWT Refresh Token을 HttpOnly Cookie에 저장하는 방법을 다음 강의에서 자세히 다뤄주시면 좋겠습니다!', 0, FALSE, '2026-02-11 00:00:00'
+FROM instructor_post ip, users u
+WHERE ip.title = 'JWT 인증 구현 시 보안을 위해 반드시 지켜야 할 사항' AND u.email = 'learner@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'JWT Refresh Token을 HttpOnly Cookie에 저장하는 방법을 다음 강의에서 자세히 다뤄주시면 좋겠습니다!');
+
+-- qna_questions (qna_answer_draft 외래키 참조용)
+INSERT INTO qna_questions (user_id, template_type, difficulty, title, content, adopted_answer_id, course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'DEBUGGING', 'EASY', 'Spring Boot 실행 시 BeanCreationException이 발생합니다', '스프링 부트 애플리케이션을 실행하면 BeanCreationException: Error creating bean with name 오류가 발생합니다. 의존성 주입 설정은 맞게 한 것 같은데 어디서 문제가 생기는 걸까요?', NULL, c.course_id, NULL, 'UNANSWERED', 0, FALSE, '2026-02-05 00:00:00', '2026-02-05 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (SELECT 1 FROM qna_questions q WHERE q.title = 'Spring Boot 실행 시 BeanCreationException이 발생합니다');
+
+INSERT INTO qna_questions (user_id, template_type, difficulty, title, content, adopted_answer_id, course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'IMPLEMENTATION', 'MEDIUM', 'JPA 연관관계 설정 시 무한 루프 문제', 'JPA에서 양방향 연관관계를 설정하면 toString()이나 JSON 직렬화 시 무한 루프가 발생합니다. @JsonIgnore나 @JsonManagedReference 중 어떤 방식을 쓰는 것이 더 좋을까요?', NULL, c.course_id, NULL, 'UNANSWERED', 0, FALSE, '2026-02-08 00:00:00', '2026-02-08 00:00:00'
+FROM users u, courses c
+WHERE u.email = 'learner@devpath.com' AND c.title = 'JPA Practical Design'
+  AND NOT EXISTS (SELECT 1 FROM qna_questions q WHERE q.title = 'JPA 연관관계 설정 시 무한 루프 문제');
+
+-- [12] qna_answer_draft (2건)
+INSERT INTO qna_answer_draft (question_id, instructor_id, draft_content, is_deleted, saved_at, updated_at)
+SELECT q.question_id, u.user_id, 'BeanCreationException은 주로 순환 의존성이나 빈 등록 실패로 발생합니다. @Component, @Service 어노테이션이 누락되지 않았는지 확인하시고, 생성자 주입을 사용하는 경우 순환 참조가 없는지 점검해보세요. 스택 트레이스에서 Caused by 부분을 자세히 보시면 정확한 원인을 찾으실 수 있습니다.', FALSE, '2026-02-06 00:00:00', '2026-02-06 00:00:00'
+FROM qna_questions q, users u
+WHERE q.title = 'Spring Boot 실행 시 BeanCreationException이 발생합니다' AND u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM qna_answer_draft d WHERE d.question_id = q.question_id AND d.instructor_id = u.user_id);
+
+INSERT INTO qna_answer_draft (question_id, instructor_id, draft_content, is_deleted, saved_at, updated_at)
+SELECT q.question_id, u.user_id, '양방향 연관관계에서의 무한 루프는 DTO 변환으로 가장 깔끔하게 해결할 수 있습니다. Entity를 직접 반환하지 말고 ResponseDTO로 변환하면 직렬화 시 무한 루프 자체가 발생하지 않습니다. 꼭 Entity를 직렬화해야 한다면 @JsonIgnore보다 @JsonManagedReference/@JsonBackReference 조합을 권장합니다.', FALSE, '2026-02-09 00:00:00', '2026-02-09 00:00:00'
+FROM qna_questions q, users u
+WHERE q.title = 'JPA 연관관계 설정 시 무한 루프 문제' AND u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM qna_answer_draft d WHERE d.question_id = q.question_id AND d.instructor_id = u.user_id);
+
+-- [13] qna_template (3건)
+INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, '환경설정 공통 답변', '환경설정 관련 문제는 대부분 의존성 버전 충돌, 포트 충돌, 또는 application.properties 설정 오류에서 발생합니다. 먼저 pom.xml 또는 build.gradle의 의존성 버전을 확인하시고, 공식 문서에서 권장하는 버전 조합을 사용하고 있는지 체크해 보세요.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = '환경설정 공통 답변' AND qt.instructor_id = u.user_id);
+
+INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, 'N+1 문제 공통 답변', 'N+1 문제는 JPA에서 매우 자주 발생하는 성능 이슈입니다. 해결 방법으로는 1) JPQL fetch join 사용, 2) @EntityGraph 활용, 3) Batch Size 설정이 있습니다. 연관 엔티티를 자주 함께 조회한다면 fetch join을 기본으로 사용하고, 단순 지연 로딩이 필요한 경우에는 BatchSize로 쿼리 수를 최적화하세요.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = 'N+1 문제 공통 답변' AND qt.instructor_id = u.user_id);
+
+INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
+SELECT u.user_id, '에러 해결 가이드', '에러를 해결할 때는 다음 순서로 접근해 보세요: 1) 에러 메시지의 핵심 키워드를 그대로 검색, 2) 스택 트레이스에서 내 코드가 포함된 첫 번째 줄 확인, 3) 최근 변경한 코드 롤백 후 재현 여부 확인, 4) 공식 문서 및 GitHub Issues 참고. 에러 메시지 전체를 공유해 주시면 더 빠르게 도움드릴 수 있습니다.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = '에러 해결 가이드' AND qt.instructor_id = u.user_id);

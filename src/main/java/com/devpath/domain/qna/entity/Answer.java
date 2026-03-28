@@ -78,4 +78,10 @@ public class Answer {
         this.isDeleted = true;
         this.updatedAt = LocalDateTime.now();
     }
+
+    // 답변 내용을 수정한다.
+    public void updateContent(String content) {
+        this.content = content;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

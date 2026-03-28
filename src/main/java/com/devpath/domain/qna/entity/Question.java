@@ -50,6 +50,15 @@ public class Question {
     @Column(name = "adopted_answer_id")
     private Long adoptedAnswerId;
 
+    @Column(name = "course_id")
+    private Long courseId;
+
+    @Column(name = "lecture_timestamp", length = 20)
+    private String lectureTimestamp;
+
+    @Column(name = "qna_status", length = 20)
+    private String qnaStatus = "UNANSWERED";
+
     @Column(name = "view_count", nullable = false)
     private int viewCount;
 
@@ -101,6 +110,12 @@ public class Question {
     // 질문을 soft delete 처리한다.
     public void deleteQuestion() {
         this.isDeleted = true;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // QnA 상태를 변경한다.
+    public void updateQnaStatus(String status) {
+        this.qnaStatus = status;
         this.updatedAt = LocalDateTime.now();
     }
 }

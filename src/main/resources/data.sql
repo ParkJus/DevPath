@@ -1290,3 +1290,55 @@ SELECT setval('learner_goal_id_seq', (SELECT COALESCE(MAX(id), 1) FROM learner_g
 SELECT setval('streak_id_seq', (SELECT COALESCE(MAX(id), 1) FROM streak));
 SELECT setval('project_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project));
 SELECT setval('project_idea_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_idea_post));
+-- ==========================================
+-- [추가분] 누락된 C 파트 심화 도메인 더미 데이터 (실제 엔티티 구조 100% 반영)
+-- ==========================================
+
+-- 1. 스터디 매칭 (Study Match) - requester_id, receiver_id, node_id 사용
+INSERT INTO study_match (requester_id, receiver_id, node_id, status, created_at)
+SELECT 1, 2, 101, 'ACCEPTED', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM study_match WHERE requester_id = 1 AND receiver_id = 2 AND node_id = 101);
+
+-- 2. 플래너: 주간 플랜 (Weekly Plan) - plan_content 사용
+INSERT INTO weekly_plan (learner_id, plan_content, status, created_at)
+SELECT 1, '이번 주 목표: Spring Security 인증 필터 완벽 이해 및 적용', 'IN_PROGRESS', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM weekly_plan WHERE learner_id = 1);
+
+-- 3. 프로젝트: 모집 역할 (Project Role)
+INSERT INTO project_role (project_id, role_type, required_count)
+SELECT 1, 'BACKEND', 2
+    WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE project_id = 1 AND role_type = 'BACKEND');
+
+INSERT INTO project_role (project_id, role_type, required_count)
+SELECT 1, 'FRONTEND', 2
+    WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE project_id = 1 AND role_type = 'FRONTEND');
+
+-- 4. 프로젝트: 참여 팀원 (Project Member)
+INSERT INTO project_member (project_id, learner_id, role_type, joined_at)
+SELECT 1, 1, 'LEADER', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project_member WHERE project_id = 1 AND learner_id = 1);
+
+-- 5. 프로젝트: 초대 내역 (Project Invitation)
+INSERT INTO project_invitation (project_id, inviter_id, invitee_id, status, created_at)
+SELECT 1, 1, 3, 'PENDING', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project_invitation WHERE project_id = 1 AND invitee_id = 3);
+
+-- 6. 멘토링: 지원 내역 (Mentoring Application)
+INSERT INTO mentoring_application (project_id, mentor_id, message, status, created_at)
+SELECT 1, 5, '백엔드 아키텍처 리뷰 부탁드립니다!', 'PENDING', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM mentoring_application WHERE project_id = 1 AND mentor_id = 5);
+
+-- 7. 학습 증명: 제출 내역 (Project Proof Submission)
+INSERT INTO project_proof_submission (project_id, submitter_id, proof_card_ref_id, submitted_at)
+SELECT 1, 1, 'PROOF-2026-ABC123X', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project_proof_submission WHERE project_id = 1 AND submitter_id = 1);
+
+-- 8. 알림 (Learner Notification)
+INSERT INTO learner_notification (learner_id, type, message, is_read, created_at)
+SELECT 1, 'STUDY_GROUP', '새로운 스터디 팀원이 매칭되었습니다!', false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM learner_notification WHERE learner_id = 1 AND type = 'STUDY_GROUP');
+
+-- 9. 대시보드 스냅샷 (Dashboard Snapshot) - completed_nodes 사용
+INSERT INTO dashboard_snapshot (learner_id, snapshot_date, total_study_hours, completed_nodes)
+SELECT 1, CURRENT_DATE, 45, 12
+    WHERE NOT EXISTS (SELECT 1 FROM dashboard_snapshot WHERE learner_id = 1 AND snapshot_date = CURRENT_DATE);

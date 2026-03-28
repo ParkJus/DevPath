@@ -1225,3 +1225,68 @@ WHERE NOT EXISTS (
     FROM qna_question_templates
     WHERE template_type = 'PROJECT'
 );
+-- 스터디 그룹
+INSERT INTO study_group (name, description, status, max_members, is_deleted, created_at)
+SELECT 'Spring Boot 마스터 스터디', '매주 주말 온라인으로 진행하는 백엔드 스터디입니다.', 'RECRUITING', 6, false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM study_group WHERE name = 'Spring Boot 마스터 스터디');
+
+INSERT INTO study_group (name, description, status, max_members, is_deleted, created_at)
+SELECT 'React 클론 코딩 스터디', 'React와 Tailwind를 활용한 프론트엔드 집중 스터디', 'IN_PROGRESS', 4, false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM study_group WHERE name = 'React 클론 코딩 스터디');
+
+-- 스터디 그룹 멤버 (가정: COMMON BASE의 learner_id 1, 2 존재)
+-- (study_group ID 1과 2가 존재한다고 가정)
+INSERT INTO study_group_member (group_id, learner_id, join_status, joined_at)
+SELECT 1, 1, 'APPROVED', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM study_group_member WHERE group_id = 1 AND learner_id = 1);
+
+INSERT INTO study_group_member (group_id, learner_id, join_status, joined_at)
+SELECT 1, 2, 'PENDING', NULL
+    WHERE NOT EXISTS (SELECT 1 FROM study_group_member WHERE group_id = 1 AND learner_id = 2);
+
+INSERT INTO study_group_member (group_id, learner_id, join_status, joined_at)
+SELECT 2, 1, 'APPROVED', CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM study_group_member WHERE group_id = 2 AND learner_id = 1);
+
+-- 플래너 목표
+INSERT INTO learner_goal (learner_id, goal_type, target_value, is_active)
+SELECT 1, 'WEEKLY_NODE_CLEAR', 3, true
+    WHERE NOT EXISTS (SELECT 1 FROM learner_goal WHERE learner_id = 1 AND goal_type = 'WEEKLY_NODE_CLEAR');
+
+INSERT INTO learner_goal (learner_id, goal_type, target_value, is_active)
+SELECT 2, 'WEEKLY_STUDY_TIME', 10, true
+    WHERE NOT EXISTS (SELECT 1 FROM learner_goal WHERE learner_id = 2 AND goal_type = 'WEEKLY_STUDY_TIME');
+
+-- 스트릭 (잔디) - Unique 제약조건 방어
+INSERT INTO streak (learner_id, current_streak, longest_streak, last_study_date)
+SELECT 1, 5, 14, CURRENT_DATE - INTERVAL '1 day'
+WHERE NOT EXISTS (SELECT 1 FROM streak WHERE learner_id = 1);
+
+INSERT INTO streak (learner_id, current_streak, longest_streak, last_study_date)
+SELECT 2, 0, 7, CURRENT_DATE - INTERVAL '3 day'
+WHERE NOT EXISTS (SELECT 1 FROM streak WHERE learner_id = 2);
+
+-- 프로젝트
+INSERT INTO project (name, description, status, is_deleted, created_at)
+SELECT 'DevPath 클론 코딩', 'React와 Spring Boot를 활용한 플랫폼 개발', 'PREPARING', false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project WHERE name = 'DevPath 클론 코딩');
+
+INSERT INTO project (name, description, status, is_deleted, created_at)
+SELECT 'AI 챗봇 서비스', 'OpenAI API를 활용한 맞춤형 멘토링 챗봇', 'IN_PROGRESS', false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project WHERE name = 'AI 챗봇 서비스');
+
+-- 프로젝트 아이디어 게시판
+INSERT INTO project_idea_post (author_id, title, content, status, is_deleted, created_at)
+SELECT 1, 'Spring Boot 기반 커머스 API 만들 분?', '백엔드 위주로 진행할 예정입니다.', 'PUBLISHED', false, CURRENT_TIMESTAMP
+    WHERE NOT EXISTS (SELECT 1 FROM project_idea_post WHERE title = 'Spring Boot 기반 커머스 API 만들 분?');
+
+-- ========================================
+-- PostgreSQL Sequence 보정 처리 (매우 중요)
+-- 명시적으로 ID를 넣거나 더미 데이터를 삽입한 후, 시퀀스를 동기화해 주어야 이후 POST 요청 시 ID 중복 에러가 나지 않습니다.
+-- ========================================
+SELECT setval('study_group_id_seq', (SELECT COALESCE(MAX(id), 1) FROM study_group));
+SELECT setval('study_group_member_id_seq', (SELECT COALESCE(MAX(id), 1) FROM study_group_member));
+SELECT setval('learner_goal_id_seq', (SELECT COALESCE(MAX(id), 1) FROM learner_goal));
+SELECT setval('streak_id_seq', (SELECT COALESCE(MAX(id), 1) FROM streak));
+SELECT setval('project_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project));
+SELECT setval('project_idea_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_idea_post));

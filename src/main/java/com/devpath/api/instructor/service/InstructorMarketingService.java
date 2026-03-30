@@ -40,6 +40,10 @@ public class InstructorMarketingService {
     }
 
     public void createPromotion(Long instructorId, PromotionCreateRequest request) {
+        if (request.getEndAt() != null && request.getStartAt() != null
+                && !request.getEndAt().isAfter(request.getStartAt())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
         Promotion promotion = Promotion.builder()
                 .instructorId(instructorId)
                 .courseId(request.getCourseId())

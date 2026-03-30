@@ -3186,6 +3186,107 @@ WHERE NOT EXISTS (
     WHERE s.metric_label = 'aSwaggerQuizQuality'
 );
 
+-- =========================================================
+-- C SEED: study / planner / notification / dashboard / project
+-- additional seed data
+-- =========================================================
+
+-- recovery_plan 샘플
+INSERT INTO recovery_plan (id, learner_id, plan_details, created_at)
+SELECT 31001, 1, '3일 연속 1시간씩 복습하고 주간 플랜을 다시 조정한다.', NOW() - INTERVAL '2 day'
+WHERE NOT EXISTS (SELECT 1 FROM recovery_plan WHERE id = 31001);
+
+INSERT INTO recovery_plan (id, learner_id, plan_details, created_at)
+SELECT 31002, 2, '끊긴 스트릭 복구를 위해 백엔드 노드 1개와 퀴즈 1회를 완료한다.', NOW() - INTERVAL '1 day'
+WHERE NOT EXISTS (SELECT 1 FROM recovery_plan WHERE id = 31002);
+
+-- project 샘플 보강
+INSERT INTO project (id, name, description, status, is_deleted, created_at)
+SELECT 31001, 'DevPath 스쿼드 협업 프로젝트', 'C 담당 Swagger 검증용 프로젝트 샘플', 'PREPARING', FALSE, NOW() - INTERVAL '5 day'
+WHERE NOT EXISTS (SELECT 1 FROM project WHERE id = 31001);
+
+INSERT INTO project (id, name, description, status, is_deleted, created_at)
+SELECT 31002, 'DevPath 멘토링 준비 프로젝트', '멘토링 신청 및 제출 이력 검증용 프로젝트 샘플', 'IN_PROGRESS', FALSE, NOW() - INTERVAL '3 day'
+WHERE NOT EXISTS (SELECT 1 FROM project WHERE id = 31002);
+
+-- project_role sample
+INSERT INTO project_role (id, project_id, role_type, required_count)
+SELECT 31001, 31001, 'LEADER', 1
+WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE id = 31001);
+
+INSERT INTO project_role (id, project_id, role_type, required_count)
+SELECT 31002, 31001, 'BACKEND', 2
+WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE id = 31002);
+
+INSERT INTO project_role (id, project_id, role_type, required_count)
+SELECT 31003, 31001, 'FRONTEND', 1
+WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE id = 31003);
+
+INSERT INTO project_role (id, project_id, role_type, required_count)
+SELECT 31004, 31002, 'FULLSTACK', 2
+WHERE NOT EXISTS (SELECT 1 FROM project_role WHERE id = 31004);
+
+-- project_member sample
+INSERT INTO project_member (id, project_id, learner_id, role_type, joined_at)
+SELECT 31001, 31001, 1, 'LEADER', NOW() - INTERVAL '5 day'
+WHERE NOT EXISTS (SELECT 1 FROM project_member WHERE id = 31001);
+
+INSERT INTO project_member (id, project_id, learner_id, role_type, joined_at)
+SELECT 31002, 31001, 2, 'BACKEND', NOW() - INTERVAL '4 day'
+WHERE NOT EXISTS (SELECT 1 FROM project_member WHERE id = 31002);
+
+INSERT INTO project_member (id, project_id, learner_id, role_type, joined_at)
+SELECT 31003, 31002, 1, 'FULLSTACK', NOW() - INTERVAL '3 day'
+WHERE NOT EXISTS (SELECT 1 FROM project_member WHERE id = 31003);
+
+-- project_invitation sample
+INSERT INTO project_invitation (id, project_id, inviter_id, invitee_id, status, created_at)
+SELECT 31001, 31001, 1, 3, 'PENDING', NOW() - INTERVAL '10 hour'
+WHERE NOT EXISTS (SELECT 1 FROM project_invitation WHERE id = 31001);
+
+INSERT INTO project_invitation (id, project_id, inviter_id, invitee_id, status, created_at)
+SELECT 31002, 31001, 1, 4, 'ACCEPTED', NOW() - INTERVAL '2 day'
+WHERE NOT EXISTS (SELECT 1 FROM project_invitation WHERE id = 31002);
+
+INSERT INTO project_invitation (id, project_id, inviter_id, invitee_id, status, created_at)
+SELECT 31003, 31002, 1, 5, 'REJECTED', NOW() - INTERVAL '1 day'
+WHERE NOT EXISTS (SELECT 1 FROM project_invitation WHERE id = 31003);
+
+-- project_proof_submission 샘플
+-- proof_card_ref_id 는 현재 문자열 참조값이라 더미 값으로도 충분하다.
+INSERT INTO project_proof_submission (id, project_id, submitter_id, proof_card_ref_id, submitted_at)
+SELECT 31001, 31001, 1, 'PC-REACT-HOOKS-001', NOW() - INTERVAL '12 hour'
+WHERE NOT EXISTS (SELECT 1 FROM project_proof_submission WHERE id = 31001);
+
+INSERT INTO project_proof_submission (id, project_id, submitter_id, proof_card_ref_id, submitted_at)
+SELECT 31002, 31001, 2, 'PC-SPRING-BOOT-API-002', NOW() - INTERVAL '6 hour'
+WHERE NOT EXISTS (SELECT 1 FROM project_proof_submission WHERE id = 31002);
+
+INSERT INTO project_proof_submission (id, project_id, submitter_id, proof_card_ref_id, submitted_at)
+SELECT 31003, 31002, 1, 'PC-TEAM-COLLAB-003', NOW() - INTERVAL '2 hour'
+WHERE NOT EXISTS (SELECT 1 FROM project_proof_submission WHERE id = 31003);
+
+-- project_idea_post 가 이미 있어도 C 검증용 샘플 하나 더 보강
+INSERT INTO project_idea_post (id, author_id, title, content, status, is_deleted, created_at)
+SELECT
+    31001,
+    1,
+    '백엔드 중심 스쿼드 모집',
+    'Spring Boot 4.0.3 + PostgreSQL 기반 DevPath 협업 프로젝트 팀원을 모집합니다. Swagger 검증용 게시글입니다.',
+    'PUBLISHED',
+    FALSE,
+    NOW() - INTERVAL '8 hour'
+WHERE NOT EXISTS (SELECT 1 FROM project_idea_post WHERE id = 31001);
+
+-- sequence 보정
+SELECT setval('recovery_plan_id_seq', (SELECT COALESCE(MAX(id), 1) FROM recovery_plan));
+SELECT setval('project_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project));
+SELECT setval('project_role_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_role));
+SELECT setval('project_member_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_member));
+SELECT setval('project_invitation_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_invitation));
+SELECT setval('project_proof_submission_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_proof_submission));
+SELECT setval('project_idea_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_idea_post));
+
 -- =====================================================
 -- A SEED END
 -- =====================================================

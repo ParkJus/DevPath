@@ -7,6 +7,7 @@ import com.devpath.common.exception.ErrorCode;
 import com.devpath.domain.project.entity.MentoringApplication;
 import com.devpath.domain.project.entity.MentoringApplicationStatus;
 import com.devpath.domain.project.entity.Project;
+import com.devpath.domain.project.entity.ProjectStatus;
 import com.devpath.domain.project.repository.MentoringApplicationRepository;
 import com.devpath.domain.project.repository.ProjectRepository;
 import java.util.List;
@@ -26,6 +27,9 @@ public class MentoringApplicationService {
     public MentoringResponse applyForMentoring(MentoringRequest request) {
         Project project = getProjectEntity(request.getProjectId());
 
+        validateProjectStatus(project);
+        validateDuplicatePendingApplication(request);
+
         MentoringApplication application = MentoringApplication.builder()
                 .projectId(project.getId())
                 .mentorId(request.getMentorId())
@@ -42,6 +46,22 @@ public class MentoringApplicationService {
         return mentoringApplicationRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId).stream()
                 .map(MentoringResponse::from)
                 .toList();
+    }
+
+    private void validateProjectStatus(Project project) {
+        if (project.getStatus() == ProjectStatus.COMPLETED || project.getStatus() == ProjectStatus.ON_HOLD) {
+            throw new CustomException(ErrorCode.INVALID_INPUT, "현재 프로젝트 상태에서는 멘토링을 신청할 수 없습니다.");
+        }
+    }
+
+    private void validateDuplicatePendingApplication(MentoringRequest request) {
+        if (mentoringApplicationRepository.existsByProjectIdAndMentorIdAndStatus(
+                request.getProjectId(),
+                request.getMentorId(),
+                MentoringApplicationStatus.PENDING
+        )) {
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "이미 대기 중인 멘토링 신청이 존재합니다.");
+        }
     }
 
     private Project getProjectEntity(Long projectId) {

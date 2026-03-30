@@ -25,6 +25,13 @@ public class ProjectProofSubmissionService {
     public ProofSubmissionResponse submitProof(ProofSubmissionRequest request, Long submitterId) {
         Project project = getProjectEntity(request.getProjectId());
 
+        if (projectProofSubmissionRepository.existsByProjectIdAndProofCardRefId(
+                project.getId(),
+                request.getProofCardRefId()
+        )) {
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "동일한 Proof Card는 같은 프로젝트에 중복 제출할 수 없습니다.");
+        }
+
         ProjectProofSubmission submission = ProjectProofSubmission.builder()
                 .projectId(project.getId())
                 .submitterId(submitterId)
@@ -45,6 +52,7 @@ public class ProjectProofSubmissionService {
     public ProofSubmissionResponse getSubmissionDetail(Long submissionId) {
         ProjectProofSubmission submission = projectProofSubmissionRepository.findById(submissionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "프로젝트 제출 이력을 찾을 수 없습니다."));
+
         return ProofSubmissionResponse.from(submission);
     }
 

@@ -42,16 +42,25 @@ public class ProjectIdeaBoardService {
     }
 
     @Transactional
-    public IdeaPostResponse updateIdeaPost(Long ideaId, IdeaPostRequest request) {
+    public IdeaPostResponse updateIdeaPost(Long ideaId, IdeaPostRequest request, Long requesterId) {
         ProjectIdeaPost ideaPost = getIdeaPostEntity(ideaId);
+        validateAuthor(ideaPost, requesterId);
+
         ideaPost.updateContent(request.getTitle(), request.getContent());
         return IdeaPostResponse.from(ideaPost);
     }
 
     @Transactional
-    public void deleteIdeaPost(Long ideaId) {
+    public void deleteIdeaPost(Long ideaId, Long requesterId) {
         ProjectIdeaPost ideaPost = getIdeaPostEntity(ideaId);
+        validateAuthor(ideaPost, requesterId);
         ideaPost.markAsDeleted();
+    }
+
+    private void validateAuthor(ProjectIdeaPost ideaPost, Long requesterId) {
+        if (!ideaPost.getAuthorId().equals(requesterId)) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_ACTION, "작성자만 게시글을 수정 또는 삭제할 수 있습니다.");
+        }
     }
 
     private ProjectIdeaPost getIdeaPostEntity(Long ideaId) {

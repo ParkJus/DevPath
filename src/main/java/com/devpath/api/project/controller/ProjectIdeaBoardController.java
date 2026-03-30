@@ -44,15 +44,19 @@ public class ProjectIdeaBoardController {
     @Operation(summary = "게시글 수정", description = "작성한 아이디어 게시글을 수정합니다.")
     public ApiResponse<IdeaPostResponse> updateIdeaPost(
             @PathVariable Long ideaId,
-            @Valid @RequestBody IdeaPostRequest request
+            @Valid @RequestBody IdeaPostRequest request,
+            @RequestParam(defaultValue = "1") Long requesterId
     ) {
-        return ApiResponse.ok(projectIdeaBoardService.updateIdeaPost(ideaId, request));
+        return ApiResponse.ok(projectIdeaBoardService.updateIdeaPost(ideaId, request, requesterId));
     }
 
     @DeleteMapping("/{ideaId}")
     @Operation(summary = "게시글 삭제", description = "작성한 아이디어 게시글을 삭제(Soft Delete)합니다.")
-    public ApiResponse<Void> deleteIdeaPost(@PathVariable Long ideaId) {
-        projectIdeaBoardService.deleteIdeaPost(ideaId);
+    public ApiResponse<Void> deleteIdeaPost(
+            @PathVariable Long ideaId,
+            @RequestParam(defaultValue = "1") Long requesterId
+    ) {
+        projectIdeaBoardService.deleteIdeaPost(ideaId, requesterId);
         return ApiResponse.ok();
     }
 }

@@ -29,6 +29,18 @@ public class ProjectInvitationService {
     public InvitationResponse inviteMember(InvitationRequest request, Long inviterId) {
         Project project = getProjectEntity(request.getProjectId());
 
+        if (projectMemberRepository.existsByProjectIdAndLearnerId(project.getId(), request.getInviteeId())) {
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "이미 프로젝트에 참여 중인 사용자입니다.");
+        }
+
+        if (projectInvitationRepository.existsByProjectIdAndInviteeIdAndStatus(
+                project.getId(),
+                request.getInviteeId(),
+                ProjectInvitationStatus.PENDING
+        )) {
+            throw new CustomException(ErrorCode.DUPLICATE_RESOURCE, "이미 대기 중인 초대가 존재합니다.");
+        }
+
         ProjectInvitation invitation = ProjectInvitation.builder()
                 .projectId(project.getId())
                 .inviterId(inviterId)

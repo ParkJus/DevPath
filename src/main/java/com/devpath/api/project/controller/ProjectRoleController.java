@@ -20,16 +20,20 @@ public class ProjectRoleController {
 
     @PostMapping
     @Operation(summary = "역할 추가", description = "프로젝트에 필요한 모집 역할을 추가합니다.")
-    public ApiResponse<RoleResponse> addRole(@Valid @RequestBody RoleRequest request) {
-        return ApiResponse.ok(projectRoleService.addRole(request));
+    public ApiResponse<RoleResponse> addRole(
+            @Valid @RequestBody RoleRequest request,
+            @RequestParam(defaultValue = "1") Long requesterId
+    ) {
+        return ApiResponse.ok(projectRoleService.addRole(request, requesterId));
     }
 
     @PutMapping("/{roleId}")
     @Operation(summary = "역할 수정", description = "모집 역할의 필요 인원 등을 수정합니다.")
     public ApiResponse<RoleResponse> updateRole(
             @PathVariable Long roleId,
-            @Valid @RequestBody RoleRequest request
+            @Valid @RequestBody RoleRequest request,
+            @RequestParam(defaultValue = "1") Long requesterId
     ) {
-        return ApiResponse.ok(projectRoleService.updateRole(roleId, request));
+        return ApiResponse.ok(projectRoleService.updateRole(roleId, request, requesterId));
     }
 }

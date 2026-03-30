@@ -11,11 +11,10 @@ import com.devpath.api.instructor.repository.CouponRepository;
 import com.devpath.api.instructor.repository.PromotionRepository;
 import com.devpath.common.exception.CustomException;
 import com.devpath.common.exception.ErrorCode;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +43,7 @@ public class InstructorMarketingService {
                 && !request.getEndAt().isAfter(request.getStartAt())) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+
         Promotion promotion = Promotion.builder()
                 .instructorId(instructorId)
                 .courseId(request.getCourseId())
@@ -58,12 +58,11 @@ public class InstructorMarketingService {
     public void updatePromotionStatus(Long courseId, Long instructorId, PromotionStatusUpdateRequest request) {
         Promotion promotion = promotionRepository.findByIdAndIsDeletedFalse(courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROMOTION_NOT_FOUND));
-        promotion.updateStatus(request.getIsActive());
+        promotion.updateStatus(request.getStatus());
     }
 
     @Transactional(readOnly = true)
     public ConversionResponse getConversions(Long instructorId) {
-        // TODO: 실제 집계 연동 예정 (GPT 연동)
         return ConversionResponse.builder()
                 .totalVisitors(1200L)
                 .totalSignups(340L)

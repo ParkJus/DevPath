@@ -26,8 +26,7 @@ public class AdminSettlementController {
 
     private final AdminSettlementService adminSettlementService;
 
-    // 보류는 PENDING settlement만 가능하며 처리 이력을 함께 남긴다.
-    @Operation(summary = "정산 보류 처리")
+    @Operation(summary = "정산 보류 처리", description = "정산을 보류 상태로 변경합니다.")
     @PostMapping("/{settlementId}/hold")
     public ApiResponse<Void> holdSettlement(
             @PathVariable Long settlementId,
@@ -38,15 +37,11 @@ public class AdminSettlementController {
         return ApiResponse.success("정산이 보류 처리되었습니다.", null);
     }
 
-    // eligibility는 계산 전용 API이며 DB 상태를 바꾸지 않는다.
-    @Operation(summary = "환불 기준 정산 가능 여부 계산", description = "기간/진도율/보류 상태를 기준으로 정산 가능 여부를 계산합니다.")
+    @Operation(summary = "정산 가능 여부 계산", description = "환불 요청 기준으로 정산 가능 여부를 계산합니다.")
     @GetMapping("/eligibility")
     public ApiResponse<SettlementEligibilityResponse> checkEligibility(
             @Parameter(description = "환불 요청 ID") @RequestParam Long refundRequestId
     ) {
-        return ApiResponse.success(
-                "정산 가능 여부를 조회했습니다.",
-                adminSettlementService.checkEligibility(refundRequestId)
-        );
+        return ApiResponse.success("정산 가능 여부를 조회했습니다.", adminSettlementService.checkEligibility(refundRequestId));
     }
 }

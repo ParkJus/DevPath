@@ -21,15 +21,11 @@ public class InstructorNotificationController {
 
     private final InstructorNotificationService instructorNotificationService;
 
-    // 강사 전용 알림 목록을 최신순으로 조회한다.
-    @Operation(summary = "통합 알림 조회")
+    @Operation(summary = "통합 알림 조회", description = "강사 전용 알림 목록을 최신순으로 조회합니다.")
     @GetMapping
     public ApiResponse<List<NotificationResponse>> getNotifications(
             @Parameter(hidden = true) @AuthenticationPrincipal Long userId
     ) {
-        return ApiResponse.success(
-                "알림 목록을 조회했습니다.",
-                instructorNotificationService.getNotifications(userId)
-        );
+        return ApiResponse.success("알림 목록을 조회했습니다.", instructorNotificationService.getNotifications(userId));
     }
 }

@@ -2680,7 +2680,7 @@ AND invitee_id = (
 INSERT INTO project_role (project_id, role_type, required_count)
 SELECT
     p.id,
-    'DESIGN',
+    'DESIGNER',
     1
 FROM project p
 WHERE p.name = 'DevPath Team Workspace'
@@ -2688,7 +2688,7 @@ WHERE p.name = 'DevPath Team Workspace'
       SELECT 1
       FROM project_role pr
       WHERE pr.project_id = p.id
-        AND pr.role_type = 'DESIGN'
+        AND pr.role_type = 'DESIGNER'
   );
 
 INSERT INTO mentoring_application (project_id, mentor_id, message, status, created_at)

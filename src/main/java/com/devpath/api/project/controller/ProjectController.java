@@ -30,7 +30,7 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @PostMapping
-    @Operation(summary = "Create project", description = "Create a new project for the authenticated user.")
+    @Operation(summary = "Create project", description = "Create a new team project.")
     public ApiResponse<ProjectResponse> createProject(
             @Valid @RequestBody ProjectRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal Long creatorId
@@ -45,19 +45,18 @@ public class ProjectController {
     }
 
     @GetMapping("/{projectId}")
-    @Operation(summary = "Get project", description = "Get one project by id.")
+    @Operation(summary = "Get project", description = "Get project detail.")
     public ApiResponse<ProjectResponse> getProject(@PathVariable Long projectId) {
         return ApiResponse.ok(projectService.getProject(projectId));
     }
 
     @PutMapping("/{projectId}")
-    @Operation(summary = "Update project", description = "Update a project with an authenticated request.")
+    @Operation(summary = "Update project", description = "Update a project as an authenticated member.")
     public ApiResponse<ProjectResponse> updateProject(
             @PathVariable Long projectId,
             @Valid @RequestBody ProjectRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal Long requesterId
     ) {
-        requireUserId(requesterId);
-        return ApiResponse.ok(projectService.updateProject(projectId, request));
+        return ApiResponse.ok(projectService.updateProject(projectId, requireUserId(requesterId), request));
     }
 }

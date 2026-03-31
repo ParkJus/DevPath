@@ -27,7 +27,7 @@ public class ProjectInvitationController {
     private final ProjectInvitationService projectInvitationService;
 
     @PostMapping
-    @Operation(summary = "Invite member", description = "Invite one member to a project.")
+    @Operation(summary = "Invite member", description = "Invite one user to the project.")
     public ApiResponse<InvitationResponse> inviteMember(
             @Valid @RequestBody InvitationRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal Long inviterId
@@ -36,22 +36,20 @@ public class ProjectInvitationController {
     }
 
     @PostMapping("/{invitationId}/accept")
-    @Operation(summary = "Accept invitation", description = "Accept a pending project invitation.")
+    @Operation(summary = "Accept invitation", description = "Accept an invitation addressed to the authenticated user.")
     public ApiResponse<InvitationResponse> acceptInvitation(
             @PathVariable Long invitationId,
             @Parameter(hidden = true) @AuthenticationPrincipal Long learnerId
     ) {
-        requireUserId(learnerId);
-        return ApiResponse.ok(projectInvitationService.acceptInvitation(invitationId));
+        return ApiResponse.ok(projectInvitationService.acceptInvitation(invitationId, requireUserId(learnerId)));
     }
 
     @PostMapping("/{invitationId}/reject")
-    @Operation(summary = "Reject invitation", description = "Reject a pending project invitation.")
+    @Operation(summary = "Reject invitation", description = "Reject an invitation addressed to the authenticated user.")
     public ApiResponse<InvitationResponse> rejectInvitation(
             @PathVariable Long invitationId,
             @Parameter(hidden = true) @AuthenticationPrincipal Long learnerId
     ) {
-        requireUserId(learnerId);
-        return ApiResponse.ok(projectInvitationService.rejectInvitation(invitationId));
+        return ApiResponse.ok(projectInvitationService.rejectInvitation(invitationId, requireUserId(learnerId)));
     }
 }

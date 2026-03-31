@@ -2,12 +2,15 @@ package com.devpath.api.planner.controller;
 
 import static com.devpath.common.security.AuthenticationUtils.requireUserId;
 
+import com.devpath.api.planner.dto.RecoveryPlanRequest;
+import com.devpath.api.planner.dto.RecoveryPlanResponse;
 import com.devpath.api.planner.dto.StreakResponse;
 import com.devpath.api.planner.service.LearnerStreakService;
 import com.devpath.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,11 +44,11 @@ public class LearnerStreakController {
     }
 
     @PostMapping("/recovery-plans")
-    @Operation(summary = "Create recovery plan", description = "Create a streak recovery plan for the authenticated user.")
-    public ApiResponse<String> createRecoveryPlan(
+    @Operation(summary = "Create recovery plan", description = "Create a recovery plan for the authenticated user.")
+    public ApiResponse<RecoveryPlanResponse> createRecoveryPlan(
             @Parameter(hidden = true) @AuthenticationPrincipal Long learnerId,
-            @RequestBody String planDetails
+            @Valid @RequestBody RecoveryPlanRequest request
     ) {
-        return ApiResponse.ok(learnerStreakService.createRecoveryPlan(requireUserId(learnerId), planDetails));
+        return ApiResponse.ok(learnerStreakService.createRecoveryPlan(requireUserId(learnerId), request));
     }
 }

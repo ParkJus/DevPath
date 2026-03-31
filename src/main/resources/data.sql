@@ -2533,3 +2533,220 @@ SELECT setval('project_role_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_r
 SELECT setval('mentoring_application_id_seq', (SELECT COALESCE(MAX(id), 1) FROM mentoring_application));
 SELECT setval('project_idea_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_idea_post));
 SELECT setval('project_proof_submission_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_proof_submission));
+
+INSERT INTO users (email, password, name, role_name, is_active, created_at, updated_at)
+SELECT
+    'learner4@devpath.com',
+    '$2a$10$RcdWJBwl.kuttYmqm/BN..6aZKeLNlq9DiNFHbZgZxfTzzNDD33o2',
+    'Learner Choi',
+    'ROLE_LEARNER',
+    TRUE,
+    NOW(),
+    NOW()
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE email = 'learner4@devpath.com'
+);
+
+UPDATE study_group
+SET status = 'RECRUITING'
+WHERE name = 'Spring Boot API Study Crew'
+  AND is_deleted = FALSE;
+
+UPDATE study_group
+SET status = 'IN_PROGRESS'
+WHERE name = 'Algorithm Deep Dive'
+  AND is_deleted = FALSE;
+
+INSERT INTO study_group_member (group_id, learner_id, join_status, joined_at)
+SELECT
+    sg.id,
+    u.user_id,
+    'PENDING',
+    NULL
+FROM study_group sg, users u
+WHERE sg.name = 'Algorithm Deep Dive'
+  AND u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM study_group_member sgm
+      WHERE sgm.group_id = sg.id
+        AND sgm.learner_id = u.user_id
+  );
+
+INSERT INTO study_group_member (group_id, learner_id, join_status, joined_at)
+SELECT
+    sg.id,
+    u.user_id,
+    'PENDING',
+    NULL
+FROM study_group sg, users u
+WHERE sg.name = 'Spring Boot API Study Crew'
+  AND u.email = 'learner4@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM study_group_member sgm
+      WHERE sgm.group_id = sg.id
+        AND sgm.learner_id = u.user_id
+  );
+
+INSERT INTO learner_notification (learner_id, type, message, is_read, created_at)
+SELECT
+    u.user_id,
+    'STUDY_GROUP',
+    'Algorithm Deep Dive 스터디 참여 신청이 접수되었습니다.',
+    FALSE,
+    '2026-03-30 09:10:00'
+FROM users u
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learner_notification n
+      WHERE n.learner_id = u.user_id
+        AND n.message = 'Algorithm Deep Dive 스터디 참여 신청이 접수되었습니다.'
+  );
+
+INSERT INTO learner_notification (learner_id, type, message, is_read, created_at)
+SELECT
+    u.user_id,
+    'PROJECT',
+    'DevPath Team Workspace 프로젝트 초대가 도착했습니다.',
+    FALSE,
+    '2026-03-30 10:00:00'
+FROM users u
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learner_notification n
+      WHERE n.learner_id = u.user_id
+        AND n.message = 'DevPath Team Workspace 프로젝트 초대가 도착했습니다.'
+  );
+
+INSERT INTO learner_notification (learner_id, type, message, is_read, created_at)
+SELECT
+    u.user_id,
+    'PLANNER',
+    '이번 주 학습 플랜 조정이 완료되었습니다.',
+    TRUE,
+    '2026-03-30 10:30:00'
+FROM users u
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learner_notification n
+      WHERE n.learner_id = u.user_id
+        AND n.message = '이번 주 학습 플랜 조정이 완료되었습니다.'
+  );
+
+UPDATE streak
+SET current_streak = 5,
+    longest_streak = GREATEST(longest_streak, 5),
+    last_study_date = DATE '2026-03-30'
+WHERE learner_id = (
+    SELECT user_id
+    FROM users
+    WHERE email = 'learner@devpath.com'
+);
+
+INSERT INTO recovery_plan (learner_id, plan_details, created_at)
+SELECT
+    u.user_id,
+    '복귀 플랜: 오늘 30분 복습, 내일 1시간 실습, 모레 스터디 발표 준비',
+    '2026-03-30 07:00:00'
+FROM users u
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recovery_plan rp
+      WHERE rp.learner_id = u.user_id
+        AND rp.plan_details = '복귀 플랜: 오늘 30분 복습, 내일 1시간 실습, 모레 스터디 발표 준비'
+  );
+
+UPDATE project_invitation
+SET status = 'PENDING'
+WHERE project_id = (
+    SELECT id
+    FROM project
+    WHERE name = 'DevPath Team Workspace'
+      AND is_deleted = FALSE
+)
+AND invitee_id = (
+    SELECT user_id
+    FROM users
+    WHERE email = 'learner3@devpath.com'
+);
+
+INSERT INTO project_role (project_id, role_type, required_count)
+SELECT
+    p.id,
+    'DESIGN',
+    1
+FROM project p
+WHERE p.name = 'DevPath Team Workspace'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM project_role pr
+      WHERE pr.project_id = p.id
+        AND pr.role_type = 'DESIGN'
+  );
+
+INSERT INTO mentoring_application (project_id, mentor_id, message, status, created_at)
+SELECT
+    p.id,
+    mentor.user_id,
+    '프로젝트 API 설계 리뷰와 시연 흐름 검토가 필요합니다.',
+    'PENDING',
+    '2026-03-30 11:00:00'
+FROM project p, users mentor
+WHERE p.name = 'DevPath Team Workspace'
+  AND mentor.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM mentoring_application ma
+      WHERE ma.project_id = p.id
+        AND ma.message = '프로젝트 API 설계 리뷰와 시연 흐름 검토가 필요합니다.'
+  );
+
+INSERT INTO project_idea_post (author_id, title, content, status, is_deleted, created_at)
+SELECT
+    u.user_id,
+    '스터디 그룹-프로젝트 연동 아이디어',
+    '같은 노드 학습자 자동 매칭 후 프로젝트 팀 빌딩으로 자연스럽게 이어지는 흐름을 제안합니다.',
+    'PUBLISHED',
+    FALSE,
+    '2026-03-30 12:00:00'
+FROM users u
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM project_idea_post pip
+      WHERE pip.author_id = u.user_id
+        AND pip.title = '스터디 그룹-프로젝트 연동 아이디어'
+  );
+
+INSERT INTO project_proof_submission (project_id, submitter_id, proof_card_ref_id, submitted_at)
+SELECT
+    p.id,
+    u.user_id,
+    'PROOF-C-004',
+    '2026-03-30 12:30:00'
+FROM project p, users u
+WHERE p.name = 'DevPath Team Workspace'
+  AND u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM project_proof_submission pps
+      WHERE pps.project_id = p.id
+        AND pps.submitter_id = u.user_id
+        AND pps.proof_card_ref_id = 'PROOF-C-004'
+  );
+
+SELECT setval('users_user_id_seq', (SELECT COALESCE(MAX(user_id), 1) FROM users));
+SELECT setval('study_group_member_id_seq', (SELECT COALESCE(MAX(id), 1) FROM study_group_member));
+SELECT setval('learner_notification_id_seq', (SELECT COALESCE(MAX(id), 1) FROM learner_notification));
+SELECT setval('recovery_plan_id_seq', (SELECT COALESCE(MAX(id), 1) FROM recovery_plan));
+SELECT setval('project_role_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_role));
+SELECT setval('mentoring_application_id_seq', (SELECT COALESCE(MAX(id), 1) FROM mentoring_application));
+SELECT setval('project_idea_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_idea_post));
+SELECT setval('project_proof_submission_id_seq', (SELECT COALESCE(MAX(id), 1) FROM project_proof_submission));

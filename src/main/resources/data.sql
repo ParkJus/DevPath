@@ -87,7 +87,7 @@ SELECT
     u.user_id,
     '/images/profiles/instructor-hong.png',
     'Hong Backend Lab',
-    'Spring Boot?? ?????熬곣뫖利?????????고뀘??β뼯猷??嚥싳쉶瑗??꾧틡?????Β????醫딆┫?????β뼯爰귨㎘???醫딆┫?뺢껴?귟떋?????뉖뤁??',
+    'Spring Boot?? ????????썹땟戮녹???????????⑥쥓???汝뷴젆?????關???꾨き??熬곥룊??????????????ル늉??????汝뷴젆??녷뉩??읂?????ル늉??筌?類?域뱀옓堉??????戮?Ĳ??',
     '010-0000-0001',
     'https://github.com/instructor-hong',
     'https://blog.devpath.com/hong',
@@ -118,7 +118,7 @@ SELECT
     u.user_id,
     '/images/profiles/admin-park.png',
     'DevPath Admin',
-    '??ш끽維???????嚥▲굧????? ???곌떽?깆쓦 ?꿸쑨????臾먮?????????????嶺뚮ㅎ????',
+    '?????밸븶????????棺堉?뤃????? ????⑤슢堉?繹먮냱踰 ?饔낅챷維??????쑩??????????????꿔꺂??????',
     '010-0000-0002',
     'https://github.com/admin-park',
     'https://blog.devpath.com/admin',
@@ -1026,8 +1026,10 @@ WHERE c.title = 'Spring Boot Intro'
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'DEBUGGING', '?類?????????癲ル슣??袁ｋ즵', '??????棺??짆??? ?????釉뚰???쨨??濚욌꼬?댄꺍????⑥??癲ル슣??袁ｋ즵??嚥▲꺂痢??????뭇?繹먮냱??????덊렡.',
-       '??????棺??짆?? ??????影?됀? ??れ삀?? ?濡ろ뜏??? ???源놁졆 ?濡ろ뜏???醫듽걫???筌?留???????ㅼ굡?醫덉뜏??????', 1, TRUE, NOW(), NOW()
+SELECT 'DEBUGGING', 'Debugging question',
+       'Use this template when you need help identifying the root cause of an error or failure.',
+       'Explain the error message, when it happens, and what you already checked before asking.',
+       1, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1036,8 +1038,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'IMPLEMENTATION', '????열野?癲ル슣??袁ｋ즵', '??れ삀???????열野??袁⑸젻泳?????????됰텑???袁⑸젻泳?떑?????醫됲뀷???????뭇?繹먮냱??????덊렡.',
-       '??ш끽維??????깼?? 癲ル슢?꾤땟?룹춻???れ삀??? ??關履? 濚욌꼬?댄꺍?????ャ뀕?얜ŉ異?堉온????影?얠맽 ???ㅼ굡?醫덉뜏??????', 2, TRUE, NOW(), NOW()
+SELECT 'IMPLEMENTATION', 'Implementation question',
+       'Use this template when you are building a feature and need guidance on structure or approach.',
+       'Describe the feature you are trying to build, the current design, and the exact part that blocks you.',
+       2, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1046,8 +1050,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'CODE_REVIEW', '?熬곣뫀????域밸Ŧ留??癲ル슣??袁ｋ즵', '????????熬곣뫀??????????좊즵獒뺣돀????????域밸Ŧ肉????ル늉??????듬쐥???袁⑸즵????????뭇?繹먮냱??????덊렡.',
-       '??????熬곣뫀??? ??ш끽維?????ㅻ깹????? ?濚밸Ŧ援앲짆??怨뚮옖???눀???좊읈?????좊렰 ???굿???獄???影?얠맽 ???ㅼ굡?醫덉뜏??????', 3, TRUE, NOW(), NOW()
+SELECT 'CODE_REVIEW', 'Code review question',
+       'Use this template when you want feedback on code quality, readability, or tradeoffs.',
+       'Share the relevant code, the expected behavior, and what kind of feedback you want most.',
+       3, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1056,8 +1062,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'CAREER', '??節뗪콪???癲ル슣??袁ｋ즵', '???爾쏉쫯? ????????? ???⑤챷?? ??れ삀??????ャ뀕?????굿??癲ル슣??袁ｋ즵 ?????뭇?繹먮냱??????덊렡.',
-       '??ш끽維???????? 癲ル슢?꾤땟?룹춻?????? ?怨뚮옖??? ?濡ろ뜑??? ??關履? ????嶺? ???ㅼ굡?醫덉뜏??????', 4, TRUE, NOW(), NOW()
+SELECT 'CAREER', 'Career question',
+       'Use this template when you need advice on learning path, portfolio direction, or role preparation.',
+       'Explain your current level, target role, and the decision you are trying to make next.',
+       4, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1066,8 +1074,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'STUDY', '????? 癲ル슣??袁ｋ즵', '????? ??筌?留????좊즵獒????熬곣뫂?????醫됲뀷???????뭇?繹먮냱??????덊렡.',
-       '??ш끽維????熬곣뫂??????⑤챶裕??癲ル슢??쭕???癲ル슣?????獄???影?얠맽 ???ㅼ굡?醫덉뜏??????', 5, TRUE, NOW(), NOW()
+SELECT 'STUDY', 'Study question',
+       'Use this template when you want help planning what to study next or how to review effectively.',
+       'Describe the topic, what you already understand, and what kind of study plan you want.',
+       5, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1076,8 +1086,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
-SELECT 'PROJECT', '??ш끽維곩ㅇ???됰씭肄?癲ル슣??袁ｋ즵', '??ш끽維곩ㅇ???됰씭肄?????깼?? ?????? ?袁⑸즲???? ???⑤㈇猿 ???굿??癲ル슣??袁ｋ즵 ?????뭇?繹먮냱??????덊렡.',
-       '??ш끽維곩ㅇ???됰씭肄??袁⑸즲??㏓き? ??ш끽維??????깼?? ?袁⑸즵獒뺣뎾??濚욌꼬?댄꺍?????뽮덫?影?뽧걫????ㅼ굡?醫덉뜏??????', 6, TRUE, NOW(), NOW()
+SELECT 'PROJECT', 'Project question',
+       'Use this template when you need help scoping, structuring, or improving a project idea or build.',
+       'Explain the project goal, current progress, and the specific decision or risk you want reviewed.',
+       6, TRUE, NOW(), NOW()
 WHERE NOT EXISTS (
     SELECT 1
     FROM qna_question_templates
@@ -1086,1264 +1098,634 @@ WHERE NOT EXISTS (
 
 -- ===========================
 
--- A SEED START
--- ???덈? ???吏??+ Proof Card + ???덈? ?????+ ?怨뺣뾼???곌떠???+ ???덈? ?釉뚯뫒??
--- =====================================================
+-- ========================================
+-- B SECTION START
+-- ========================================
 
--- A scenario base
-INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
-SELECT r.roadmap_id, 'A Swagger Clear Node', 'A ?熬곣뫗??Swagger ?롪틵?嶺뚯빘鍮?????????筌뤾퍓援???낅퉵??', 'CONCEPT', 101
-FROM roadmaps r
-WHERE r.title = 'Backend Master Roadmap'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM roadmap_nodes n
-      WHERE n.roadmap_id = r.roadmap_id
-        AND n.title = 'A Swagger Clear Node'
-  );
-
-INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
-SELECT r.roadmap_id, 'A Swagger Gap Node', 'A ?熬곣뫗??Swagger ?롪틵?嶺뚯빘鍮??亦껋꼶梨멨칰짰逾????筌뤾퍓援???낅퉵??', 'PRACTICE', 102
-FROM roadmaps r
-WHERE r.title = 'Backend Master Roadmap'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM roadmap_nodes n
-      WHERE n.roadmap_id = r.roadmap_id
-        AND n.title = 'A Swagger Gap Node'
-  );
-
-INSERT INTO node_completion_rules (node_id, criteria_type, criteria_value, created_at, updated_at)
-SELECT n.node_id, 'LESSON_QUIZ_ASSIGNMENT', 'lesson,quiz,assignment', NOW() - INTERVAL '8' DAY, NOW() - INTERVAL '8' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Clear Node'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM node_completion_rules r
-      WHERE r.node_id = n.node_id
-  );
-
-INSERT INTO node_completion_rules (node_id, criteria_type, criteria_value, created_at, updated_at)
-SELECT n.node_id, 'LESSON_QUIZ_ASSIGNMENT', 'lesson,quiz,assignment', NOW() - INTERVAL '8' DAY, NOW() - INTERVAL '8' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Gap Node'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM node_completion_rules r
-      WHERE r.node_id = n.node_id
-  );
-
-INSERT INTO node_required_tags (node_id, tag_id)
-SELECT n.node_id, t.tag_id
-FROM roadmap_nodes n, tags t
-WHERE n.title = 'A Swagger Clear Node'
-  AND t.name = 'Java'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM node_required_tags req
-      WHERE req.node_id = n.node_id
-        AND req.tag_id = t.tag_id
-  );
-
-INSERT INTO node_required_tags (node_id, tag_id)
-SELECT n.node_id, t.tag_id
-FROM roadmap_nodes n, tags t
-WHERE n.title = 'A Swagger Gap Node'
-  AND t.name = 'Spring Security'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM node_required_tags req
-      WHERE req.node_id = n.node_id
-        AND req.tag_id = t.tag_id
-  );
-
-INSERT INTO courses (
-    instructor_id,
-    title,
-    subtitle,
-    description,
-    thumbnail_url,
-    intro_video_url,
-    video_asset_key,
-    duration_seconds,
-    price,
-    original_price,
-    currency,
-    difficulty_level,
-    language,
-    has_certificate,
-    status,
-    published_at
+-- [B-01] review / review_reply / review_report / review_template
+INSERT INTO review (
+    course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at
 )
-SELECT
-    u.user_id,
-    'A Java Proof Course',
-    'A Swagger proof validation course',
-    'Course for validating the cleared node to proof-card flow.',
-    '/images/courses/a-java-proof.png',
-    'https://cdn.devpath.com/courses/a-java-proof.mp4',
-    'asset-a-java-proof',
-    1800,
-    0.00,
-    0.00,
-    'KRW',
-    'BEGINNER',
-    'ko',
-    TRUE,
-    'PUBLISHED',
-    NOW() - INTERVAL '10' DAY
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM courses c
-      WHERE c.title = 'A Java Proof Course'
-  );
-
-INSERT INTO courses (
-    instructor_id,
-    title,
-    subtitle,
-    description,
-    thumbnail_url,
-    intro_video_url,
-    video_asset_key,
-    duration_seconds,
-    price,
-    original_price,
-    currency,
-    difficulty_level,
-    language,
-    has_certificate,
-    status,
-    published_at
-)
-SELECT
-    u.user_id,
-    'A Gap Recovery Course',
-    'A Swagger recovery validation course',
-    'Course for validating the uncleared node recovery flow.',
-    '/images/courses/a-gap-recovery.png',
-    'https://cdn.devpath.com/courses/a-gap-recovery.mp4',
-    'asset-a-gap-recovery',
-    2100,
-    0.00,
-    0.00,
-    'KRW',
-    'BEGINNER',
-    'ko',
-    TRUE,
-    'PUBLISHED',
-    NOW() - INTERVAL '9' DAY
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM courses c
-      WHERE c.title = 'A Gap Recovery Course'
-  );
-
-INSERT INTO course_sections (course_id, title, description, sort_order, is_published)
-SELECT c.course_id, 'A Clear Section', 'Section for the cleared-node Swagger validation flow.', 1, TRUE
-FROM courses c
-WHERE c.title = 'A Java Proof Course'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM course_sections cs
-      WHERE cs.course_id = c.course_id
-        AND cs.sort_order = 1
-  );
-
-INSERT INTO course_sections (course_id, title, description, sort_order, is_published)
-SELECT c.course_id, 'A Gap Section', 'Section for the uncleared-node Swagger validation flow.', 1, TRUE
-FROM courses c
-WHERE c.title = 'A Gap Recovery Course'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM course_sections cs
-      WHERE cs.course_id = c.course_id
-        AND cs.sort_order = 1
-  );
-
-INSERT INTO lessons (
-    section_id,
-    title,
-    description,
-    lesson_type,
-    video_url,
-    video_asset_key,
-    video_provider,
-    thumbnail_url,
-    duration_seconds,
-    is_preview,
-    is_published,
-    sort_order
-)
-SELECT
-    cs.section_id,
-    'A Clear Lesson',
-    '???????筌뤾퍓援???熬곣뫁?????곕?',
-    'VIDEO',
-    'https://cdn.devpath.com/lessons/a-clear-lesson.mp4',
-    'asset-a-clear-lesson',
-    'MUX',
-    '/images/lessons/a-clear-lesson.png',
-    900,
-    FALSE,
-    TRUE,
-    1
-FROM course_sections cs
-JOIN courses c ON c.course_id = cs.course_id
-WHERE c.title = 'A Java Proof Course'
-  AND cs.sort_order = 1
-  AND NOT EXISTS (
-      SELECT 1
-      FROM lessons l
-      WHERE l.section_id = cs.section_id
-        AND l.sort_order = 1
-  );
-
-INSERT INTO lessons (
-    section_id,
-    title,
-    description,
-    lesson_type,
-    video_url,
-    video_asset_key,
-    video_provider,
-    thumbnail_url,
-    duration_seconds,
-    is_preview,
-    is_published,
-    sort_order
-)
-SELECT
-    cs.section_id,
-    'A Gap Lesson',
-    '亦껋꼶梨멨칰짰逾????筌뤾퍓援??亦껋꼶梨??쒕쇀????곕?',
-    'VIDEO',
-    'https://cdn.devpath.com/lessons/a-gap-lesson.mp4',
-    'asset-a-gap-lesson',
-    'MUX',
-    '/images/lessons/a-gap-lesson.png',
-    900,
-    FALSE,
-    TRUE,
-    1
-FROM course_sections cs
-JOIN courses c ON c.course_id = cs.course_id
-WHERE c.title = 'A Gap Recovery Course'
-  AND cs.sort_order = 1
-  AND NOT EXISTS (
-      SELECT 1
-      FROM lessons l
-      WHERE l.section_id = cs.section_id
-        AND l.sort_order = 1
-  );
-
-INSERT INTO course_node_mappings (course_id, node_id, created_at)
-SELECT c.course_id, n.node_id, NOW() - INTERVAL '8' DAY
-FROM courses c, roadmap_nodes n
-WHERE c.title = 'A Java Proof Course'
-  AND n.title = 'A Swagger Clear Node'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM course_node_mappings m
-      WHERE m.course_id = c.course_id
-        AND m.node_id = n.node_id
-  );
-
-INSERT INTO course_node_mappings (course_id, node_id, created_at)
-SELECT c.course_id, n.node_id, NOW() - INTERVAL '8' DAY
-FROM courses c, roadmap_nodes n
-WHERE c.title = 'A Gap Recovery Course'
-  AND n.title = 'A Swagger Gap Node'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM course_node_mappings m
-      WHERE m.course_id = c.course_id
-        AND m.node_id = n.node_id
-  );
-
-INSERT INTO course_enrollments (
-    user_id,
-    course_id,
-    status,
-    enrolled_at,
-    completed_at,
-    progress_percentage,
-    last_accessed_at
-)
-SELECT u.user_id, c.course_id, 'COMPLETED', NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '2' DAY, 100, NOW() - INTERVAL '1' DAY
+SELECT c.course_id, u.user_id, 5,
+       'Examples were practical and the explanation flow was very clear.',
+       'ANSWERED', FALSE, FALSE, 'clear-examples,good-pacing',
+       '2026-02-10 10:00:00', '2026-02-10 10:00:00'
 FROM users u, courses c
 WHERE u.email = 'learner@devpath.com'
-  AND c.title = 'A Java Proof Course'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM course_enrollments e
-      WHERE e.user_id = u.user_id
-        AND e.course_id = c.course_id
+      SELECT 1 FROM review r
+      WHERE r.course_id = c.course_id AND r.learner_id = u.user_id
   );
 
-INSERT INTO course_enrollments (
-    user_id,
-    course_id,
-    status,
-    enrolled_at,
-    completed_at,
-    progress_percentage,
-    last_accessed_at
+INSERT INTO review (
+    course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at
 )
-SELECT u.user_id, c.course_id, 'ACTIVE', NOW() - INTERVAL '7' DAY, NULL, 40, NOW() - INTERVAL '5' HOUR
+SELECT c.course_id, u.user_id, 3,
+       'The topic itself is useful, but I needed slower pacing around entity mapping and fetch strategy.',
+       'UNANSWERED', FALSE, FALSE, 'too-fast,needs-more-diagrams',
+       '2026-02-12 14:00:00', '2026-02-12 14:00:00'
 FROM users u, courses c
 WHERE u.email = 'learner@devpath.com'
-  AND c.title = 'A Gap Recovery Course'
+  AND c.title = 'JPA Practical Design'
   AND NOT EXISTS (
-      SELECT 1
-      FROM course_enrollments e
-      WHERE e.user_id = u.user_id
-        AND e.course_id = c.course_id
+      SELECT 1 FROM review r
+      WHERE r.course_id = c.course_id AND r.learner_id = u.user_id
   );
 
--- 1. lesson_progress
--- ?熬곣뫁??亦껋꼶梨??쒕쇀???댟??怨룸츩
-INSERT INTO lesson_progress (
-    user_id,
-    lesson_id,
-    progress_percent,
-    progress_seconds,
-    default_playback_rate,
-    is_pip_enabled,
-    is_completed,
-    last_watched_at,
-    created_at,
-    updated_at
+INSERT INTO review_reply (
+    review_id, instructor_id, content, is_deleted, created_at, updated_at
 )
-SELECT u.user_id, l.lesson_id, 100, 900, 1.0, FALSE, TRUE, NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '2' DAY
-FROM users u, lessons l
+SELECT r.id, iu.user_id,
+       'Thanks for the feedback. I will add more mapping diagrams and a slower walkthrough in the next update.',
+       FALSE, '2026-02-10 12:00:00', '2026-02-10 12:00:00'
+FROM review r, users iu, courses c
+WHERE iu.email = 'instructor@devpath.com'
+  AND c.title = 'Spring Boot Intro'
+  AND r.course_id = c.course_id
+  AND NOT EXISTS (
+      SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.is_deleted = FALSE
+  );
+
+INSERT INTO review_report (
+    review_id, reporter_id, reason, is_resolved, resolved_by, resolved_at, created_at, updated_at
+)
+SELECT r.id, au.user_id,
+       'Contains vague wording and should be reviewed before public exposure.',
+       FALSE, NULL, NULL, '2026-02-13 09:00:00', '2026-02-13 09:00:00'
+FROM review r, users au, courses c
+WHERE au.email = 'admin@devpath.com'
+  AND c.title = 'JPA Practical Design'
+  AND r.course_id = c.course_id
+  AND NOT EXISTS (
+      SELECT 1 FROM review_report rp WHERE rp.review_id = r.id
+  );
+
+INSERT INTO review_template (
+    instructor_id, title, content, is_deleted, created_at, updated_at
+)
+SELECT iu.user_id, 'Thanks and follow-up',
+       'Thanks for leaving a detailed review. I will reflect your feedback in the next revision.',
+       FALSE, '2026-02-01 00:00:00', '2026-02-01 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM review_template rt
+      WHERE rt.instructor_id = iu.user_id AND rt.title = 'Thanks and follow-up'
+  );
+
+INSERT INTO review_template (
+    instructor_id, title, content, is_deleted, created_at, updated_at
+)
+SELECT iu.user_id, 'Issue acknowledged',
+       'I reproduced the issue and added it to the revision queue. I will update the course notes as well.',
+       FALSE, '2026-02-02 00:00:00', '2026-02-02 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM review_template rt
+      WHERE rt.instructor_id = iu.user_id AND rt.title = 'Issue acknowledged'
+  );
+
+-- [B-02] qna_questions / qna_answers / qna_answer_draft / qna_template
+INSERT INTO qna_questions (
+    user_id, template_type, difficulty, title, content, adopted_answer_id,
+    course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
+)
+SELECT u.user_id, 'DEBUGGING', 'EASY',
+       'BeanCreationException during startup',
+       'Spring Boot startup fails with BeanCreationException. Which bean should I inspect first and how do I narrow the cause?',
+       NULL, c.course_id, NULL, 'ANSWERED', 3, FALSE, '2026-02-05 00:00:00', '2026-02-06 00:00:00'
+FROM users u, courses c
 WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Clear Lesson'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM lesson_progress lp
-      WHERE lp.user_id = u.user_id
-        AND lp.lesson_id = l.lesson_id
+      SELECT 1 FROM qna_questions q WHERE q.title = 'BeanCreationException during startup'
   );
 
-INSERT INTO lesson_progress (
-    user_id,
-    lesson_id,
-    progress_percent,
-    progress_seconds,
-    default_playback_rate,
-    is_pip_enabled,
-    is_completed,
-    last_watched_at,
-    created_at,
-    updated_at
+INSERT INTO qna_questions (
+    user_id, template_type, difficulty, title, content, adopted_answer_id,
+    course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
 )
-SELECT u.user_id, l.lesson_id, 40, 360, 1.25, FALSE, FALSE, NOW() - INTERVAL '5' HOUR, NOW() - INTERVAL '6' DAY, NOW() - INTERVAL '5' HOUR
-FROM users u, lessons l
+SELECT u.user_id, 'IMPLEMENTATION', 'MEDIUM',
+       'How to avoid JPA infinite recursion',
+       'My entity graph loops when I serialize it to JSON. What is the safest way to stop recursive references?',
+       NULL, c.course_id, '00:12:44', 'UNANSWERED', 5, FALSE, '2026-02-08 00:00:00', '2026-02-09 00:00:00'
+FROM users u, courses c
 WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Gap Lesson'
+  AND c.title = 'JPA Practical Design'
   AND NOT EXISTS (
-      SELECT 1
-      FROM lesson_progress lp
-      WHERE lp.user_id = u.user_id
-        AND lp.lesson_id = l.lesson_id
+      SELECT 1 FROM qna_questions q WHERE q.title = 'How to avoid JPA infinite recursion'
   );
 
--- 2. quiz_attempt ???裕?quiz_submission
--- ???沅????덉넮 ??댟??怨룸츩
-INSERT INTO quizzes (
-    node_id,
-    title,
-    description,
-    quiz_type,
-    total_score,
-    is_published,
-    is_active,
-    expose_answer,
-    expose_explanation,
-    is_deleted,
-    created_at,
-    updated_at
+INSERT INTO qna_answers (
+    question_id, user_id, content, is_adopted, is_deleted, created_at, updated_at
 )
-SELECT n.node_id, 'A Clear Node Quiz', 'A Clear Node ???沅??롪틵?嶺뚯빘鍮????怨멥궛???낅퉵??', 'MANUAL', 10, TRUE, TRUE, TRUE, TRUE, FALSE, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '7' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Clear Node'
+SELECT q.question_id, iu.user_id,
+       'Start from the root cause in the stack trace, then check configuration classes, component scanning, and constructor dependencies.',
+       FALSE, FALSE, '2026-02-06 09:00:00', '2026-02-06 09:00:00'
+FROM qna_questions q, users iu
+WHERE q.title = 'BeanCreationException during startup'
+  AND iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM quizzes q
-      WHERE q.node_id = n.node_id
-        AND q.title = 'A Clear Node Quiz'
+      SELECT 1 FROM qna_answers a WHERE a.question_id = q.question_id AND a.is_deleted = FALSE
   );
 
-INSERT INTO quizzes (
-    node_id,
-    title,
-    description,
-    quiz_type,
-    total_score,
-    is_published,
-    is_active,
-    expose_answer,
-    expose_explanation,
-    is_deleted,
-    created_at,
-    updated_at
+INSERT INTO qna_answer_draft (
+    question_id, instructor_id, draft_content, is_deleted, saved_at, updated_at
 )
-SELECT n.node_id, 'A Gap Node Quiz', 'A Gap Node ???덉넮 ?롪틵?嶺뚯빘鍮????怨멥궛???낅퉵??', 'MANUAL', 10, TRUE, TRUE, TRUE, TRUE, FALSE, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '7' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Gap Node'
+SELECT q.question_id, iu.user_id,
+       'Prefer response DTOs for API output, and use reference annotations only when you must serialize the entity graph directly.',
+       FALSE, '2026-02-09 00:00:00', '2026-02-09 00:00:00'
+FROM qna_questions q, users iu
+WHERE q.title = 'How to avoid JPA infinite recursion'
+  AND iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM quizzes q
-      WHERE q.node_id = n.node_id
-        AND q.title = 'A Gap Node Quiz'
+      SELECT 1 FROM qna_answer_draft d
+      WHERE d.question_id = q.question_id AND d.instructor_id = iu.user_id AND d.is_deleted = FALSE
   );
 
-INSERT INTO quiz_attempts (
-    quiz_id,
-    learner_id,
-    score,
-    max_score,
-    started_at,
-    completed_at,
-    time_spent_seconds,
-    is_passed,
-    attempt_number,
-    created_at,
-    updated_at,
-    is_deleted
+INSERT INTO qna_template (
+    instructor_id, title, content, is_deleted, created_at, updated_at
 )
-SELECT q.quiz_id, u.user_id, 9, 10, NOW() - INTERVAL '2' DAY - INTERVAL '10' MINUTE, NOW() - INTERVAL '2' DAY, 600, TRUE, 1, NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '2' DAY, FALSE
-FROM quizzes q, users u
-WHERE q.title = 'A Clear Node Quiz'
-  AND u.email = 'learner@devpath.com'
+SELECT iu.user_id, 'Debugging startup errors',
+       'Check stack trace order, configuration classes, environment variables, and recent dependency changes first.',
+       FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM quiz_attempts qa
-      WHERE qa.quiz_id = q.quiz_id
-        AND qa.learner_id = u.user_id
-        AND qa.attempt_number = 1
+      SELECT 1 FROM qna_template qt
+      WHERE qt.instructor_id = iu.user_id AND qt.title = 'Debugging startup errors'
   );
 
-INSERT INTO quiz_attempts (
-    quiz_id,
-    learner_id,
-    score,
-    max_score,
-    started_at,
-    completed_at,
-    time_spent_seconds,
-    is_passed,
-    attempt_number,
-    created_at,
-    updated_at,
-    is_deleted
+INSERT INTO qna_template (
+    instructor_id, title, content, is_deleted, created_at, updated_at
 )
-SELECT q.quiz_id, u.user_id, 4, 10, NOW() - INTERVAL '1' DAY - INTERVAL '8' MINUTE, NOW() - INTERVAL '1' DAY, 480, FALSE, 1, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, FALSE
-FROM quizzes q, users u
-WHERE q.title = 'A Gap Node Quiz'
-  AND u.email = 'learner@devpath.com'
+SELECT iu.user_id, 'N+1 review checklist',
+       'Compare repository query count, fetch strategy, and entity graph usage before changing domain structure.',
+       FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM quiz_attempts qa
-      WHERE qa.quiz_id = q.quiz_id
-        AND qa.learner_id = u.user_id
-        AND qa.attempt_number = 1
+      SELECT 1 FROM qna_template qt
+      WHERE qt.instructor_id = iu.user_id AND qt.title = 'N+1 review checklist'
   );
 
--- 3. submission
--- ??戮깅?亦껋꼶梨?節뉖퉲????沅???댟??怨룸츩
-INSERT INTO assignments (
-    node_id,
-    title,
-    description,
-    submission_type,
-    due_at,
-    allowed_file_formats,
-    readme_required,
-    test_required,
-    lint_required,
-    submission_rule_description,
-    total_score,
-    is_published,
-    is_active,
-    allow_late_submission,
-    is_deleted,
-    created_at,
-    updated_at
+-- [B-03] instructor_post / instructor_comment / likes
+INSERT INTO instructor_post (
+    instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at
 )
-SELECT n.node_id, 'A Clear Assignment', 'Proof Card ?꾩룇裕???띠럾?????댟??怨룸츩 ?롪틵?嶺뚯빘鍮????λ닔????낅퉵??', 'URL', NOW() + INTERVAL '3' DAY, NULL, TRUE, TRUE, FALSE, 'GitHub ??????URL????戮깅??紐껊퉵??', 100, TRUE, TRUE, TRUE, FALSE, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '7' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Clear Node'
+SELECT iu.user_id,
+       '[Notice] Weekly live QnA schedule',
+       'Every Thursday 20:00 KST. Please post questions in advance.',
+       'NOTICE', 1, 2, FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM assignments a
-      WHERE a.node_id = n.node_id
-        AND a.title = 'A Clear Assignment'
+      SELECT 1 FROM instructor_post ip WHERE ip.title = '[Notice] Weekly live QnA schedule'
   );
 
-INSERT INTO assignments (
-    node_id,
-    title,
-    description,
-    submission_type,
-    due_at,
-    allowed_file_formats,
-    readme_required,
-    test_required,
-    lint_required,
-    submission_rule_description,
-    total_score,
-    is_published,
-    is_active,
-    allow_late_submission,
-    is_deleted,
-    created_at,
-    updated_at
+INSERT INTO instructor_post (
+    instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at
 )
-SELECT n.node_id, 'A Failed Assignment', '??戮깅???嶺?亦껋꼶梨??Β???댟??怨룸츩 ?롪틵?嶺뚯빘鍮????λ닔????낅퉵??', 'URL', NOW() + INTERVAL '3' DAY, NULL, TRUE, TRUE, TRUE, 'GitHub ??????URL????戮깅??紐껊퉵??', 100, TRUE, TRUE, TRUE, FALSE, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '7' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Gap Node'
+SELECT iu.user_id,
+       'How to avoid N+1 with JPA',
+       'Check fetch joins, entity graphs, and batch size settings before changing repository structure.',
+       'GENERAL', 1, 1, FALSE, '2026-01-20 00:00:00', '2026-01-20 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM assignments a
-      WHERE a.node_id = n.node_id
-        AND a.title = 'A Failed Assignment'
+      SELECT 1 FROM instructor_post ip WHERE ip.title = 'How to avoid N+1 with JPA'
   );
 
-INSERT INTO assignments (
-    node_id,
-    title,
-    description,
-    submission_type,
-    due_at,
-    allowed_file_formats,
-    readme_required,
-    test_required,
-    lint_required,
-    submission_rule_description,
-    total_score,
-    is_published,
-    is_active,
-    allow_late_submission,
-    is_deleted,
-    created_at,
-    updated_at
+INSERT INTO instructor_comment (
+    post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at
 )
-SELECT n.node_id, 'A Missing Assignment', '亦껋꼶梨?節뉖퉲???댟??怨룸츩 ?롪틵?嶺뚯빘鍮????λ닔????낅퉵??', 'URL', NOW() + INTERVAL '4' DAY, NULL, FALSE, FALSE, FALSE, 'GitHub ??????URL????戮깅??紐껊퉵??', 100, TRUE, TRUE, TRUE, FALSE, NOW() - INTERVAL '7' DAY, NOW() - INTERVAL '7' DAY
-FROM roadmap_nodes n
-WHERE n.title = 'A Swagger Gap Node'
+SELECT ip.id, lu.user_id, NULL,
+       'The weekly QnA slot is useful. Please share the agenda early if possible.',
+       1, FALSE, '2026-01-16 00:00:00'
+FROM instructor_post ip, users lu
+WHERE ip.title = '[Notice] Weekly live QnA schedule'
+  AND lu.email = 'learner@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM assignments a
-      WHERE a.node_id = n.node_id
-        AND a.title = 'A Missing Assignment'
+      SELECT 1 FROM instructor_comment ic
+      WHERE ic.post_id = ip.id AND ic.parent_comment_id IS NULL
+        AND ic.content = 'The weekly QnA slot is useful. Please share the agenda early if possible.'
   );
 
-INSERT INTO assignment_submissions (
-    assignment_id,
-    learner_id,
-    submission_status,
-    submission_url,
-    is_late,
-    submitted_at,
-    graded_at,
-    total_score,
-    readme_passed,
-    test_passed,
-    lint_passed,
-    file_format_passed,
-    created_at,
-    updated_at,
-    is_deleted
+INSERT INTO instructor_comment (
+    post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at
 )
-SELECT a.assignment_id, u.user_id, 'GRADED', 'https://github.com/example/a-clear-assignment', FALSE, NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '1' DAY, 95, TRUE, TRUE, TRUE, TRUE, NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '1' DAY, FALSE
-FROM assignments a, users u
-WHERE a.title = 'A Clear Assignment'
-  AND u.email = 'learner@devpath.com'
+SELECT ip.id, iu.user_id, parent.id,
+       'Got it. I will pin the agenda every Monday morning.',
+       0, FALSE, '2026-01-16 09:00:00'
+FROM instructor_post ip, users iu, instructor_comment parent
+WHERE ip.title = '[Notice] Weekly live QnA schedule'
+  AND iu.email = 'instructor@devpath.com'
+  AND parent.post_id = ip.id
+  AND parent.parent_comment_id IS NULL
+  AND parent.content = 'The weekly QnA slot is useful. Please share the agenda early if possible.'
   AND NOT EXISTS (
-      SELECT 1
-      FROM assignment_submissions s
-      WHERE s.assignment_id = a.assignment_id
-        AND s.learner_id = u.user_id
+      SELECT 1 FROM instructor_comment child
+      WHERE child.parent_comment_id = parent.id
+        AND child.content = 'Got it. I will pin the agenda every Monday morning.'
   );
 
-INSERT INTO assignment_submissions (
-    assignment_id,
-    learner_id,
-    submission_status,
-    submission_url,
-    is_late,
-    submitted_at,
-    graded_at,
-    total_score,
-    readme_passed,
-    test_passed,
-    lint_passed,
-    file_format_passed,
-    created_at,
-    updated_at,
-    is_deleted
+INSERT INTO instructor_comment (
+    post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at
 )
-SELECT a.assignment_id, u.user_id, 'GRADED', 'https://github.com/example/a-failed-assignment', FALSE, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '12' HOUR, 0, FALSE, FALSE, FALSE, TRUE, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '12' HOUR, FALSE
-FROM assignments a, users u
-WHERE a.title = 'A Failed Assignment'
-  AND u.email = 'learner@devpath.com'
+SELECT ip.id, lu.user_id, NULL,
+       'A side-by-side example of fetch join versus lazy loading would be even better.',
+       0, FALSE, '2026-01-21 00:00:00'
+FROM instructor_post ip, users lu
+WHERE ip.title = 'How to avoid N+1 with JPA'
+  AND lu.email = 'learner@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM assignment_submissions s
-      WHERE s.assignment_id = a.assignment_id
-        AND s.learner_id = u.user_id
+      SELECT 1 FROM instructor_comment ic
+      WHERE ic.post_id = ip.id
+        AND ic.content = 'A side-by-side example of fetch join versus lazy loading would be even better.'
   );
 
--- 4. til / timestamp_note
-INSERT INTO timestamp_notes (
-    user_id,
-    lesson_id,
-    timestamp_second,
-    content,
-    created_at,
-    updated_at,
-    is_deleted
-)
-SELECT u.user_id, l.lesson_id, 120, 'A Clear Lesson?????Proof ?브퀗?쀦뤃?????곕뻣 ?筌먦끉逾???덈펲.', NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '2' DAY, FALSE
-FROM users u, lessons l
-WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Clear Lesson'
+INSERT INTO instructor_post_like (post_id, user_id, created_at)
+SELECT ip.id, lu.user_id, '2026-01-21 10:00:00'
+FROM instructor_post ip, users lu
+WHERE ip.title = 'How to avoid N+1 with JPA'
+  AND lu.email = 'learner@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM timestamp_notes tn
-      WHERE tn.user_id = u.user_id
-        AND tn.lesson_id = l.lesson_id
-        AND tn.timestamp_second = 120
+      SELECT 1 FROM instructor_post_like pl WHERE pl.post_id = ip.id AND pl.user_id = lu.user_id
   );
 
-INSERT INTO timestamp_notes (
-    user_id,
-    lesson_id,
-    timestamp_second,
-    content,
-    created_at,
-    updated_at,
-    is_deleted
-)
-SELECT u.user_id, l.lesson_id, 240, 'A Gap Lesson???????伊쇿퐲???蹂μ쟽?? ??λ닔????⑤객臾??嶺뚮∥?????덈펲.', NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, FALSE
-FROM users u, lessons l
-WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Gap Lesson'
+INSERT INTO instructor_comment_like (comment_id, user_id, created_at)
+SELECT ic.id, iu.user_id, '2026-01-16 10:00:00'
+FROM instructor_comment ic, users iu
+WHERE ic.content = 'The weekly QnA slot is useful. Please share the agenda early if possible.'
+  AND iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM timestamp_notes tn
-      WHERE tn.user_id = u.user_id
-        AND tn.lesson_id = l.lesson_id
-        AND tn.timestamp_second = 240
+      SELECT 1 FROM instructor_comment_like cl WHERE cl.comment_id = ic.id AND cl.user_id = iu.user_id
   );
 
-INSERT INTO til_drafts (
-    user_id,
-    lesson_id,
-    title,
-    content,
-    status,
-    published_url,
-    created_at,
-    updated_at,
-    is_deleted
+-- [B-04] coupon / promotion / conversion_stat
+INSERT INTO coupon (
+    instructor_id, coupon_code, discount_type, discount_value, target_course_id,
+    max_usage_count, usage_count, expires_at, is_deleted, created_at
 )
-SELECT u.user_id, l.lesson_id, 'A Clear Node TIL', 'NodeClearance?? Proof Card ?꾩룇裕???브퀗?쀦뤃???筌먲퐘遊???덈펲.', 'PUBLISHED', 'https://velog.io/@devpath/a-clear-proof', NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '2' DAY, FALSE
-FROM users u, lessons l
-WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Clear Lesson'
+SELECT iu.user_id, 'BSPRING10', 'RATE', 10, c.course_id,
+       100, 0, '2026-12-31 23:59:59', FALSE, '2026-02-15 00:00:00'
+FROM users iu, courses c
+WHERE iu.email = 'instructor@devpath.com'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM til_drafts td
-      WHERE td.user_id = u.user_id
-        AND td.title = 'A Clear Node TIL'
+      SELECT 1 FROM coupon cp WHERE cp.coupon_code = 'BSPRING10'
   );
 
-INSERT INTO til_drafts (
-    user_id,
-    lesson_id,
-    title,
-    content,
-    status,
-    published_url,
-    created_at,
-    updated_at,
-    is_deleted
+INSERT INTO promotion (
+    instructor_id, course_id, promotion_type, discount_rate, start_at, end_at,
+    is_active, is_deleted, created_at
 )
-SELECT u.user_id, l.lesson_id, 'A Gap Node TIL', '?遊붋????蹂μ쟽?? ??λ닔??亦껋꼶梨??Β????逾???筌먲퐘遊???덈펲.', 'DRAFT', NULL, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, FALSE
-FROM users u, lessons l
-WHERE u.email = 'learner@devpath.com'
-  AND l.title = 'A Gap Lesson'
+SELECT iu.user_id, c.course_id, 'TIME_SALE', 15,
+       '2026-02-20 00:00:00', '2026-02-28 23:59:59',
+       TRUE, FALSE, '2026-02-20 00:00:00'
+FROM users iu, courses c
+WHERE iu.email = 'instructor@devpath.com'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM til_drafts td
-      WHERE td.user_id = u.user_id
-        AND td.title = 'A Gap Node TIL'
+      SELECT 1 FROM promotion p WHERE p.course_id = c.course_id AND p.promotion_type = 'TIME_SALE'
   );
 
--- 5. supplement_recommendation
-INSERT INTO supplement_recommendations (
-    user_id,
-    node_id,
-    reason,
-    priority,
-    coverage_percent,
-    missing_tag_count,
-    status,
-    created_at,
-    updated_at
+INSERT INTO conversion_stat (
+    instructor_id, course_id, total_visitors, total_signups, total_purchases, calculated_at
 )
-SELECT u.user_id, n.node_id, 'Spring Security ??蹂μ쟽?띠럾? ?遊붋?브퀗?꿴뜮??곌랜??????덈????怨뺣뾼???紐껊퉵??', 95, 35.00, 1, 'PENDING', NOW() - INTERVAL '12' HOUR, NOW() - INTERVAL '12' HOUR
-FROM users u, roadmap_nodes n
-WHERE u.email = 'learner@devpath.com'
-  AND n.title = 'A Swagger Gap Node'
+SELECT iu.user_id, NULL, 1200, 180, 42, '2026-02-28 23:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM supplement_recommendations sr
-      WHERE sr.user_id = u.user_id
-        AND sr.node_id = n.node_id
+      SELECT 1 FROM conversion_stat cs
+      WHERE cs.instructor_id = iu.user_id AND cs.course_id IS NULL AND cs.calculated_at = '2026-02-28 23:00:00'
   );
 
--- 6. proof_card / certificate / share_link / download_history
-INSERT INTO node_clearances (
-    user_id,
-    node_id,
-    clearance_status,
-    lesson_completion_rate,
-    required_tags_satisfied,
-    missing_tag_count,
-    lesson_completed,
-    quiz_passed,
-    assignment_passed,
-    proof_eligible,
-    cleared_at,
-    last_calculated_at,
-    created_at,
-    updated_at
+INSERT INTO conversion_stat (
+    instructor_id, course_id, total_visitors, total_signups, total_purchases, calculated_at
 )
-SELECT u.user_id, n.node_id, 'CLEARED', 100.00, TRUE, 0, TRUE, TRUE, TRUE, TRUE, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY
-FROM users u, roadmap_nodes n
-WHERE u.email = 'learner@devpath.com'
-  AND n.title = 'A Swagger Clear Node'
+SELECT iu.user_id, c.course_id, 700, 120, 33, '2026-02-28 23:00:00'
+FROM users iu, courses c
+WHERE iu.email = 'instructor@devpath.com'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM node_clearances nc
-      WHERE nc.user_id = u.user_id
-        AND nc.node_id = n.node_id
+      SELECT 1 FROM conversion_stat cs
+      WHERE cs.instructor_id = iu.user_id AND cs.course_id = c.course_id AND cs.calculated_at = '2026-02-28 23:00:00'
   );
 
-INSERT INTO node_clearances (
-    user_id,
-    node_id,
-    clearance_status,
-    lesson_completion_rate,
-    required_tags_satisfied,
-    missing_tag_count,
-    lesson_completed,
-    quiz_passed,
-    assignment_passed,
-    proof_eligible,
-    cleared_at,
-    last_calculated_at,
-    created_at,
-    updated_at
+INSERT INTO conversion_stat (
+    instructor_id, course_id, total_visitors, total_signups, total_purchases, calculated_at
 )
-SELECT u.user_id, n.node_id, 'NOT_CLEARED', 0.00, FALSE, 1, FALSE, FALSE, FALSE, FALSE, NULL, NOW() - INTERVAL '12' HOUR, NOW() - INTERVAL '12' HOUR, NOW() - INTERVAL '12' HOUR
-FROM users u, roadmap_nodes n
-WHERE u.email = 'learner@devpath.com'
-  AND n.title = 'A Swagger Gap Node'
+SELECT iu.user_id, c.course_id, 500, 60, 9, '2026-02-28 23:00:00'
+FROM users iu, courses c
+WHERE iu.email = 'instructor@devpath.com'
+  AND c.title = 'JPA Practical Design'
   AND NOT EXISTS (
-      SELECT 1
-      FROM node_clearances nc
-      WHERE nc.user_id = u.user_id
-        AND nc.node_id = n.node_id
+      SELECT 1 FROM conversion_stat cs
+      WHERE cs.instructor_id = iu.user_id AND cs.course_id = c.course_id AND cs.calculated_at = '2026-02-28 23:00:00'
   );
 
-INSERT INTO proof_cards (
-    user_id,
-    node_id,
-    node_clearance_id,
-    title,
-    description,
-    proof_card_status,
-    issued_at,
-    created_at,
-    updated_at
+-- [B-05] refund_request / refund_review / settlement / settlement_hold
+INSERT INTO settlement (
+    instructor_id, amount, status, is_deleted, settled_at, created_at
 )
-SELECT u.user_id, n.node_id, nc.node_clearance_id, 'A Clear Node Proof Card', 'A Clear Node??NodeClearance?? Proof ?꾩룇裕???띠럾?????⑤객臾??嶺뚯빘鍮뽳㎖??紐껊퉵??', 'ISSUED', NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '1' DAY
-FROM users u
-JOIN roadmap_nodes n ON n.title = 'A Swagger Clear Node'
-JOIN node_clearances nc ON nc.user_id = u.user_id AND nc.node_id = n.node_id
-WHERE u.email = 'learner@devpath.com'
+SELECT iu.user_id, 250000, 'PENDING', FALSE, NULL, '2026-02-25 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM proof_cards pc
-      WHERE pc.user_id = u.user_id
-        AND pc.node_id = n.node_id
+      SELECT 1 FROM settlement s
+      WHERE s.instructor_id = iu.user_id AND s.amount = 250000 AND s.status = 'PENDING'
   );
 
-INSERT INTO proof_card_tags (
-    proof_card_id,
-    tag_id,
-    skill_evidence_type
+INSERT INTO settlement (
+    instructor_id, amount, status, is_deleted, settled_at, created_at
 )
-SELECT pc.proof_card_id, t.tag_id, 'VERIFIED'
-FROM proof_cards pc
-JOIN roadmap_nodes n ON n.node_id = pc.node_id,
-     tags t
-WHERE n.title = 'A Swagger Clear Node'
-  AND t.name = 'Java'
+SELECT iu.user_id, 50000, 'HELD', FALSE, NULL, '2026-02-24 00:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM proof_card_tags pt
-      WHERE pt.proof_card_id = pc.proof_card_id
-        AND pt.tag_id = t.tag_id
-        AND pt.skill_evidence_type = 'VERIFIED'
+      SELECT 1 FROM settlement s
+      WHERE s.instructor_id = iu.user_id AND s.amount = 50000 AND s.status = 'HELD'
   );
 
-INSERT INTO proof_card_shares (
-    proof_card_id,
-    share_token,
-    share_status,
-    expires_at,
-    access_count,
-    created_at,
-    updated_at
+INSERT INTO settlement_hold (
+    settlement_id, admin_id, reason, held_at
 )
-SELECT pc.proof_card_id, 'proof-share-token-a-21101', 'ACTIVE', NOW() + INTERVAL '30' DAY, 3, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '6' HOUR
-FROM proof_cards pc
-JOIN roadmap_nodes n ON n.node_id = pc.node_id
-WHERE n.title = 'A Swagger Clear Node'
+SELECT s.id, au.user_id, 'Refund dispute review in progress', '2026-02-24 10:00:00'
+FROM settlement s, users au
+WHERE s.status = 'HELD'
+  AND au.email = 'admin@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM proof_card_shares ps
-      WHERE ps.share_token = 'proof-share-token-a-21101'
+      SELECT 1 FROM settlement_hold sh WHERE sh.settlement_id = s.id
   );
 
-INSERT INTO certificates (
-    proof_card_id,
-    certificate_number,
-    certificate_status,
-    issued_at,
-    pdf_file_name,
-    pdf_generated_at,
-    last_downloaded_at,
-    created_at,
-    updated_at
+INSERT INTO refund_request (
+    learner_id, course_id, instructor_id, reason, enrolled_at, progress_percent_snapshot,
+    refund_amount, status, is_deleted, requested_at, processed_at
 )
-SELECT pc.proof_card_id, 'CERT-20260330-A1001', 'PDF_READY', NOW() - INTERVAL '1' DAY, 'certificate-CERT-20260330-A1001.pdf', NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '12' HOUR, NOW() - INTERVAL '1' DAY, NOW() - INTERVAL '12' HOUR
-FROM proof_cards pc
-JOIN roadmap_nodes n ON n.node_id = pc.node_id
-WHERE n.title = 'A Swagger Clear Node'
+SELECT lu.user_id, c.course_id, iu.user_id,
+       'I am still within the refund window and the progress is low.',
+       '2026-02-26 09:00:00', 10, 99000, 'PENDING', FALSE, '2026-02-27 10:00:00', NULL
+FROM users lu, users iu, courses c
+WHERE lu.email = 'learner@devpath.com'
+  AND iu.email = 'instructor@devpath.com'
+  AND c.title = 'Spring Boot Intro'
   AND NOT EXISTS (
-      SELECT 1
-      FROM certificates c
-      WHERE c.proof_card_id = pc.proof_card_id
+      SELECT 1 FROM refund_request rr
+      WHERE rr.learner_id = lu.user_id AND rr.course_id = c.course_id AND rr.status = 'PENDING'
   );
 
-INSERT INTO certificate_download_histories (
-    certificate_id,
-    downloaded_by,
-    download_reason,
-    downloaded_at
+INSERT INTO refund_request (
+    learner_id, course_id, instructor_id, reason, enrolled_at, progress_percent_snapshot,
+    refund_amount, status, is_deleted, requested_at, processed_at
 )
-SELECT c.certificate_id, u.user_id, 'A Swagger certificate download', NOW() - INTERVAL '12' HOUR
-FROM certificates c, users u
-WHERE c.certificate_number = 'CERT-20260330-A1001'
-  AND u.email = 'learner@devpath.com'
+SELECT lu.user_id, c.course_id, iu.user_id,
+       'Requested after watching too much content, should be rejected.',
+       '2026-02-10 09:00:00', 55, 129000, 'REJECTED', FALSE, '2026-02-20 10:00:00', '2026-02-21 11:00:00'
+FROM users lu, users iu, courses c
+WHERE lu.email = 'learner@devpath.com'
+  AND iu.email = 'instructor@devpath.com'
+  AND c.title = 'JPA Practical Design'
   AND NOT EXISTS (
-      SELECT 1
-      FROM certificate_download_histories h
-      WHERE h.certificate_id = c.certificate_id
-        AND h.download_reason = 'A Swagger certificate download'
+      SELECT 1 FROM refund_request rr
+      WHERE rr.learner_id = lu.user_id AND rr.course_id = c.course_id AND rr.status = 'REJECTED'
   );
 
-INSERT INTO learning_history_share_links (
-    user_id,
-    share_token,
-    title,
-    expires_at,
-    access_count,
-    is_active,
-    created_at,
-    updated_at
+INSERT INTO refund_review (
+    refund_request_id, admin_id, decision, reason, processed_at
 )
-SELECT u.user_id, 'history-share-token-a-21151', 'A Swagger Learning History', NOW() + INTERVAL '14' DAY, 1, TRUE, NOW() - INTERVAL '8' HOUR, NOW() - INTERVAL '8' HOUR
-FROM users u
-WHERE u.email = 'learner@devpath.com'
+SELECT rr.id, au.user_id, 'REJECTED',
+       'Rejected because progress snapshot exceeded the refundable threshold.',
+       '2026-02-21 11:00:00'
+FROM refund_request rr, users au
+WHERE rr.status = 'REJECTED'
+  AND au.email = 'admin@devpath.com'
   AND NOT EXISTS (
-      SELECT 1
-      FROM learning_history_share_links l
-      WHERE l.share_token = 'history-share-token-a-21151'
+      SELECT 1 FROM refund_review rv WHERE rv.refund_request_id = rr.id
   );
 
--- 7. learning_rule / metric_sample
-INSERT INTO learning_automation_rules (
-    rule_key,
-    rule_name,
-    description,
-    rule_value,
-    priority,
-    rule_status,
-    created_at,
-    updated_at
+-- [B-06] restricted / deactivated / withdrawn accounts
+INSERT INTO users (
+    email, password, name, role_name, is_active, account_status, created_at, updated_at
 )
-SELECT 'A_SWAGGER_HISTORY_REFRESH', 'A Swagger History Refresh', 'A ?熬곣뫗???롪틵?嶺뚯빘鍮????戮?뎽 ?猷고????덈펲.', 'true', 40, 'ENABLED', NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '2' DAY
+SELECT 'restricted-user@devpath.com',
+       '$2a$10$RcdWJBwl.kuttYmqm/BN..6aZKeLNlq9DiNFHbZgZxfTzzNDD33o2',
+       'Restricted Learner', 'ROLE_LEARNER', FALSE, 'RESTRICTED',
+       '2026-02-01 00:00:00', '2026-02-15 00:00:00'
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM learning_automation_rules r
-    WHERE r.rule_key = 'A_SWAGGER_HISTORY_REFRESH'
+    SELECT 1 FROM users WHERE email = 'restricted-user@devpath.com'
 );
 
-INSERT INTO learning_automation_rules (
-    rule_key,
-    rule_name,
-    description,
-    rule_value,
-    priority,
-    rule_status,
-    created_at,
-    updated_at
+INSERT INTO users (
+    email, password, name, role_name, is_active, account_status, created_at, updated_at
 )
-SELECT 'A_SWAGGER_PROOF_LOCK', 'A Swagger Proof Lock', 'A ?熬곣뫗???롪틵?嶺뚯빘鍮?????????猷고????덈펲.', 'false', 30, 'DISABLED', NOW() - INTERVAL '2' DAY, NOW() - INTERVAL '2' DAY
+SELECT 'deactivated-user@devpath.com',
+       '$2a$10$RcdWJBwl.kuttYmqm/BN..6aZKeLNlq9DiNFHbZgZxfTzzNDD33o2',
+       'Deactivated Learner', 'ROLE_LEARNER', FALSE, 'DEACTIVATED',
+       '2026-02-01 00:00:00', '2026-02-16 00:00:00'
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM learning_automation_rules r
-    WHERE r.rule_key = 'A_SWAGGER_PROOF_LOCK'
+    SELECT 1 FROM users WHERE email = 'deactivated-user@devpath.com'
 );
 
-INSERT INTO learning_metric_samples (
-    metric_type,
-    metric_label,
-    metric_value,
-    sampled_at,
-    created_at
+INSERT INTO users (
+    email, password, name, role_name, is_active, account_status, created_at, updated_at
 )
-SELECT 'OVERVIEW', 'aSwaggerClearanceRate', 50.00, NOW() - INTERVAL '6' HOUR, NOW() - INTERVAL '6' HOUR
+SELECT 'withdrawn-user@devpath.com',
+       '$2a$10$RcdWJBwl.kuttYmqm/BN..6aZKeLNlq9DiNFHbZgZxfTzzNDD33o2',
+       'Withdrawn Learner', 'ROLE_LEARNER', FALSE, 'WITHDRAWN',
+       '2026-02-01 00:00:00', '2026-02-17 00:00:00'
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM learning_metric_samples s
-    WHERE s.metric_label = 'aSwaggerClearanceRate'
+    SELECT 1 FROM users WHERE email = 'withdrawn-user@devpath.com'
 );
 
-INSERT INTO learning_metric_samples (
-    metric_type,
-    metric_label,
-    metric_value,
-    sampled_at,
-    created_at
+-- [B-07] notice / admin_role / admin_permission / account_log
+INSERT INTO notice (
+    author_id, title, content, is_pinned, is_deleted, created_at, updated_at
 )
-SELECT 'QUIZ_STATS', 'aSwaggerQuizQuality', 65.00, NOW() - INTERVAL '6' HOUR, NOW() - INTERVAL '6' HOUR
+SELECT au.user_id,
+       '[System] March maintenance window',
+       'The platform will be unavailable from 02:00 to 03:00 KST for maintenance.',
+       TRUE, FALSE, '2026-03-01 00:00:00', '2026-03-01 00:00:00'
+FROM users au
+WHERE au.email = 'admin@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM notice n WHERE n.title = '[System] March maintenance window'
+  );
+
+INSERT INTO admin_role (
+    role_name, description, is_deleted, created_at, updated_at
+)
+SELECT 'ROLE_ADMIN_OPERATION',
+       'Operations role for moderation, notice, settlement, and refund handling',
+       FALSE, '2026-03-01 00:00:00', '2026-03-01 00:00:00'
 WHERE NOT EXISTS (
-    SELECT 1
-    FROM learning_metric_samples s
-    WHERE s.metric_label = 'aSwaggerQuizQuality'
+    SELECT 1 FROM admin_role ar WHERE ar.role_name = 'ROLE_ADMIN_OPERATION' AND ar.is_deleted = FALSE
 );
 
--- =========================================================
+INSERT INTO admin_permission (
+    admin_role_id, permission_code, description, is_deleted, created_at
+)
+SELECT ar.id, 'ADMIN_NOTICE_WRITE', 'Can write and edit notices', FALSE, '2026-03-01 00:00:00'
+FROM admin_role ar
+WHERE ar.role_name = 'ROLE_ADMIN_OPERATION'
+  AND NOT EXISTS (
+      SELECT 1 FROM admin_permission ap
+      WHERE ap.admin_role_id = ar.id AND ap.permission_code = 'ADMIN_NOTICE_WRITE' AND ap.is_deleted = FALSE
+  );
 
--- A SEED END
--- =====================================================
+INSERT INTO admin_permission (
+    admin_role_id, permission_code, description, is_deleted, created_at
+)
+SELECT ar.id, 'ADMIN_MODERATION_RESOLVE', 'Can resolve reports and blind content', FALSE, '2026-03-01 00:00:00'
+FROM admin_role ar
+WHERE ar.role_name = 'ROLE_ADMIN_OPERATION'
+  AND NOT EXISTS (
+      SELECT 1 FROM admin_permission ap
+      WHERE ap.admin_role_id = ar.id AND ap.permission_code = 'ADMIN_MODERATION_RESOLVE' AND ap.is_deleted = FALSE
+  );
 
+INSERT INTO account_log (
+    target_user_id, admin_id, log_type, reason, processed_at
+)
+SELECT tu.user_id, au.user_id, 'RESTRICT',
+       'Restricted due to repeated abusive comments.',
+       '2026-02-15 10:00:00'
+FROM users tu, users au
+WHERE tu.email = 'restricted-user@devpath.com'
+  AND au.email = 'admin@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM account_log al
+      WHERE al.target_user_id = tu.user_id AND al.log_type = 'RESTRICT'
+  );
 
--- =====================================================
--- B SECTION: instructor, review, refund, marketing, qna
--- anchored on COMMON BASE users and courses
--- =====================================================
+INSERT INTO account_log (
+    target_user_id, admin_id, log_type, reason, processed_at
+)
+SELECT tu.user_id, au.user_id, 'DEACTIVATE',
+       'Temporarily deactivated at user request.',
+       '2026-02-16 10:00:00'
+FROM users tu, users au
+WHERE tu.email = 'deactivated-user@devpath.com'
+  AND au.email = 'admin@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM account_log al
+      WHERE al.target_user_id = tu.user_id AND al.log_type = 'DEACTIVATE'
+  );
 
--- [1] review
-INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
-SELECT c.course_id, u.user_id, 5, 'The Spring Boot intro course was easy to follow and the examples were practical.', 'ANSWERED', FALSE, FALSE, NULL, '2026-01-20 00:00:00', '2026-01-20 00:00:00'
-FROM courses c, users u
-WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'The Spring Boot intro course was easy to follow and the examples were practical.');
+INSERT INTO account_log (
+    target_user_id, admin_id, log_type, reason, processed_at
+)
+SELECT tu.user_id, au.user_id, 'WITHDRAW',
+       'Permanent account withdrawal completed.',
+       '2026-02-17 10:00:00'
+FROM users tu, users au
+WHERE tu.email = 'withdrawn-user@devpath.com'
+  AND au.email = 'admin@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM account_log al
+      WHERE al.target_user_id = tu.user_id AND al.log_type = 'WITHDRAW'
+  );
 
-INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
-SELECT c.course_id, u.user_id, 4, 'The JPA design material was useful, but I want one more QueryDSL example for filtering.', 'UNANSWERED', FALSE, FALSE, NULL, '2026-01-22 00:00:00', '2026-01-22 00:00:00'
-FROM courses c, users u
-WHERE c.title = 'JPA Practical Design' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'The JPA design material was useful, but I want one more QueryDSL example for filtering.');
+-- [B-08] instructor_notification / dm_room / dm_message
+INSERT INTO instructor_notification (
+    instructor_id, type, message, is_read, created_at
+)
+SELECT iu.user_id, 'REVIEW',
+       'A new course review requires your reply.',
+       FALSE, '2026-03-02 09:00:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM instructor_notification n
+      WHERE n.instructor_id = iu.user_id AND n.type = 'REVIEW' AND n.message = 'A new course review requires your reply.'
+  );
 
-INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
-SELECT c.course_id, u.user_id, 3, 'I understood the deployment chapter, but a slower walkthrough would help beginners.', 'ANSWERED', FALSE, FALSE, NULL, '2026-01-25 00:00:00', '2026-01-25 00:00:00'
-FROM courses c, users u
-WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'I understood the deployment chapter, but a slower walkthrough would help beginners.');
+INSERT INTO instructor_notification (
+    instructor_id, type, message, is_read, created_at
+)
+SELECT iu.user_id, 'QNA',
+       'A new Q&A question is waiting in your inbox.',
+       FALSE, '2026-03-02 09:05:00'
+FROM users iu
+WHERE iu.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM instructor_notification n
+      WHERE n.instructor_id = iu.user_id AND n.type = 'QNA' AND n.message = 'A new Q&A question is waiting in your inbox.'
+  );
 
-INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
-SELECT c.course_id, u.user_id, 5, 'The N plus one explanation was strong. A side by side query comparison would make it even better.', 'UNANSWERED', FALSE, FALSE, NULL, '2026-01-28 00:00:00', '2026-01-28 00:00:00'
-FROM courses c, users u
-WHERE c.title = 'JPA Practical Design' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'The N plus one explanation was strong. A side by side query comparison would make it even better.');
+INSERT INTO dm_room (
+    instructor_id, learner_id, is_deleted, created_at
+)
+SELECT iu.user_id, lu.user_id, FALSE, '2026-03-03 10:00:00'
+FROM users iu, users lu
+WHERE iu.email = 'instructor@devpath.com'
+  AND lu.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM dm_room dr WHERE dr.instructor_id = iu.user_id AND dr.learner_id = lu.user_id AND dr.is_deleted = FALSE
+  );
 
-INSERT INTO review (course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at)
-SELECT c.course_id, u.user_id, 2, 'The pace felt fast for the security section and I had trouble matching the code to the lecture.', 'UNSATISFIED', FALSE, FALSE, NULL, '2026-02-01 00:00:00', '2026-02-01 00:00:00'
-FROM courses c, users u
-WHERE c.title = 'Spring Boot Intro' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review r WHERE r.content = 'The pace felt fast for the security section and I had trouble matching the code to the lecture.');
+INSERT INTO dm_message (
+    room_id, sender_id, message, is_deleted, created_at
+)
+SELECT dr.id, lu.user_id,
+       'Hi, I have one follow-up question about the Spring Boot example code.',
+       FALSE, '2026-03-03 10:01:00'
+FROM dm_room dr, users iu, users lu
+WHERE dr.instructor_id = iu.user_id
+  AND dr.learner_id = lu.user_id
+  AND iu.email = 'instructor@devpath.com'
+  AND lu.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM dm_message dm
+      WHERE dm.room_id = dr.id
+        AND dm.message = 'Hi, I have one follow-up question about the Spring Boot example code.'
+  );
 
--- [2] review_reply
-INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
-SELECT r.id, u.user_id, 'Thanks for the detailed feedback. I will add one more guided example and update the lecture notes.', FALSE, '2026-01-21 00:00:00', '2026-01-21 00:00:00'
-FROM review r, users u
-WHERE r.content = 'The Spring Boot intro course was easy to follow and the examples were practical.'
-  AND u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
+INSERT INTO dm_message (
+    room_id, sender_id, message, is_deleted, created_at
+)
+SELECT dr.id, iu.user_id,
+       'Sure. Send the stack trace and the request payload, and I will help you narrow it down.',
+       FALSE, '2026-03-03 10:03:00'
+FROM dm_room dr, users iu, users lu
+WHERE dr.instructor_id = iu.user_id
+  AND dr.learner_id = lu.user_id
+  AND iu.email = 'instructor@devpath.com'
+  AND lu.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM dm_message dm
+      WHERE dm.room_id = dr.id
+        AND dm.message = 'Sure. Send the stack trace and the request payload, and I will help you narrow it down.'
+  );
 
-INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
-SELECT r.id, u.user_id, 'I will add a shorter beginner path for this topic and link the revised notes in the next update.', FALSE, '2026-01-26 00:00:00', '2026-01-26 00:00:00'
-FROM review r, users u
-WHERE r.content = 'I understood the deployment chapter, but a slower walkthrough would help beginners.'
-  AND u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
-
-INSERT INTO review_reply (review_id, instructor_id, content, is_deleted, created_at, updated_at)
-SELECT r.id, u.user_id, 'I reviewed the section and will break the security setup into smaller steps with a checklist.', FALSE, '2026-02-02 00:00:00', '2026-02-02 00:00:00'
-FROM review r, users u
-WHERE r.content = 'The pace felt fast for the security section and I had trouble matching the code to the lecture.'
-  AND u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.instructor_id = u.user_id);
-
--- [3] review_template
-INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Quick acknowledgment', 'Thanks for the review. I checked the issue and will follow up with a concrete fix or guide.', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = 'Quick acknowledgment' AND rt.instructor_id = u.user_id);
-
-INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Ask for reproduction steps', 'Please share the exact steps, environment, and expected result so I can reproduce the problem quickly.', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = 'Ask for reproduction steps' AND rt.instructor_id = u.user_id);
-
-INSERT INTO review_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Share extra material', 'I added a follow up explanation and extra material so you can review the topic in smaller steps.', FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM review_template rt WHERE rt.title = 'Share extra material' AND rt.instructor_id = u.user_id);
-
--- [4] refund_request
-INSERT INTO refund_request (learner_id, course_id, instructor_id, reason, enrolled_at, progress_percent_snapshot, refund_amount, status, is_deleted, requested_at, processed_at)
-SELECT u.user_id, c.course_id, c.instructor_id, 'Schedule mismatch', '2026-02-01 00:00:00', 15, COALESCE(CAST(c.price AS BIGINT), 0), 'PENDING', FALSE, '2026-02-05 00:00:00', NULL
-FROM users u, courses c
-WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
-  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = 'Schedule mismatch' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
-
-INSERT INTO refund_request (learner_id, course_id, instructor_id, reason, enrolled_at, progress_percent_snapshot, refund_amount, status, is_deleted, requested_at, processed_at)
-SELECT u.user_id, c.course_id, c.instructor_id, 'Duplicate purchase', '2026-02-03 00:00:00', 10, COALESCE(CAST(c.price AS BIGINT), 0), 'APPROVED', FALSE, '2026-02-08 00:00:00', '2026-02-10 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'learner@devpath.com' AND c.title = 'JPA Practical Design'
-  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = 'Duplicate purchase' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
-
-INSERT INTO refund_request (learner_id, course_id, instructor_id, reason, enrolled_at, progress_percent_snapshot, refund_amount, status, is_deleted, requested_at, processed_at)
-SELECT u.user_id, c.course_id, c.instructor_id, 'Not what I expected', '2026-02-06 00:00:00', 25, COALESCE(CAST(c.price AS BIGINT), 0), 'REJECTED', FALSE, '2026-02-12 00:00:00', '2026-02-13 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
-  AND NOT EXISTS (SELECT 1 FROM refund_request rr WHERE rr.reason = 'Not what I expected' AND rr.learner_id = u.user_id AND rr.course_id = c.course_id);
-
--- [5] settlement
-INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
-SELECT u.user_id, 690000, 'COMPLETED', FALSE, '2026-01-31 00:00:00', '2026-01-31 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 690000 AND s.created_at = '2026-01-31 00:00:00');
-
-INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
-SELECT u.user_id, 385000, 'PENDING', FALSE, NULL, '2026-02-15 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 385000 AND s.created_at = '2026-02-15 00:00:00');
-
-INSERT INTO settlement (instructor_id, amount, status, is_deleted, settled_at, created_at)
-SELECT u.user_id, 1980000, 'HELD', FALSE, NULL, '2026-02-28 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM settlement s WHERE s.instructor_id = u.user_id AND s.amount = 1980000 AND s.created_at = '2026-02-28 00:00:00');
-
--- [6] coupon
-INSERT INTO coupon (instructor_id, coupon_code, discount_type, discount_value, target_course_id, max_usage_count, usage_count, expires_at, is_deleted, created_at)
-SELECT u.user_id, 'HELLO2026', 'RATE', 30, NULL, 100, 45, '2026-02-28 23:59:59', FALSE, '2026-01-20 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM coupon c WHERE c.coupon_code = 'HELLO2026');
-
-INSERT INTO coupon (instructor_id, coupon_code, discount_type, discount_value, target_course_id, max_usage_count, usage_count, expires_at, is_deleted, created_at)
-SELECT u.user_id, 'JAVA_LAUNCH', 'AMOUNT', 15000, c.course_id, 200, 82, '2026-03-15 23:59:59', FALSE, '2026-01-20 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'instructor@devpath.com' AND c.title = 'Spring Boot Intro'
-  AND NOT EXISTS (SELECT 1 FROM coupon cp WHERE cp.coupon_code = 'JAVA_LAUNCH');
-
--- [7] promotion
-INSERT INTO promotion (instructor_id, course_id, promotion_type, discount_rate, start_at, end_at, is_active, is_deleted, created_at)
-SELECT u.user_id, c.course_id, 'TIMESALE', 20, '2026-02-01 00:00:00', '2026-02-07 23:59:59', TRUE, FALSE, '2026-01-30 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'instructor@devpath.com' AND c.title = 'Spring Boot Intro'
-  AND NOT EXISTS (SELECT 1 FROM promotion p WHERE p.course_id = c.course_id AND p.promotion_type = 'TIMESALE' AND p.start_at = '2026-02-01 00:00:00');
-
-INSERT INTO promotion (instructor_id, course_id, promotion_type, discount_rate, start_at, end_at, is_active, is_deleted, created_at)
-SELECT u.user_id, c.course_id, 'GENERAL', 15, '2026-02-15 00:00:00', '2026-03-15 23:59:59', TRUE, FALSE, '2026-02-10 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'instructor@devpath.com' AND c.title = 'JPA Practical Design'
-  AND NOT EXISTS (SELECT 1 FROM promotion p WHERE p.course_id = c.course_id AND p.promotion_type = 'GENERAL' AND p.start_at = '2026-02-15 00:00:00');
-
--- [8] notice
-INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Platform maintenance window', 'DevPath maintenance is scheduled for 2026-02-15 from 02:00 to 04:00 KST. Course playback and QnA posting may be briefly delayed.', TRUE, FALSE, '2026-02-10 00:00:00', '2026-02-10 00:00:00'
-FROM users u
-WHERE u.email = 'admin@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = 'Platform maintenance window');
-
-INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Refund policy reminder', 'Refund requests are reviewed against enrollment date and progress snapshot. Please attach a clear reason when filing a request.', FALSE, FALSE, '2026-02-20 00:00:00', '2026-02-20 00:00:00'
-FROM users u
-WHERE u.email = 'admin@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = 'Refund policy reminder');
-
-INSERT INTO notice (author_id, title, content, is_pinned, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Streaming quality update', 'Adaptive streaming and OCR search quality were updated for recent lessons. Please report any playback regression through support.', FALSE, FALSE, '2026-03-01 00:00:00', '2026-03-01 00:00:00'
-FROM users u
-WHERE u.email = 'admin@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM notice n WHERE n.title = 'Streaming quality update');
-
--- [9] admin_role
-INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
-SELECT 'SUPER_ADMIN', 'Owns full platform level operations and approval authority.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
-WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'SUPER_ADMIN');
-
-INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
-SELECT 'CONTENT_MANAGER', 'Handles content governance, notices, and moderation workflows.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
-WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'CONTENT_MANAGER');
-
-INSERT INTO admin_role (role_name, description, is_deleted, created_at, updated_at)
-SELECT 'CS_MANAGER', 'Handles support, refund operations, and learner issue escalation.', FALSE, '2026-01-01 00:00:00', '2026-01-01 00:00:00'
-WHERE NOT EXISTS (SELECT 1 FROM admin_role ar WHERE ar.role_name = 'CS_MANAGER');
-
--- [10] instructor_post
-INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, '[Notice] Weekly live QnA schedule', 'Weekly live QnA will be held every Tuesday. Please post questions in advance.', 'NOTICE', 0, 1, FALSE, '2026-01-15 00:00:00', '2026-01-15 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = '[Notice] Weekly live QnA schedule');
-
-INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'How to avoid N plus one with JPA', 'Check fetch joins, entity graphs, and batch size settings before changing repository structure.', 'GENERAL', 0, 1, FALSE, '2026-01-20 00:00:00', '2026-01-20 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'How to avoid N plus one with JPA');
-
-INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'HTTP status code guide', 'Review the difference between 200, 201, 400, 401, 403, 404, and 500 before debugging API flows.', 'GENERAL', 0, 1, FALSE, '2026-01-25 00:00:00', '2026-01-25 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'HTTP status code guide');
-
-INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Docker Compose local setup tips', 'Keep app, database, and cache startup simple when debugging local environments.', 'GENERAL', 0, 1, FALSE, '2026-02-03 00:00:00', '2026-02-03 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'Docker Compose local setup tips');
-
-INSERT INTO instructor_post (instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'JWT access and refresh token strategy', 'Use short lived access tokens and store refresh tokens securely with rotation rules.', 'GENERAL', 0, 1, FALSE, '2026-02-10 00:00:00', '2026-02-10 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_post ip WHERE ip.title = 'JWT access and refresh token strategy');
-
--- [11] instructor_comment
-INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
-SELECT ip.id, u.user_id, NULL, 'The weekly QnA slot is useful. Please share the agenda early if possible.', 0, FALSE, '2026-01-16 00:00:00'
-FROM instructor_post ip, users u
-WHERE ip.title = '[Notice] Weekly live QnA schedule' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'The weekly QnA slot is useful. Please share the agenda early if possible.');
-
-INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
-SELECT ip.id, u.user_id, NULL, 'This helped. A side by side example of fetch join versus lazy loading would be even better.', 0, FALSE, '2026-01-21 00:00:00'
-FROM instructor_post ip, users u
-WHERE ip.title = 'How to avoid N plus one with JPA' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'This helped. A side by side example of fetch join versus lazy loading would be even better.');
-
-INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
-SELECT ip.id, u.user_id, NULL, 'A compact table for common status codes would make this easier to review.', 0, FALSE, '2026-01-26 00:00:00'
-FROM instructor_post ip, users u
-WHERE ip.title = 'HTTP status code guide' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'A compact table for common status codes would make this easier to review.');
-
-INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
-SELECT ip.id, u.user_id, NULL, 'The Docker examples were helpful for local setup. Please add one troubleshooting checklist.', 0, FALSE, '2026-02-04 00:00:00'
-FROM instructor_post ip, users u
-WHERE ip.title = 'Docker Compose local setup tips' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'The Docker examples were helpful for local setup. Please add one troubleshooting checklist.');
-
-INSERT INTO instructor_comment (post_id, author_id, parent_comment_id, content, like_count, is_deleted, created_at)
-SELECT ip.id, u.user_id, NULL, 'Please add guidance on refresh token rotation and logout handling.', 0, FALSE, '2026-02-11 00:00:00'
-FROM instructor_post ip, users u
-WHERE ip.title = 'JWT access and refresh token strategy' AND u.email = 'learner@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM instructor_comment ic WHERE ic.post_id = ip.id AND ic.content = 'Please add guidance on refresh token rotation and logout handling.');
-
--- [12] qna_questions
-INSERT INTO qna_questions (user_id, template_type, difficulty, title, content, adopted_answer_id, course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'DEBUGGING', 'EASY', 'BeanCreationException during startup', 'Spring Boot startup fails with BeanCreationException. Which bean should I inspect first and how do I narrow the cause?', NULL, c.course_id, '00:12:30', 'UNANSWERED', 0, FALSE, '2026-02-05 00:00:00', '2026-02-05 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'learner@devpath.com' AND c.title = 'Spring Boot Intro'
-  AND NOT EXISTS (SELECT 1 FROM qna_questions q WHERE q.title = 'BeanCreationException during startup');
-
-INSERT INTO qna_questions (user_id, template_type, difficulty, title, content, adopted_answer_id, course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'IMPLEMENTATION', 'MEDIUM', 'How to avoid JPA infinite recursion', 'My entity graph loops when I serialize it to JSON. What is the safest way to stop recursive references?', NULL, c.course_id, '00:28:10', 'UNANSWERED', 0, FALSE, '2026-02-08 00:00:00', '2026-02-08 00:00:00'
-FROM users u, courses c
-WHERE u.email = 'learner@devpath.com' AND c.title = 'JPA Practical Design'
-  AND NOT EXISTS (SELECT 1 FROM qna_questions q WHERE q.title = 'How to avoid JPA infinite recursion');
-
--- [13] qna_answer_draft
-INSERT INTO qna_answer_draft (question_id, instructor_id, draft_content, is_deleted, saved_at, updated_at)
-SELECT q.question_id, u.user_id, 'Start from the root cause in the stack trace, then check configuration classes, component scanning, and constructor dependencies.', FALSE, '2026-02-06 00:00:00', '2026-02-06 00:00:00'
-FROM qna_questions q, users u
-WHERE q.title = 'BeanCreationException during startup' AND u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM qna_answer_draft d WHERE d.question_id = q.question_id AND d.instructor_id = u.user_id);
-
-INSERT INTO qna_answer_draft (question_id, instructor_id, draft_content, is_deleted, saved_at, updated_at)
-SELECT q.question_id, u.user_id, 'Prefer response DTOs for API output, and use reference annotations only when you must serialize the entity graph directly.', FALSE, '2026-02-09 00:00:00', '2026-02-09 00:00:00'
-FROM qna_questions q, users u
-WHERE q.title = 'How to avoid JPA infinite recursion' AND u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM qna_answer_draft d WHERE d.question_id = q.question_id AND d.instructor_id = u.user_id);
-
--- [14] qna_template
-INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'Debugging startup errors', 'Check stack trace order, configuration classes, environment variables, and recent dependency changes first.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = 'Debugging startup errors' AND qt.instructor_id = u.user_id);
-
-INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'N plus one review checklist', 'Compare repository query count, fetch strategy, and entity graph usage before changing domain structure.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = 'N plus one review checklist' AND qt.instructor_id = u.user_id);
-
-INSERT INTO qna_template (instructor_id, title, content, is_deleted, created_at, updated_at)
-SELECT u.user_id, 'API error triage guide', 'Write down request payload, response code, logs, and reproduction steps before escalating the issue.', FALSE, '2026-01-10 00:00:00', '2026-01-10 00:00:00'
-FROM users u
-WHERE u.email = 'instructor@devpath.com'
-  AND NOT EXISTS (SELECT 1 FROM qna_template qt WHERE qt.title = 'API error triage guide' AND qt.instructor_id = u.user_id);
-
--- B SECTION identity restart
-ALTER TABLE review ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE review_reply ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE review_template ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE refund_request ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE settlement ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE coupon ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE promotion ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE notice ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE admin_role ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE instructor_post ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE instructor_comment ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE qna_questions ALTER COLUMN question_id RESTART WITH 1000;
-ALTER TABLE qna_answer_draft ALTER COLUMN id RESTART WITH 1000;
-ALTER TABLE qna_template ALTER COLUMN id RESTART WITH 1000;
+-- ========================================
+-- B SECTION SEQUENCE FIX
+-- ========================================
+SELECT setval('review_id_seq', (SELECT COALESCE(MAX(id), 1) FROM review));
+SELECT setval('review_reply_id_seq', (SELECT COALESCE(MAX(id), 1) FROM review_reply));
+SELECT setval('review_report_id_seq', (SELECT COALESCE(MAX(id), 1) FROM review_report));
+SELECT setval('review_template_id_seq', (SELECT COALESCE(MAX(id), 1) FROM review_template));
+SELECT setval('qna_questions_question_id_seq', (SELECT COALESCE(MAX(question_id), 1) FROM qna_questions));
+SELECT setval('qna_answers_answer_id_seq', (SELECT COALESCE(MAX(answer_id), 1) FROM qna_answers));
+SELECT setval('qna_answer_draft_id_seq', (SELECT COALESCE(MAX(id), 1) FROM qna_answer_draft));
+SELECT setval('qna_template_id_seq', (SELECT COALESCE(MAX(id), 1) FROM qna_template));
+SELECT setval('instructor_post_id_seq', (SELECT COALESCE(MAX(id), 1) FROM instructor_post));
+SELECT setval('instructor_comment_id_seq', (SELECT COALESCE(MAX(id), 1) FROM instructor_comment));
+SELECT setval('instructor_post_like_id_seq', (SELECT COALESCE(MAX(id), 1) FROM instructor_post_like));
+SELECT setval('instructor_comment_like_id_seq', (SELECT COALESCE(MAX(id), 1) FROM instructor_comment_like));
+SELECT setval('coupon_id_seq', (SELECT COALESCE(MAX(id), 1) FROM coupon));
+SELECT setval('promotion_id_seq', (SELECT COALESCE(MAX(id), 1) FROM promotion));
+SELECT setval('conversion_stat_id_seq', (SELECT COALESCE(MAX(id), 1) FROM conversion_stat));
+SELECT setval('refund_request_id_seq', (SELECT COALESCE(MAX(id), 1) FROM refund_request));
+SELECT setval('refund_review_id_seq', (SELECT COALESCE(MAX(id), 1) FROM refund_review));
+SELECT setval('settlement_id_seq', (SELECT COALESCE(MAX(id), 1) FROM settlement));
+SELECT setval('settlement_hold_id_seq', (SELECT COALESCE(MAX(id), 1) FROM settlement_hold));
+SELECT setval('admin_role_id_seq', (SELECT COALESCE(MAX(id), 1) FROM admin_role));
+SELECT setval('admin_permission_id_seq', (SELECT COALESCE(MAX(id), 1) FROM admin_permission));
+SELECT setval('account_log_id_seq', (SELECT COALESCE(MAX(id), 1) FROM account_log));
+SELECT setval('notice_id_seq', (SELECT COALESCE(MAX(id), 1) FROM notice));
+SELECT setval('instructor_notification_id_seq', (SELECT COALESCE(MAX(id), 1) FROM instructor_notification));
+SELECT setval('dm_room_id_seq', (SELECT COALESCE(MAX(id), 1) FROM dm_room));
+SELECT setval('dm_message_id_seq', (SELECT COALESCE(MAX(id), 1) FROM dm_message));

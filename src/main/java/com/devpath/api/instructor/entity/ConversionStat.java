@@ -32,6 +32,9 @@ public class ConversionStat {
     @Column(nullable = false)
     private Long instructorId;
 
+    @Column
+    private Long courseId;
+
     @Column(nullable = false)
     private Long totalVisitors;
 

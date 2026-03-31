@@ -5181,6 +5181,309 @@ WHERE rn.title = '[A-PROOF-PREISSUED] Proof card preissued'
         AND h.download_reason = 'Preissued certificate download verification.'
   );
 
+-- ========================================
+-- A-HISTORY READ MODEL
+-- ========================================
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    tr.roadmap_id,
+    '[A-HISTORY-READ-1] History read node 1',
+    'Completed-node fixture for learning-history assembly.',
+    'CONCEPT',
+    906
+FROM target_roadmap tr
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = '[A-HISTORY-READ-1] History read node 1'
+);
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    tr.roadmap_id,
+    '[A-HISTORY-READ-2] History read node 2',
+    'Second completed-node fixture for learning-history assembly.',
+    'CONCEPT',
+    907
+FROM target_roadmap tr
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = '[A-HISTORY-READ-2] History read node 2'
+);
+
+INSERT INTO node_clearances (
+    user_id,
+    node_id,
+    clearance_status,
+    lesson_completion_rate,
+    required_tags_satisfied,
+    missing_tag_count,
+    lesson_completed,
+    quiz_passed,
+    assignment_passed,
+    proof_eligible,
+    cleared_at,
+    last_calculated_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'CLEARED',
+    100.00,
+    TRUE,
+    0,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TIMESTAMP '2026-03-30 16:00:00',
+    TIMESTAMP '2026-03-30 16:00:00',
+    TIMESTAMP '2026-03-30 16:00:00',
+    TIMESTAMP '2026-03-30 16:00:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-HISTORY-READ-1] History read node 1'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM node_clearances nc
+      WHERE nc.user_id = u.user_id
+        AND nc.node_id = rn.node_id
+  );
+
+INSERT INTO node_clearances (
+    user_id,
+    node_id,
+    clearance_status,
+    lesson_completion_rate,
+    required_tags_satisfied,
+    missing_tag_count,
+    lesson_completed,
+    quiz_passed,
+    assignment_passed,
+    proof_eligible,
+    cleared_at,
+    last_calculated_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'CLEARED',
+    100.00,
+    TRUE,
+    0,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TIMESTAMP '2026-03-30 16:05:00',
+    TIMESTAMP '2026-03-30 16:05:00',
+    TIMESTAMP '2026-03-30 16:05:00',
+    TIMESTAMP '2026-03-30 16:05:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-HISTORY-READ-2] History read node 2'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM node_clearances nc
+      WHERE nc.user_id = u.user_id
+        AND nc.node_id = rn.node_id
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+WITH first_assignment AS (
+    SELECT a.assignment_id
+    FROM assignments a
+    ORDER BY a.assignment_id
+    LIMIT 1
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Submission for learning-history read-model verification.',
+    'https://github.com/devpath/history-read-model',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 16:10:00',
+    TIMESTAMP '2026-03-30 16:20:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    91,
+    92,
+    'Assignment entry for learning-history verification.',
+    'Learning-history common feedback',
+    FALSE,
+    TIMESTAMP '2026-03-30 16:10:00',
+    TIMESTAMP '2026-03-30 16:20:00'
+FROM first_assignment a
+JOIN users lu ON lu.email = 'learner@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM assignment_submissions s
+    WHERE s.assignment_id = a.assignment_id
+      AND s.learner_id = lu.user_id
+      AND s.submission_url = 'https://github.com/devpath/history-read-model'
+      AND s.is_deleted = FALSE
+);
+
+INSERT INTO til_drafts (
+    user_id,
+    lesson_id,
+    title,
+    content,
+    table_of_contents,
+    status,
+    published_url,
+    is_deleted,
+    created_at,
+    updated_at
+)
+WITH first_lesson AS (
+    SELECT l.lesson_id
+    FROM lessons l
+    ORDER BY l.lesson_id
+    LIMIT 1
+)
+SELECT
+    u.user_id,
+    fl.lesson_id,
+    'Learning history verification TIL 1',
+    '# Learning history notes' || E'\n\n' ||
+    '## Completed nodes' || E'\n' ||
+    '- reviewed completed-node aggregation' || E'\n\n' ||
+    '## Reflection' || E'\n' ||
+    'validated the read-model response shape.',
+    '[{"level":1,"title":"Learning history notes","anchor":"learning-history-notes"},{"level":2,"title":"Completed nodes","anchor":"completed-nodes"},{"level":2,"title":"Reflection","anchor":"reflection"}]',
+    'PUBLISHED',
+    'https://velog.io/@devpath/history-read-model-1',
+    FALSE,
+    TIMESTAMP '2026-03-30 16:30:00',
+    TIMESTAMP '2026-03-30 16:35:00'
+FROM users u
+CROSS JOIN first_lesson fl
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM til_drafts t
+      WHERE t.user_id = u.user_id
+        AND t.title = 'Learning history verification TIL 1'
+        AND t.is_deleted = FALSE
+  );
+
+INSERT INTO til_drafts (
+    user_id,
+    lesson_id,
+    title,
+    content,
+    table_of_contents,
+    status,
+    published_url,
+    is_deleted,
+    created_at,
+    updated_at
+)
+WITH first_lesson AS (
+    SELECT l.lesson_id
+    FROM lessons l
+    ORDER BY l.lesson_id
+    LIMIT 1
+)
+SELECT
+    u.user_id,
+    fl.lesson_id,
+    'Learning history verification TIL 2',
+    '# Second history TIL' || E'\n\n' ||
+    '## Assignment record' || E'\n' ||
+    '- checked submission status and score' || E'\n\n' ||
+    '## Next action' || E'\n' ||
+    'verify share-link and organize responses.',
+    '[{"level":1,"title":"Second history TIL","anchor":"second-history-til"},{"level":2,"title":"Assignment record","anchor":"assignment-record"},{"level":2,"title":"Next action","anchor":"next-action"}]',
+    'DRAFT',
+    NULL,
+    FALSE,
+    TIMESTAMP '2026-03-30 16:40:00',
+    TIMESTAMP '2026-03-30 16:40:00'
+FROM users u
+CROSS JOIN first_lesson fl
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM til_drafts t
+      WHERE t.user_id = u.user_id
+        AND t.title = 'Learning history verification TIL 2'
+        AND t.is_deleted = FALSE
+  );
+
+INSERT INTO learning_history_share_links (
+    user_id,
+    share_token,
+    title,
+    expires_at,
+    access_count,
+    is_active,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    'learning-history-read-model-20260330',
+    'Learning history read-model link',
+    TIMESTAMP '2026-12-31 23:59:59',
+    1,
+    TRUE,
+    TIMESTAMP '2026-03-30 16:50:00',
+    TIMESTAMP '2026-03-30 16:55:00'
+FROM users u
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_history_share_links l
+      WHERE l.share_token = 'learning-history-read-model-20260330'
+  );
+
 INSERT INTO users (email, password, name, role_name, is_active, created_at, updated_at)
 SELECT
     'learner4@devpath.com',

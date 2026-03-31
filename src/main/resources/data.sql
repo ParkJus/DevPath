@@ -5484,6 +5484,2088 @@ WHERE u.email = 'learner@devpath.com'
       WHERE l.share_token = 'learning-history-read-model-20260330'
   );
 
+-- ========================================
+-- A-RECOMMENDATION CHANGE SIGNALS
+-- ========================================
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'RECOMMENDATION_CHANGE_ENABLED',
+    'Recommendation change feature enabled',
+    'Enables recommendation change suggestion creation.',
+    'true',
+    10,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 17:00:00',
+    TIMESTAMP '2026-03-30 17:00:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'RECOMMENDATION_CHANGE_ENABLED'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'RECOMMENDATION_CHANGE_MAX_LIMIT',
+    'Recommendation change max suggestion limit',
+    'Defines the max number of recommendation change suggestions generated in one call.',
+    '10',
+    11,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 17:01:00',
+    TIMESTAMP '2026-03-30 17:01:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'RECOMMENDATION_CHANGE_MAX_LIMIT'
+);
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    tr.roadmap_id,
+    '[A-RECO-1] Recommendation change suggestion node 1',
+    'Recommendation change suggestion verification node 1',
+    'CONCEPT',
+    908
+FROM target_roadmap tr
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+);
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    tr.roadmap_id,
+    '[A-RECO-2] Recommendation change suggestion node 2',
+    'Recommendation change suggestion verification node 2',
+    'CONCEPT',
+    909
+FROM target_roadmap tr
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+);
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    tr.roadmap_id,
+    '[A-RECO-3] Recommendation change suggestion node 3',
+    'Recommendation change recalculate verification node 3',
+    'CONCEPT',
+    910
+FROM target_roadmap tr
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = '[A-RECO-3] Recommendation change suggestion node 3'
+);
+
+INSERT INTO til_drafts (
+    user_id,
+    lesson_id,
+    title,
+    content,
+    table_of_contents,
+    status,
+    published_url,
+    is_deleted,
+    created_at,
+    updated_at
+)
+WITH first_lesson AS (
+    SELECT l.lesson_id
+    FROM lessons l
+    ORDER BY l.lesson_id
+    LIMIT 1
+)
+SELECT
+    u.user_id,
+    fl.lesson_id,
+    'Recommendation change signal TIL',
+    '# Recommendation change signal' || E'\n\n' ||
+    '## Weak areas' || E'\n' ||
+    '- JPA associations and lazy loading need review' || E'\n\n' ||
+    '## Next action' || E'\n' ||
+    '- Verify supplement recommendation changes.',
+    '[{"level":1,"title":"Recommendation change signal","anchor":"recommendation-change-signal"},{"level":2,"title":"Weak areas","anchor":"weak-areas"},{"level":2,"title":"Next action","anchor":"next-action"}]',
+    'DRAFT',
+    NULL,
+    FALSE,
+    TIMESTAMP '2026-03-30 17:05:00',
+    TIMESTAMP '2026-03-30 17:05:00'
+FROM users u
+CROSS JOIN first_lesson fl
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM til_drafts t
+      WHERE t.user_id = u.user_id
+        AND t.title = 'Recommendation change signal TIL'
+        AND t.is_deleted = FALSE
+  );
+
+INSERT INTO diagnosis_quizzes (
+    user_id,
+    roadmap_id,
+    question_count,
+    difficulty,
+    created_at,
+    submitted_at
+)
+WITH target_roadmap AS (
+    SELECT r.roadmap_id
+    FROM roadmaps r
+    WHERE COALESCE(r.is_deleted, FALSE) = FALSE
+    ORDER BY COALESCE(r.is_official, FALSE) DESC, r.roadmap_id ASC
+    LIMIT 1
+)
+SELECT
+    u.user_id,
+    tr.roadmap_id,
+    5,
+    'INTERMEDIATE',
+    TIMESTAMP '2026-03-30 17:10:00',
+    TIMESTAMP '2026-03-30 17:12:00'
+FROM users u
+CROSS JOIN target_roadmap tr
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM diagnosis_quizzes dq
+      WHERE dq.user_id = u.user_id
+        AND dq.roadmap_id = tr.roadmap_id
+        AND dq.created_at = TIMESTAMP '2026-03-30 17:10:00'
+  );
+
+INSERT INTO diagnosis_results (
+    user_id,
+    roadmap_id,
+    quiz_id,
+    score,
+    max_score,
+    weak_areas,
+    recommended_nodes,
+    created_at
+)
+WITH target_quiz AS (
+    SELECT dq.quiz_id, dq.user_id, dq.roadmap_id
+    FROM diagnosis_quizzes dq
+    JOIN users u ON u.user_id = dq.user_id
+    WHERE u.email = 'learner@devpath.com'
+      AND dq.created_at = TIMESTAMP '2026-03-30 17:10:00'
+    LIMIT 1
+)
+SELECT
+    tq.user_id,
+    tq.roadmap_id,
+    tq.quiz_id,
+    48,
+    100,
+    '["JPA","Lazy Loading","Entity Graph"]',
+    '["[A-RECO-1] Recommendation change suggestion node 1","[A-RECO-2] Recommendation change suggestion node 2"]',
+    TIMESTAMP '2026-03-30 17:13:00'
+FROM target_quiz tq
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM diagnosis_results dr
+    WHERE dr.user_id = tq.user_id
+      AND dr.quiz_id = tq.quiz_id
+  );
+
+INSERT INTO risk_warnings (
+    user_id,
+    node_id,
+    warning_type,
+    risk_level,
+    message,
+    is_acknowledged,
+    acknowledged_at,
+    created_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'PREREQUISITE_GAP',
+    'HIGH',
+    'Prerequisite knowledge gap detected before entering the next node.',
+    FALSE,
+    NULL,
+    TIMESTAMP '2026-03-30 17:15:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM risk_warnings rw
+      WHERE rw.user_id = u.user_id
+        AND rw.node_id = rn.node_id
+        AND rw.warning_type = 'PREREQUISITE_GAP'
+  );
+
+INSERT INTO risk_warnings (
+    user_id,
+    node_id,
+    warning_type,
+    risk_level,
+    message,
+    is_acknowledged,
+    acknowledged_at,
+    created_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'DROP_OFF_RISK',
+    'MEDIUM',
+    'Recent study patterns indicate a moderate drop-off risk for this node.',
+    FALSE,
+    NULL,
+    TIMESTAMP '2026-03-30 17:16:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM risk_warnings rw
+      WHERE rw.user_id = u.user_id
+        AND rw.node_id = rn.node_id
+        AND rw.warning_type = 'DROP_OFF_RISK'
+  );
+
+INSERT INTO supplement_recommendations (
+    user_id,
+    node_id,
+    reason,
+    priority,
+    coverage_percent,
+    missing_tag_count,
+    status,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'JPA associations and lazy loading need reinforcement before moving forward.',
+    1,
+    48.0,
+    3,
+    'PENDING',
+    TIMESTAMP '2026-03-30 17:20:00',
+    TIMESTAMP '2026-03-30 17:20:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM supplement_recommendations sr
+      WHERE sr.user_id = u.user_id
+        AND sr.node_id = rn.node_id
+  );
+
+INSERT INTO supplement_recommendations (
+    user_id,
+    node_id,
+    reason,
+    priority,
+    coverage_percent,
+    missing_tag_count,
+    status,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'The next node should be delayed until the missing prerequisites are filled.',
+    2,
+    55.0,
+    2,
+    'PENDING',
+    TIMESTAMP '2026-03-30 17:21:00',
+    TIMESTAMP '2026-03-30 17:21:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM supplement_recommendations sr
+      WHERE sr.user_id = u.user_id
+        AND sr.node_id = rn.node_id
+  );
+
+INSERT INTO supplement_recommendations (
+    user_id,
+    node_id,
+    reason,
+    priority,
+    coverage_percent,
+    missing_tag_count,
+    status,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    'Pending recommendation kept for recalculate-next-nodes verification.',
+    3,
+    61.0,
+    1,
+    'PENDING',
+    TIMESTAMP '2026-03-30 17:22:00',
+    TIMESTAMP '2026-03-30 17:22:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-3] Recommendation change suggestion node 3'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM supplement_recommendations sr
+      WHERE sr.user_id = u.user_id
+        AND sr.node_id = rn.node_id
+  );
+
+INSERT INTO recommendation_changes (
+    user_id,
+    node_id,
+    source_recommendation_id,
+    reason,
+    context_summary,
+    change_status,
+    decision_status,
+    suggested_at,
+    applied_at,
+    ignored_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    sr.recommendation_id,
+    sr.reason,
+    'tilCount=4, weaknessSignal=true, warningCount=2, historyCount=2',
+    'SUGGESTED',
+    'UNDECIDED',
+    TIMESTAMP '2026-03-30 17:25:00',
+    NULL,
+    NULL,
+    TIMESTAMP '2026-03-30 17:25:00',
+    TIMESTAMP '2026-03-30 17:25:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+JOIN supplement_recommendations sr
+  ON sr.user_id = u.user_id
+ AND sr.node_id = rn.node_id
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_changes rc
+      WHERE rc.user_id = u.user_id
+        AND rc.node_id = rn.node_id
+        AND rc.change_status = 'SUGGESTED'
+  );
+
+INSERT INTO recommendation_changes (
+    user_id,
+    node_id,
+    source_recommendation_id,
+    reason,
+    context_summary,
+    change_status,
+    decision_status,
+    suggested_at,
+    applied_at,
+    ignored_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    sr.recommendation_id,
+    sr.reason,
+    'tilCount=4, weaknessSignal=true, warningCount=2, historyCount=2',
+    'SUGGESTED',
+    'UNDECIDED',
+    TIMESTAMP '2026-03-30 17:26:00',
+    NULL,
+    NULL,
+    TIMESTAMP '2026-03-30 17:26:00',
+    TIMESTAMP '2026-03-30 17:26:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+JOIN supplement_recommendations sr
+  ON sr.user_id = u.user_id
+ AND sr.node_id = rn.node_id
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_changes rc
+      WHERE rc.user_id = u.user_id
+        AND rc.node_id = rn.node_id
+        AND rc.change_status = 'SUGGESTED'
+  );
+
+INSERT INTO recommendation_changes (
+    user_id,
+    node_id,
+    source_recommendation_id,
+    reason,
+    context_summary,
+    change_status,
+    decision_status,
+    suggested_at,
+    applied_at,
+    ignored_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    sr.recommendation_id,
+    sr.reason,
+    'tilCount=4, weaknessSignal=true, warningCount=2, historyCount=2',
+    'SUGGESTED',
+    'UNDECIDED',
+    TIMESTAMP '2026-03-30 17:27:00',
+    NULL,
+    NULL,
+    TIMESTAMP '2026-03-30 17:27:00',
+    TIMESTAMP '2026-03-30 17:27:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-3] Recommendation change suggestion node 3'
+JOIN supplement_recommendations sr
+  ON sr.user_id = u.user_id
+ AND sr.node_id = rn.node_id
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_changes rc
+      WHERE rc.user_id = u.user_id
+        AND rc.node_id = rn.node_id
+        AND rc.change_status = 'SUGGESTED'
+  );
+
+INSERT INTO recommendation_changes (
+    user_id,
+    node_id,
+    source_recommendation_id,
+    reason,
+    context_summary,
+    change_status,
+    decision_status,
+    suggested_at,
+    applied_at,
+    ignored_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    NULL,
+    'Previously applied recommendation change sample.',
+    'tilCount=2, weaknessSignal=true, warningCount=1, historyCount=0',
+    'APPLIED',
+    'APPLIED',
+    TIMESTAMP '2026-03-28 17:00:00',
+    TIMESTAMP '2026-03-28 17:10:00',
+    NULL,
+    TIMESTAMP '2026-03-28 17:00:00',
+    TIMESTAMP '2026-03-28 17:10:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_changes rc
+      WHERE rc.user_id = u.user_id
+        AND rc.node_id = rn.node_id
+        AND rc.change_status = 'APPLIED'
+  );
+
+INSERT INTO recommendation_changes (
+    user_id,
+    node_id,
+    source_recommendation_id,
+    reason,
+    context_summary,
+    change_status,
+    decision_status,
+    suggested_at,
+    applied_at,
+    ignored_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    rn.node_id,
+    NULL,
+    'Previously ignored recommendation change sample.',
+    'tilCount=1, weaknessSignal=false, warningCount=1, historyCount=1',
+    'IGNORED',
+    'IGNORED',
+    TIMESTAMP '2026-03-29 18:00:00',
+    NULL,
+    TIMESTAMP '2026-03-29 18:05:00',
+    TIMESTAMP '2026-03-29 18:00:00',
+    TIMESTAMP '2026-03-29 18:05:00'
+FROM users u
+JOIN roadmap_nodes rn ON rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_changes rc
+      WHERE rc.user_id = u.user_id
+        AND rc.node_id = rn.node_id
+        AND rc.change_status = 'IGNORED'
+  );
+
+INSERT INTO recommendation_histories (
+    user_id,
+    recommendation_id,
+    node_id,
+    before_status,
+    after_status,
+    action_type,
+    context,
+    created_at
+)
+SELECT
+    rc.user_id,
+    rc.recommendation_change_id,
+    rc.node_id,
+    'SUGGESTED',
+    'APPLIED',
+    'CHANGE_APPLY',
+    'Previously applied recommendation change sample.',
+    TIMESTAMP '2026-03-28 17:10:00'
+FROM recommendation_changes rc
+JOIN users u ON u.user_id = rc.user_id
+JOIN roadmap_nodes rn ON rn.node_id = rc.node_id
+WHERE u.email = 'learner@devpath.com'
+  AND rn.title = '[A-RECO-1] Recommendation change suggestion node 1'
+  AND rc.change_status = 'APPLIED'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_histories rh
+      WHERE rh.recommendation_id = rc.recommendation_change_id
+        AND rh.action_type = 'CHANGE_APPLY'
+  );
+
+INSERT INTO recommendation_histories (
+    user_id,
+    recommendation_id,
+    node_id,
+    before_status,
+    after_status,
+    action_type,
+    context,
+    created_at
+)
+SELECT
+    rc.user_id,
+    rc.recommendation_change_id,
+    rc.node_id,
+    'SUGGESTED',
+    'IGNORED',
+    'CHANGE_IGNORE',
+    'Previously ignored recommendation change sample.',
+    TIMESTAMP '2026-03-29 18:05:00'
+FROM recommendation_changes rc
+JOIN users u ON u.user_id = rc.user_id
+JOIN roadmap_nodes rn ON rn.node_id = rc.node_id
+WHERE u.email = 'learner@devpath.com'
+  AND rn.title = '[A-RECO-2] Recommendation change suggestion node 2'
+  AND rc.change_status = 'IGNORED'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM recommendation_histories rh
+      WHERE rh.recommendation_id = rc.recommendation_change_id
+        AND rh.action_type = 'CHANGE_IGNORE'
+  );
+
+-- ========================================
+-- A-INSTRUCTOR ANALYTICS
+-- ========================================
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'COMPLETED',
+    TIMESTAMP '2026-03-30 18:05:00',
+    TIMESTAMP '2026-03-30 18:50:00',
+    100,
+    TIMESTAMP '2026-03-30 18:50:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-A] Node Clearance Course'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-03-30 18:06:00',
+    NULL,
+    72,
+    TIMESTAMP '2026-03-30 18:40:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-A] Node Clearance Course'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-03-30 18:07:00',
+    NULL,
+    28,
+    TIMESTAMP '2026-03-30 18:22:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-A] Node Clearance Course'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'COMPLETED',
+    TIMESTAMP '2026-03-30 18:10:00',
+    TIMESTAMP '2026-03-30 18:55:00',
+    100,
+    TIMESTAMP '2026-03-30 18:55:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-B] Tag Missing Course'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-03-30 18:11:00',
+    NULL,
+    83,
+    TIMESTAMP '2026-03-30 18:46:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-B] Tag Missing Course'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-03-30 18:12:00',
+    NULL,
+    56,
+    TIMESTAMP '2026-03-30 18:33:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-B] Tag Missing Course'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-03-30 18:13:00',
+    NULL,
+    49,
+    TIMESTAMP '2026-03-30 18:28:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-C] Quiz Fail Course'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'COMPLETED',
+    TIMESTAMP '2026-03-30 18:14:00',
+    TIMESTAMP '2026-03-30 18:58:00',
+    100,
+    TIMESTAMP '2026-03-30 18:58:00'
+FROM users u
+JOIN courses c ON c.title = '[A-CASE-C] Quiz Fail Course'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    68,
+    620,
+    1.25,
+    TRUE,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:20:00',
+    TIMESTAMP '2026-03-30 18:20:00',
+    TIMESTAMP '2026-03-30 18:20:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-A] LESSON 1'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    24,
+    210,
+    1.00,
+    FALSE,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:21:00',
+    TIMESTAMP '2026-03-30 18:21:00',
+    TIMESTAMP '2026-03-30 18:21:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-A] LESSON 1'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    100,
+    900,
+    1.50,
+    TRUE,
+    TRUE,
+    TIMESTAMP '2026-03-30 18:24:00',
+    TIMESTAMP '2026-03-30 18:24:00',
+    TIMESTAMP '2026-03-30 18:24:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-B] LESSON 1'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    52,
+    470,
+    1.00,
+    FALSE,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:25:00',
+    TIMESTAMP '2026-03-30 18:25:00',
+    TIMESTAMP '2026-03-30 18:25:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-B] LESSON 1'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    44,
+    390,
+    1.25,
+    TRUE,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:26:00',
+    TIMESTAMP '2026-03-30 18:26:00',
+    TIMESTAMP '2026-03-30 18:26:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-C] LESSON 1'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO lesson_progress (
+    user_id,
+    lesson_id,
+    progress_percent,
+    progress_seconds,
+    default_playback_rate,
+    is_pip_enabled,
+    is_completed,
+    last_watched_at,
+    created_at,
+    updated_at
+)
+SELECT
+    u.user_id,
+    l.lesson_id,
+    100,
+    900,
+    1.75,
+    TRUE,
+    TRUE,
+    TIMESTAMP '2026-03-30 18:27:00',
+    TIMESTAMP '2026-03-30 18:27:00',
+    TIMESTAMP '2026-03-30 18:27:00'
+FROM users u
+JOIN lessons l ON l.title = '[A-CASE-C] LESSON 1'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lesson_progress lp
+      WHERE lp.user_id = u.user_id
+        AND lp.lesson_id = l.lesson_id
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    45,
+    100,
+    TIMESTAMP '2026-03-30 18:30:00',
+    TIMESTAMP '2026-03-30 18:35:00',
+    300,
+    FALSE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:30:00',
+    TIMESTAMP '2026-03-30 18:35:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner2@devpath.com'
+WHERE q.title = '[A-CASE-A] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    82,
+    100,
+    TIMESTAMP '2026-03-30 18:31:00',
+    TIMESTAMP '2026-03-30 18:36:00',
+    280,
+    TRUE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:31:00',
+    TIMESTAMP '2026-03-30 18:36:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner3@devpath.com'
+WHERE q.title = '[A-CASE-A] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    90,
+    100,
+    TIMESTAMP '2026-03-30 18:32:00',
+    TIMESTAMP '2026-03-30 18:37:00',
+    260,
+    TRUE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:32:00',
+    TIMESTAMP '2026-03-30 18:37:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner@devpath.com'
+WHERE q.title = '[A-CASE-B] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    38,
+    100,
+    TIMESTAMP '2026-03-30 18:33:00',
+    TIMESTAMP '2026-03-30 18:38:00',
+    310,
+    FALSE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:33:00',
+    TIMESTAMP '2026-03-30 18:38:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner3@devpath.com'
+WHERE q.title = '[A-CASE-B] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    42,
+    100,
+    TIMESTAMP '2026-03-30 18:34:00',
+    TIMESTAMP '2026-03-30 18:39:00',
+    320,
+    FALSE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:34:00',
+    TIMESTAMP '2026-03-30 18:39:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner2@devpath.com'
+WHERE q.title = '[A-CASE-C] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO quiz_attempts (
+    quiz_id,
+    learner_id,
+    score,
+    max_score,
+    started_at,
+    completed_at,
+    time_spent_seconds,
+    is_passed,
+    attempt_number,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    q.quiz_id,
+    u.user_id,
+    84,
+    100,
+    TIMESTAMP '2026-03-30 18:35:00',
+    TIMESTAMP '2026-03-30 18:40:00',
+    270,
+    TRUE,
+    1,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:35:00',
+    TIMESTAMP '2026-03-30 18:40:00'
+FROM quizzes q
+JOIN users u ON u.email = 'learner3@devpath.com'
+WHERE q.title = '[A-CASE-C] QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_attempts qa
+      WHERE qa.quiz_id = q.quiz_id
+        AND qa.learner_id = u.user_id
+        AND qa.attempt_number = 1
+        AND qa.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Instructor analytics submission A-2',
+    'https://github.com/devpath/instructor-analytics-a-2',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 18:41:00',
+    TIMESTAMP '2026-03-30 18:51:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    61,
+    58,
+    'Needs stronger test coverage.',
+    'A course analytics sample',
+    FALSE,
+    TIMESTAMP '2026-03-30 18:41:00',
+    TIMESTAMP '2026-03-30 18:51:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner2@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE a.title = '[A-CASE-A] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-a-2'
+        AND s.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Instructor analytics submission A-3',
+    'https://github.com/devpath/instructor-analytics-a-3',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 18:42:00',
+    TIMESTAMP '2026-03-30 18:52:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    84,
+    81,
+    'Solid structure with minor gaps.',
+    'A course analytics sample',
+    FALSE,
+    TIMESTAMP '2026-03-30 18:42:00',
+    TIMESTAMP '2026-03-30 18:52:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner3@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE a.title = '[A-CASE-A] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-a-3'
+        AND s.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Instructor analytics submission B-1',
+    'https://github.com/devpath/instructor-analytics-b-1',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 18:43:00',
+    TIMESTAMP '2026-03-30 18:53:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    89,
+    88,
+    'Stable submission quality.',
+    'B course analytics sample',
+    FALSE,
+    TIMESTAMP '2026-03-30 18:43:00',
+    TIMESTAMP '2026-03-30 18:53:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE a.title = '[A-CASE-B] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-b-1'
+        AND s.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    NULL,
+    'Instructor analytics submission B-3',
+    'https://github.com/devpath/instructor-analytics-b-3',
+    FALSE,
+    'PRECHECK_FAILED',
+    TIMESTAMP '2026-03-30 18:44:00',
+    NULL,
+    FALSE,
+    FALSE,
+    TRUE,
+    TRUE,
+    34,
+    NULL,
+    NULL,
+    NULL,
+    FALSE,
+    TIMESTAMP '2026-03-30 18:44:00',
+    TIMESTAMP '2026-03-30 18:44:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner3@devpath.com'
+WHERE a.title = '[A-CASE-B] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-b-3'
+        AND s.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Instructor analytics submission C-2',
+    'https://github.com/devpath/instructor-analytics-c-2',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 18:45:00',
+    TIMESTAMP '2026-03-30 18:55:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    47,
+    42,
+    'Quality needs more work.',
+    'C course analytics sample',
+    FALSE,
+    TIMESTAMP '2026-03-30 18:45:00',
+    TIMESTAMP '2026-03-30 18:55:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner2@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE a.title = '[A-CASE-C] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-c-2'
+        AND s.is_deleted = FALSE
+  );
+
+INSERT INTO assignment_submissions (
+    assignment_id,
+    learner_id,
+    grader_id,
+    submission_text,
+    submission_url,
+    is_late,
+    submission_status,
+    submitted_at,
+    graded_at,
+    readme_passed,
+    test_passed,
+    lint_passed,
+    file_format_passed,
+    quality_score,
+    total_score,
+    individual_feedback,
+    common_feedback,
+    is_deleted,
+    created_at,
+    updated_at
+)
+SELECT
+    a.assignment_id,
+    lu.user_id,
+    iu.user_id,
+    'Instructor analytics submission C-3',
+    'https://github.com/devpath/instructor-analytics-c-3',
+    FALSE,
+    'GRADED',
+    TIMESTAMP '2026-03-30 18:46:00',
+    TIMESTAMP '2026-03-30 18:56:00',
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    95,
+    94,
+    'Excellent submission quality.',
+    'C course analytics sample',
+    FALSE,
+    TIMESTAMP '2026-03-30 18:46:00',
+    TIMESTAMP '2026-03-30 18:56:00'
+FROM assignments a
+JOIN users lu ON lu.email = 'learner3@devpath.com'
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE a.title = '[A-CASE-C] ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignment_submissions s
+      WHERE s.assignment_id = a.assignment_id
+        AND s.learner_id = lu.user_id
+        AND s.submission_url = 'https://github.com/devpath/instructor-analytics-c-3'
+        AND s.is_deleted = FALSE
+  );
+
+-- ========================================
+-- A-ADMIN LEARNING RULES AND METRICS
+-- ========================================
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'TAG_AUTO_CLASSIFICATION_ENABLED',
+    'Tag auto classification rule',
+    'Enables tag-based automatic course classification.',
+    'true',
+    20,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 19:00:00',
+    TIMESTAMP '2026-03-30 19:00:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'TAG_AUTO_CLASSIFICATION_ENABLED'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'NODE_CLEARANCE_AUTO_JUDGE',
+    'Node clearance auto judge rule',
+    'Evaluates lessons, required tags, quizzes, and assignments together.',
+    'LESSON_100_AND_REQUIRED_TAGS_AND_EVALUATION_PASS',
+    21,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 19:01:00',
+    TIMESTAMP '2026-03-30 19:01:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'NODE_CLEARANCE_AUTO_JUDGE'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'SUPPLEMENT_RECOMMENDATION_ENABLED',
+    'Supplement recommendation rule',
+    'Creates supplement recommendations from learning risk and tag gaps.',
+    'true',
+    22,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 19:02:00',
+    TIMESTAMP '2026-03-30 19:02:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'SUPPLEMENT_RECOMMENDATION_ENABLED'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'PROOF_CARD_AUTO_ISSUE',
+    'Proof card auto issue rule',
+    'Auto-issues proof cards only for proof-eligible clearances.',
+    'PROOF_ELIGIBLE_ONLY',
+    23,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 19:03:00',
+    TIMESTAMP '2026-03-30 19:03:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'PROOF_CARD_AUTO_ISSUE'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'PROOF_CARD_MANUAL_ISSUE',
+    'Proof card manual issue rule',
+    'Allows manual proof card issuance or re-issuance by admins.',
+    'true',
+    24,
+    'DISABLED',
+    TIMESTAMP '2026-03-30 19:04:00',
+    TIMESTAMP '2026-03-30 19:04:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'PROOF_CARD_MANUAL_ISSUE'
+);
+
+INSERT INTO learning_automation_rules (
+    rule_key,
+    rule_name,
+    description,
+    rule_value,
+    priority,
+    rule_status,
+    created_at,
+    updated_at
+)
+SELECT
+    'RECOMMENDATION_CHANGE_ENABLED',
+    'Recommendation change rule',
+    'Enables recommendation change suggestion and apply flows.',
+    'true',
+    25,
+    'ENABLED',
+    TIMESTAMP '2026-03-30 19:05:00',
+    TIMESTAMP '2026-03-30 19:05:00'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM learning_automation_rules r
+    WHERE r.rule_key = 'RECOMMENDATION_CHANGE_ENABLED'
+);
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'OVERVIEW',
+    'adminOverviewBaseline',
+    72.4,
+    TIMESTAMP '2026-03-30 19:10:00',
+    TIMESTAMP '2026-03-30 19:10:00'
+FROM courses c
+WHERE c.title = '[A-CASE-A] Node Clearance Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'OVERVIEW'
+        AND s.metric_label = 'adminOverviewBaseline'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:10:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'COMPLETION_RATE',
+    'roadmapCompletionRate',
+    41.67,
+    TIMESTAMP '2026-03-30 19:11:00',
+    TIMESTAMP '2026-03-30 19:11:00'
+FROM courses c
+WHERE c.title = '[A-CASE-A] Node Clearance Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'COMPLETION_RATE'
+        AND s.metric_label = 'roadmapCompletionRate'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:11:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'AVERAGE_WATCH_TIME',
+    'averageLearningDurationSeconds',
+    611.67,
+    TIMESTAMP '2026-03-30 19:12:00',
+    TIMESTAMP '2026-03-30 19:12:00'
+FROM courses c
+WHERE c.title = '[A-CASE-A] Node Clearance Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'AVERAGE_WATCH_TIME'
+        AND s.metric_label = 'averageLearningDurationSeconds'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:12:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'QUIZ_STATS',
+    'quizQualityScore',
+    63.5,
+    TIMESTAMP '2026-03-30 19:13:00',
+    TIMESTAMP '2026-03-30 19:13:00'
+FROM courses c
+WHERE c.title = '[A-CASE-C] Quiz Fail Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'QUIZ_STATS'
+        AND s.metric_label = 'quizQualityScore'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:13:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'ASSIGNMENT_STATS',
+    'assignmentAverageScore',
+    76.8,
+    TIMESTAMP '2026-03-30 19:14:00',
+    TIMESTAMP '2026-03-30 19:14:00'
+FROM courses c
+WHERE c.title = '[A-CASE-B] Tag Missing Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'ASSIGNMENT_STATS'
+        AND s.metric_label = 'assignmentAverageScore'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:14:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'DROP_OFF',
+    'dropOffRate',
+    33.33,
+    TIMESTAMP '2026-03-30 19:15:00',
+    TIMESTAMP '2026-03-30 19:15:00'
+FROM courses c
+WHERE c.title = '[A-CASE-A] Node Clearance Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'DROP_OFF'
+        AND s.metric_label = 'dropOffRate'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:15:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'DIFFICULTY',
+    'difficultyScore',
+    58.2,
+    TIMESTAMP '2026-03-30 19:16:00',
+    TIMESTAMP '2026-03-30 19:16:00'
+FROM courses c
+WHERE c.title = '[A-CASE-C] Quiz Fail Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'DIFFICULTY'
+        AND s.metric_label = 'difficultyScore'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:16:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'FUNNEL',
+    'completionFunnel',
+    66.67,
+    TIMESTAMP '2026-03-30 19:17:00',
+    TIMESTAMP '2026-03-30 19:17:00'
+FROM courses c
+WHERE c.title = '[A-CASE-B] Tag Missing Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'FUNNEL'
+        AND s.metric_label = 'completionFunnel'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:17:00'
+  );
+
+INSERT INTO learning_metric_samples (
+    course_id,
+    metric_type,
+    metric_label,
+    metric_value,
+    sampled_at,
+    created_at
+)
+SELECT
+    c.course_id,
+    'WEAK_POINT',
+    'weakPointRatio',
+    29.4,
+    TIMESTAMP '2026-03-30 19:18:00',
+    TIMESTAMP '2026-03-30 19:18:00'
+FROM courses c
+WHERE c.title = '[A-CASE-C] Quiz Fail Course'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM learning_metric_samples s
+      WHERE s.course_id = c.course_id
+        AND s.metric_type = 'WEAK_POINT'
+        AND s.metric_label = 'weakPointRatio'
+        AND s.sampled_at = TIMESTAMP '2026-03-30 19:18:00'
+  );
+
+-- ========================================
+-- A SECTION STABILITY FOOTER
+-- ========================================
+
+UPDATE tags
+SET is_deleted = FALSE
+WHERE is_deleted IS NULL;
+
+UPDATE lesson_progress
+SET is_pip_enabled = FALSE
+WHERE is_pip_enabled IS NULL;
+
+UPDATE quiz_attempts
+SET is_deleted = FALSE
+WHERE is_deleted IS NULL;
+
+UPDATE assignment_submissions
+SET is_deleted = FALSE
+WHERE is_deleted IS NULL;
+
+UPDATE til_drafts
+SET is_deleted = FALSE
+WHERE is_deleted IS NULL;
+
+UPDATE timestamp_notes
+SET is_deleted = FALSE
+WHERE is_deleted IS NULL;
+
+UPDATE learning_history_share_links
+SET is_active = TRUE
+WHERE is_active IS NULL;
+
+SELECT setval(pg_get_serial_sequence('users', 'user_id'), COALESCE((SELECT MAX(user_id) FROM users), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('tags', 'tag_id'), COALESCE((SELECT MAX(tag_id) FROM tags), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('roadmap_nodes', 'node_id'), COALESCE((SELECT MAX(node_id) FROM roadmap_nodes), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('courses', 'course_id'), COALESCE((SELECT MAX(course_id) FROM courses), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('course_sections', 'section_id'), COALESCE((SELECT MAX(section_id) FROM course_sections), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('lessons', 'lesson_id'), COALESCE((SELECT MAX(lesson_id) FROM lessons), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('quizzes', 'quiz_id'), COALESCE((SELECT MAX(quiz_id) FROM quizzes), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('assignments', 'assignment_id'), COALESCE((SELECT MAX(assignment_id) FROM assignments), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('course_node_mappings', 'course_node_mapping_id'), COALESCE((SELECT MAX(course_node_mapping_id) FROM course_node_mappings), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('course_enrollments', 'enrollment_id'), COALESCE((SELECT MAX(enrollment_id) FROM course_enrollments), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('lesson_progress', 'progress_id'), COALESCE((SELECT MAX(progress_id) FROM lesson_progress), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('quiz_attempts', 'attempt_id'), COALESCE((SELECT MAX(attempt_id) FROM quiz_attempts), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('assignment_submissions', 'submission_id'), COALESCE((SELECT MAX(submission_id) FROM assignment_submissions), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('til_drafts', 'til_id'), COALESCE((SELECT MAX(til_id) FROM til_drafts), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('timestamp_notes', 'note_id'), COALESCE((SELECT MAX(note_id) FROM timestamp_notes), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('supplement_recommendations', 'recommendation_id'), COALESCE((SELECT MAX(recommendation_id) FROM supplement_recommendations), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('node_clearances', 'node_clearance_id'), COALESCE((SELECT MAX(node_clearance_id) FROM node_clearances), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('proof_cards', 'proof_card_id'), COALESCE((SELECT MAX(proof_card_id) FROM proof_cards), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('proof_card_shares', 'proof_card_share_id'), COALESCE((SELECT MAX(proof_card_share_id) FROM proof_card_shares), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('learning_history_share_links', 'learning_history_share_link_id'), COALESCE((SELECT MAX(learning_history_share_link_id) FROM learning_history_share_links), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('certificates', 'certificate_id'), COALESCE((SELECT MAX(certificate_id) FROM certificates), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('certificate_download_histories', 'certificate_download_history_id'), COALESCE((SELECT MAX(certificate_download_history_id) FROM certificate_download_histories), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('learning_automation_rules', 'learning_automation_rule_id'), COALESCE((SELECT MAX(learning_automation_rule_id) FROM learning_automation_rules), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('learning_metric_samples', 'learning_metric_sample_id'), COALESCE((SELECT MAX(learning_metric_sample_id) FROM learning_metric_samples), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('recommendation_changes', 'recommendation_change_id'), COALESCE((SELECT MAX(recommendation_change_id) FROM recommendation_changes), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('recommendation_histories', 'history_id'), COALESCE((SELECT MAX(history_id) FROM recommendation_histories), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('diagnosis_quizzes', 'quiz_id'), COALESCE((SELECT MAX(quiz_id) FROM diagnosis_quizzes), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('diagnosis_results', 'result_id'), COALESCE((SELECT MAX(result_id) FROM diagnosis_results), 0) + 1, false);
+SELECT setval(pg_get_serial_sequence('risk_warnings', 'warning_id'), COALESCE((SELECT MAX(warning_id) FROM risk_warnings), 0) + 1, false);
+
 INSERT INTO users (email, password, name, role_name, is_active, created_at, updated_at)
 SELECT
     'learner4@devpath.com',

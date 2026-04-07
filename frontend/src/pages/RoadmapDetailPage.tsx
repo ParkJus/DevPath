@@ -1,11 +1,11 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { roadmapApi } from '../lib/api'
+import type { ProofCardSummary } from '../types/learner'
 import type {
   RoadmapDetail,
   RoadmapNodeItem,
   RecommendationChange,
   RecommendationChangeHistory,
-  ProofCardSummary,
   NodeStatus,
   ChangeType,
 } from '../types/roadmap'

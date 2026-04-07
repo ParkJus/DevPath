@@ -49,6 +49,7 @@ import type {
   UserProfileUpdateRequest,
   WishlistCourse,
 } from '../types/learner'
+import { readStoredAuthSession } from './auth-session'
 import type {
   RoadmapDetail,
   MyRoadmapSummary,

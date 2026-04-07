@@ -25,11 +25,17 @@ public class RecommendationChangeResponse {
         @Schema(description = "Roadmap node title", example = "Spring Security JWT authentication")
         private String nodeTitle;
 
+        @Schema(description = "Node sort order (ADD 타입에서 삽입 위치 결정용)", example = "8")
+        private Integer nodeSortOrder;
+
         @Schema(description = "Reason", example = "Generated from supplement recommendation and weakness signals.")
         private String reason;
 
         @Schema(description = "Context summary", example = "tilCount=4, weaknessSignal=true, warningCount=2, historyCount=3")
         private String contextSummary;
+
+        @Schema(description = "Change type (ADD / MODIFY / DELETE)", example = "DELETE")
+        private String nodeChangeType;
 
         @Schema(description = "Change status", example = "SUGGESTED")
         private String changeStatus;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { enrollmentApi, wishlistApi } from '../../lib/api'
 import { LearnerContentRow, LearnerPageShell, MyMenuSidebar } from '../template'
 import type { Enrollment, WishlistCourse } from '../../types/learner'
@@ -19,6 +19,7 @@ const fallbackEnrollments: Enrollment[] = [
     enrolledAt: '2026-01-25T00:00:00',
     completedAt: null,
     lastAccessedAt: '2026-02-09T10:00:00',
+    tags: ['Java', 'Spring', 'Backend', 'OOP'],
   },
   {
     enrollmentId: 2,
@@ -35,6 +36,7 @@ const fallbackEnrollments: Enrollment[] = [
     enrolledAt: '2026-01-12T00:00:00',
     completedAt: null,
     lastAccessedAt: '2026-02-08T10:00:00',
+    tags: ['Docker', 'DevOps', 'Container', 'Linux'],
   },
   {
     enrollmentId: 3,
@@ -51,6 +53,7 @@ const fallbackEnrollments: Enrollment[] = [
     enrolledAt: '2026-01-08T00:00:00',
     completedAt: null,
     lastAccessedAt: '2026-02-06T10:00:00',
+    tags: ['React', 'TypeScript', 'Frontend', 'SPA'],
   },
 ]
 
@@ -94,10 +97,38 @@ function formatRelativeLabel(index: number, lastAccessedAt: string | null | unde
   return '마지막 학습: 3일 전'
 }
 
+type SortBy = 'recent' | 'enrolled' | 'progress_high' | 'progress_low'
+type CategoryFilter = 'all' | 'Backend' | 'Frontend' | 'DevOps'
+type ProgressRange = 'all' | '0-25' | '26-75' | '76-99'
+type PeriodFilter = 'all' | '1month' | '3months' | '6months'
+
+function getUniqueInstructors(enrollments: Enrollment[]): string[] {
+  return [...new Set(enrollments.map((e) => e.instructorName).filter(Boolean))]
+}
+
+function getUniqueTags(enrollments: Enrollment[]): string[] {
+  return [...new Set(enrollments.flatMap((e) => e.tags ?? []))].sort()
+}
+
+function isWithinPeriod(dateStr: string, period: PeriodFilter): boolean {
+  if (period === 'all') return true
+  const date = new Date(dateStr)
+  const threshold = new Date()
+  threshold.setMonth(threshold.getMonth() - (period === '1month' ? 1 : period === '3months' ? 3 : 6))
+  return date >= threshold
+}
+
 export default function MyLearningPage() {
   const [tab, setTab] = useState<'active' | 'completed' | 'wishlist'>('active')
   const [enrollments, setEnrollments] = useState<Enrollment[]>(fallbackEnrollments)
   const [wishlist, setWishlist] = useState<WishlistCourse[]>(fallbackWishlist)
+  const [sortBy, setSortBy] = useState<SortBy>('recent')
+  const [category, setCategory] = useState<CategoryFilter>('all')
+  const [progressRange, setProgressRange] = useState<ProgressRange>('all')
+  const [hasCertificateOnly, setHasCertificateOnly] = useState(false)
+  const [instructor, setInstructor] = useState<string>('all')
+  const [enrolledPeriod, setEnrolledPeriod] = useState<PeriodFilter>('all')
+  const [selectedTag, setSelectedTag] = useState<string>('all')
 
   useEffect(() => {
     async function load() {
@@ -122,17 +153,78 @@ export default function MyLearningPage() {
     void load()
   }, [])
 
+  const instructorNames = useMemo(() => getUniqueInstructors(enrollments), [enrollments])
+  const allTags = useMemo(() => getUniqueTags(enrollments), [enrollments])
+
+  const isFilterActive =
+    category !== 'all' ||
+    progressRange !== 'all' ||
+    hasCertificateOnly ||
+    instructor !== 'all' ||
+    enrolledPeriod !== 'all' ||
+    selectedTag !== 'all' ||
+    sortBy !== 'recent'
+
+  const resetFilters = useCallback(() => {
+    setSortBy('recent')
+    setCategory('all')
+    setProgressRange('all')
+    setHasCertificateOnly(false)
+    setInstructor('all')
+    setEnrolledPeriod('all')
+    setSelectedTag('all')
+  }, [])
+
   const filteredCourses = useMemo(() => {
-    if (tab === 'completed') {
-      return enrollments.filter((item) => item.status === 'COMPLETED')
+    if (tab === 'wishlist') return wishlist
+
+    let result =
+      tab === 'completed'
+        ? enrollments.filter((e) => e.status === 'COMPLETED')
+        : enrollments.filter((e) => e.status !== 'COMPLETED')
+
+    if (category !== 'all') {
+      result = result.filter((e) => getCategoryLabel(e.courseTitle) === category)
     }
 
-    if (tab === 'wishlist') {
-      return wishlist
+    if (progressRange !== 'all') {
+      result = result.filter((e) => {
+        const p = e.progressPercentage ?? 0
+        if (progressRange === '0-25') return p <= 25
+        if (progressRange === '26-75') return p >= 26 && p <= 75
+        return p >= 76
+      })
     }
 
-    return enrollments.filter((item) => item.status !== 'COMPLETED')
-  }, [enrollments, tab, wishlist])
+    if (hasCertificateOnly) {
+      result = result.filter((e) => e.hasCertificate)
+    }
+
+    if (selectedTag !== 'all') {
+      result = result.filter((e) => e.tags?.includes(selectedTag))
+    }
+
+    if (instructor !== 'all') {
+      result = result.filter((e) => e.instructorName === instructor)
+    }
+
+    if (enrolledPeriod !== 'all') {
+      result = result.filter((e) => e.enrolledAt != null && isWithinPeriod(e.enrolledAt, enrolledPeriod))
+    }
+
+    return [...result].sort((a, b) => {
+      if (sortBy === 'enrolled') {
+        return new Date(b.enrolledAt ?? 0).getTime() - new Date(a.enrolledAt ?? 0).getTime()
+      }
+      if (sortBy === 'progress_high') {
+        return (b.progressPercentage ?? 0) - (a.progressPercentage ?? 0)
+      }
+      if (sortBy === 'progress_low') {
+        return (a.progressPercentage ?? 0) - (b.progressPercentage ?? 0)
+      }
+      return new Date(b.lastAccessedAt ?? 0).getTime() - new Date(a.lastAccessedAt ?? 0).getTime()
+    })
+  }, [enrollments, tab, wishlist, category, progressRange, hasCertificateOnly, instructor, enrolledPeriod, selectedTag, sortBy])
 
   return (
     <LearnerPageShell>
@@ -157,6 +249,112 @@ export default function MyLearningPage() {
               찜한 강의
             </button>
           </div>
+
+          {tab !== 'wishlist' && (
+            <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+              {/* 정렬 */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+              >
+                <option value="recent">최근 학습순</option>
+                <option value="enrolled">수강 등록순</option>
+                <option value="progress_high">진도율 높은순</option>
+                <option value="progress_low">진도율 낮은순</option>
+              </select>
+
+              {/* 카테고리 */}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as CategoryFilter)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+              >
+                <option value="all">전체 카테고리</option>
+                <option value="Backend">Backend</option>
+                <option value="Frontend">Frontend</option>
+                <option value="DevOps">DevOps</option>
+              </select>
+
+              {/* 진도율 구간 */}
+              <select
+                value={progressRange}
+                onChange={(e) => setProgressRange(e.target.value as ProgressRange)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+              >
+                <option value="all">전체 진도율</option>
+                <option value="0-25">0 ~ 25%</option>
+                <option value="26-75">26 ~ 75%</option>
+                <option value="76-99">76 ~ 99%</option>
+              </select>
+
+              {/* 태그 */}
+              {allTags.length > 0 && (
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+                >
+                  <option value="all">전체 태그</option>
+                  {allTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* 수료증 토글 */}
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={hasCertificateOnly}
+                  onChange={(e) => setHasCertificateOnly(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded accent-brand"
+                />
+                수료증 있는 강의만
+              </label>
+
+              {/* 강사명 (2명 이상일 때만) */}
+              {instructorNames.length > 1 && (
+                <select
+                  value={instructor}
+                  onChange={(e) => setInstructor(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+                >
+                  <option value="all">전체 강사</option>
+                  {instructorNames.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* 등록 기간 */}
+              <select
+                value={enrolledPeriod}
+                onChange={(e) => setEnrolledPeriod(e.target.value as PeriodFilter)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 focus:outline-none"
+              >
+                <option value="all">전체 기간</option>
+                <option value="1month">최근 1개월</option>
+                <option value="3months">최근 3개월</option>
+                <option value="6months">최근 6개월</option>
+              </select>
+
+              {/* 초기화 버튼 */}
+              {isFilterActive && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="ml-auto text-xs text-gray-400 underline hover:text-gray-600"
+                >
+                  필터 초기화
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredCourses.length ? (

@@ -39,6 +39,7 @@ export interface Enrollment {
   enrolledAt: string | null
   completedAt: string | null
   lastAccessedAt: string | null
+  tags?: string[] | null
 }
 
 export interface WishlistCourse {

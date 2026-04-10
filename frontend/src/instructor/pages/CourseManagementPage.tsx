@@ -56,10 +56,22 @@ function formatDuration(durationSeconds: number | null) {
   return `${minutes}분`
 }
 
+function getUniqueValues(courses: InstructorCourseListItem[], key: 'categoryLabel' | 'levelLabel'): string[] {
+  return [...new Set(courses.map((c) => c[key]).filter(Boolean))].sort()
+}
+
+function getUniqueTags(courses: InstructorCourseListItem[]): string[] {
+  return [...new Set(courses.flatMap((c) => c.tags ?? []))].sort()
+}
+
 export default function CourseManagementPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('latest')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterLevel, setFilterLevel] = useState('all')
+  const [filterTag, setFilterTag] = useState('all')
+  const [pendingOnly, setPendingOnly] = useState(false)
   const [courses, setCourses] = useState<InstructorCourseListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -100,13 +112,27 @@ export default function CourseManagementPage() {
     return () => controller.abort()
   }, [])
 
+  const categoryOptions = getUniqueValues(courses, 'categoryLabel')
+  const levelOptions = getUniqueValues(courses, 'levelLabel')
+  const tagOptions = getUniqueTags(courses)
+
+  const isFilterActive =
+    filterStatus !== 'all' ||
+    filterCategory !== 'all' ||
+    filterLevel !== 'all' ||
+    filterTag !== 'all' ||
+    pendingOnly ||
+    search.trim() !== ''
+
   const visibleCourses = [...courses]
     .filter((course) => {
       const status = mapCourseStatus(course.status)
 
-      if (filterStatus !== 'all' && status !== filterStatus) {
-        return false
-      }
+      if (filterStatus !== 'all' && status !== filterStatus) return false
+      if (filterCategory !== 'all' && course.categoryLabel !== filterCategory) return false
+      if (filterLevel !== 'all' && course.levelLabel !== filterLevel) return false
+      if (filterTag !== 'all' && !(course.tags ?? []).includes(filterTag)) return false
+      if (pendingOnly && course.pendingQuestionCount === 0) return false
 
       if (search.trim()) {
         const haystack = `${course.title} ${course.categoryLabel} ${course.levelLabel}`.toLowerCase()
@@ -246,45 +272,118 @@ export default function CourseManagementPage() {
           ))}
         </div>
 
-        <div className="mb-4 flex flex-col items-center justify-between gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm md:flex-row">
-          <div className="flex w-full gap-1 md:w-auto">
-            {[
-              ['all', '전체'],
-              ['published', '공개 중'],
-              ['draft', '초안 / 심사'],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilterStatus(key as 'all' | 'published' | 'draft')}
-                className={`rounded-xl px-4 py-2 text-sm transition ${
-                  filterStatus === key ? 'bg-green-50 font-bold text-brand' : 'font-medium text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex w-full gap-2 md:w-auto">
-            <div className="relative flex-1 md:w-72">
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                type="text"
-                placeholder="강의명, 카테고리 검색"
-                className="w-full rounded-xl border border-gray-200 py-2 pr-4 pl-9 text-sm outline-none focus:border-brand"
-              />
-              <i className="fas fa-search absolute top-1/2 left-3 -translate-y-1/2 text-xs text-gray-400" />
+        <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-sm">
+          {/* 첫 번째 줄: 상태 탭 + 검색 + 정렬 */}
+          <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
+            <div className="flex w-full gap-1 md:w-auto">
+              {[
+                ['all', '전체'],
+                ['published', '공개 중'],
+                ['draft', '초안 / 심사'],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilterStatus(key as 'all' | 'published' | 'draft')}
+                  className={`rounded-xl px-4 py-2 text-sm transition ${
+                    filterStatus === key ? 'bg-green-50 font-bold text-brand' : 'font-medium text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+            <div className="flex w-full gap-2 md:w-auto">
+              <div className="relative flex-1 md:w-72">
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  type="text"
+                  placeholder="강의명, 카테고리 검색"
+                  className="w-full rounded-xl border border-gray-200 py-2 pr-4 pl-9 text-sm outline-none focus:border-brand"
+                />
+                <i className="fas fa-search absolute top-1/2 left-3 -translate-y-1/2 text-xs text-gray-400" />
+              </div>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+                className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-brand"
+              >
+                <option value="latest">최신순</option>
+                <option value="students">수강생순</option>
+                <option value="rating">평점순</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 두 번째 줄: 상세 필터 */}
+          <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+            {/* 카테고리 */}
             <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-brand"
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-brand"
             >
-              <option value="latest">최신순</option>
-              <option value="students">수강생순</option>
-              <option value="rating">평점순</option>
+              <option value="all">전체 카테고리</option>
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
+
+            {/* 난이도 */}
+            <select
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-brand"
+            >
+              <option value="all">전체 난이도</option>
+              {levelOptions.map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+
+            {/* 태그 */}
+            {tagOptions.length > 0 && (
+              <select
+                value={filterTag}
+                onChange={(e) => setFilterTag(e.target.value)}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 outline-none focus:border-brand"
+              >
+                <option value="all">전체 태그</option>
+                {tagOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            )}
+
+            {/* 미답변 질문 토글 */}
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={pendingOnly}
+                onChange={(e) => setPendingOnly(e.target.checked)}
+                className="h-3.5 w-3.5 rounded accent-brand"
+              />
+              미답변 질문 있는 강의만
+            </label>
+
+            {/* 초기화 */}
+            {isFilterActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterStatus('all')
+                  setFilterCategory('all')
+                  setFilterLevel('all')
+                  setFilterTag('all')
+                  setPendingOnly(false)
+                  setSearch('')
+                }}
+                className="ml-auto text-xs text-gray-400 underline hover:text-gray-600"
+              >
+                필터 초기화
+              </button>
+            )}
           </div>
         </div>
 

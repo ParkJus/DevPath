@@ -56,6 +56,7 @@ export interface InstructorCourseListItem {
   averageRating: number
   thumbnailUrl: string | null
   publishedAt: string | null
+  tags?: string[] | null
 }
 
 export interface InstructorAnnouncementSummary {

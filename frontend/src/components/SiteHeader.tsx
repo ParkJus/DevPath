@@ -3,17 +3,12 @@ import type { AuthSession } from '../types/auth'
 import AccountUserMenu from './AccountUserMenu'
 
 const headerLinks = [
-  { href: 'roadmap-hub.html', label: '로드맵' },
-  { href: 'lecture-list.html', label: '강의' },
-  { href: 'lounge-dashboard.html', label: '프로젝트' },
-  { href: 'community-list.html', label: '커뮤니티' },
-  { href: 'job-matching.html', label: '채용분석' },
+  { href: 'roadmap-hub.html', label: '\uB85C\uB4DC\uB9F5' },
+  { href: 'lecture-list.html', label: '\uAC15\uC758' },
+  { href: 'lounge-dashboard.html', label: '\uD504\uB85C\uC81D\uD2B8' },
+  { href: 'community-list.html', label: '\uCEE4\uBBA4\uB2C8\uD2F0' },
+  { href: 'job-matching.html', label: '\uCC44\uC6A9\uBD84\uC11D' },
 ]
-
-const instructorHeaderLink = {
-  href: 'instructor-dashboard.html',
-  label: '강사 대시보드',
-}
 
 // Edit only this object when you want pixel-level header tuning.
 export const siteHeaderTuning = {
@@ -25,6 +20,7 @@ export const siteHeaderTuning = {
   navBaseXPx: 17.5,
   navGapPx: 40,
   instructorGapPx: 40,
+  instructorLinkGapPx: 24,
   headerGroup: { x: 0, y: 0 },
   brandGroup: { x: 15, y: 0 },
   navGroup: { x: -2.5, y: 0 },
@@ -42,10 +38,20 @@ type SiteHeaderProps = {
   profileImage?: string | null
   onLogout?: () => Promise<void> | void
   onLoginClick?: () => void
+  offsetTopPx?: number
 }
 
-export default function SiteHeader({ session, profileImage, onLogout, onLoginClick }: SiteHeaderProps) {
+export default function SiteHeader({
+  session,
+  profileImage,
+  onLogout,
+  onLoginClick,
+  offsetTopPx = 0,
+}: SiteHeaderProps) {
   const showInstructorDashboard = session?.role === 'ROLE_INSTRUCTOR'
+  const instructorHeaderLinks = showInstructorDashboard
+    ? [{ href: 'instructor-dashboard.html', label: '\uAC15\uC0AC \uB300\uC2DC\uBCF4\uB4DC' }]
+    : []
   const containerStyle: CSSProperties = {
     maxWidth: `${siteHeaderTuning.maxWidthPx}px`,
     paddingLeft: `${siteHeaderTuning.horizontalPaddingPx}px`,
@@ -63,14 +69,17 @@ export default function SiteHeader({ session, profileImage, onLogout, onLoginCli
   }
   const instructorStyle: CSSProperties = {
     marginLeft: `${siteHeaderTuning.instructorGapPx}px`,
+    gap: `${siteHeaderTuning.instructorLinkGapPx}px`,
   }
   const userStyle = getMoveStyle(siteHeaderTuning.userGroup)
+  const railStyle: CSSProperties = { top: `${offsetTopPx}px` }
+  const headerStyle: CSSProperties = { top: `${offsetTopPx}px` }
 
   return (
     <>
-      <div className="app-header-rail" />
+      <div className="app-header-rail" style={railStyle} />
 
-      <nav className="app-header">
+      <nav className="app-header" style={headerStyle}>
         <div className="mx-auto flex h-full w-full items-center" style={containerStyle}>
           <div className="hidden items-center px-4 lg:flex" style={brandSlotStyle}>
             <a
@@ -103,13 +112,16 @@ export default function SiteHeader({ session, profileImage, onLogout, onLoginCli
               ))}
 
               {showInstructorDashboard ? (
-                <a
-                  href={instructorHeaderLink.href}
-                  className="absolute top-1/2 left-full inline-block -translate-y-1/2 whitespace-nowrap transition hover:text-brand"
+                <div
+                  className="absolute top-1/2 left-full inline-flex -translate-y-1/2 whitespace-nowrap"
                   style={instructorStyle}
                 >
-                  {instructorHeaderLink.label}
-                </a>
+                  {instructorHeaderLinks.map((item) => (
+                    <a key={item.href} href={item.href} className="inline-block transition hover:text-brand">
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
               ) : null}
             </div>
           </div>
@@ -124,7 +136,7 @@ export default function SiteHeader({ session, profileImage, onLogout, onLoginCli
                   onClick={onLoginClick}
                   className="rounded-full bg-gray-900 px-5 py-2 text-sm font-bold text-white shadow-lg transition hover:bg-black"
                 >
-                  로그인
+                  {'\uB85C\uADF8\uC778'}
                 </button>
               )}
             </div>
@@ -138,7 +150,7 @@ export default function SiteHeader({ session, profileImage, onLogout, onLoginCli
                   onClick={onLoginClick}
                   className="rounded-full bg-gray-900 px-5 py-2 text-sm font-bold text-white shadow-lg transition hover:bg-black"
                 >
-                  로그인
+                  {'\uB85C\uADF8\uC778'}
                 </button>
               )}
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { ErrorCard, LoadingCard } from '../../account/ui'
 import { instructorCourseApi, userApi } from '../../lib/api'
 import type { LearningCourseDetail, LearningLesson, LearningSection } from '../../types/learning'
@@ -57,6 +57,17 @@ type PreparedSection = {
   isPublished: boolean
   lessons: PreparedLesson[]
 }
+
+type SaveToastState = {
+  message: string
+  persistent: boolean
+}
+
+const SAVE_TOAST_DURATION_MS = 2200
+const INSTRUCTOR_HEADER_HEIGHT_PX = 64
+const EDITOR_ACTION_BUTTONS_STICKY_TOP_PX = INSTRUCTOR_HEADER_HEIGHT_PX + 8
+const EDITOR_ACTION_BUTTONS_STACK_SPACE_PX = 72
+const EDITOR_SIDE_CARD_STICKY_TOP_PX = EDITOR_ACTION_BUTTONS_STICKY_TOP_PX + EDITOR_ACTION_BUTTONS_STACK_SPACE_PX
 
 const lessonKindMeta: Record<
   LessonKind,
@@ -177,21 +188,30 @@ function apiTypeToLessonKind(value: string | null | undefined): LessonKind {
 function parseJobCard(raw: string): EditorJobCard {
   const card = createEmptyJobCard()
   const segments = raw.split(';').map((item) => item.trim())
+  const jobNamePrefixes = ['직무명:', '직무명', '吏곷Т紐?']
+  const englishNamePrefixes = ['영문명:', '영문명', '?곷Ц紐?']
+  const descriptionPrefixes = ['설명:', '?ㅻ챸:']
+  const keywordPrefixes = ['키워드:', '키워드', '?ㅼ썙??']
 
-  if (!segments.some((item) => item.startsWith('직무명:'))) {
+  if (!segments.some((item) => jobNamePrefixes.some((prefix) => item.startsWith(prefix)))) {
     card.description = raw
     return card
   }
 
   for (const segment of segments) {
-    if (segment.startsWith('직무명:')) {
-      card.name = segment.replace('직무명:', '').trim()
-    } else if (segment.startsWith('영문명:')) {
-      card.nameEn = segment.replace('영문명:', '').trim()
-    } else if (segment.startsWith('설명:')) {
-      card.description = segment.replace('설명:', '').trim()
-    } else if (segment.startsWith('키워드:')) {
-      card.keywords = segment.replace('키워드:', '').trim()
+    const jobNamePrefix = jobNamePrefixes.find((prefix) => segment.startsWith(prefix))
+    const englishNamePrefix = englishNamePrefixes.find((prefix) => segment.startsWith(prefix))
+    const descriptionPrefix = descriptionPrefixes.find((prefix) => segment.startsWith(prefix))
+    const keywordPrefix = keywordPrefixes.find((prefix) => segment.startsWith(prefix))
+
+    if (jobNamePrefix) {
+      card.name = segment.replace(jobNamePrefix, '').trim()
+    } else if (englishNamePrefix) {
+      card.nameEn = segment.replace(englishNamePrefix, '').trim()
+    } else if (descriptionPrefix) {
+      card.description = segment.replace(descriptionPrefix, '').trim()
+    } else if (keywordPrefix) {
+      card.keywords = segment.replace(keywordPrefix, '').trim()
     }
   }
 
@@ -292,6 +312,8 @@ export default function CourseEditorPage() {
   const [courseId, setCourseId] = useState<number | null>(() => getCourseIdFromUrl())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveToast, setSaveToast] = useState<SaveToastState | null>(null)
+  const [showFloatingActionButtons, setShowFloatingActionButtons] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [loadedCourse, setLoadedCourse] = useState<LearningCourseDetail | null>(null)
@@ -377,6 +399,43 @@ export default function CourseEditorPage() {
 
     return () => controller.abort()
   }, [courseId])
+
+  useEffect(() => {
+    if (!saveToast || saveToast.persistent) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSaveToast(null)
+    }, SAVE_TOAST_DURATION_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [saveToast])
+
+  useEffect(() => {
+    const updateFloatingActionButtons = () => {
+      const actionButtonsSentinel = document.getElementById('course-editor-action-buttons-sentinel')
+
+      if (!actionButtonsSentinel) {
+        return
+      }
+
+      setShowFloatingActionButtons(
+        actionButtonsSentinel.getBoundingClientRect().top <= EDITOR_ACTION_BUTTONS_STICKY_TOP_PX,
+      )
+    }
+
+    updateFloatingActionButtons()
+    window.addEventListener('scroll', updateFloatingActionButtons, { passive: true })
+    window.addEventListener('resize', updateFloatingActionButtons)
+
+    return () => {
+      window.removeEventListener('scroll', updateFloatingActionButtons)
+      window.removeEventListener('resize', updateFloatingActionButtons)
+    }
+  }, [])
 
   function rememberCourseId(nextCourseId: number) {
     setCourseId(nextCourseId)
@@ -672,12 +731,13 @@ export default function CourseEditorPage() {
   async function handleSave() {
     setSaving(true)
     setActionError(null)
+    setSaveToast({ message: '저장 중입니다...', persistent: true })
 
     try {
       await persistCourse()
-      window.alert('강의가 저장되었습니다.')
-      window.location.href = 'course-management.html'
+      setSaveToast({ message: '저장되었습니다.', persistent: false })
     } catch (nextError) {
+      setSaveToast(null)
       setActionError(nextError instanceof Error ? nextError.message : '강의를 저장하지 못했습니다.')
     } finally {
       setSaving(false)
@@ -703,52 +763,18 @@ export default function CourseEditorPage() {
     }
   }
 
-  async function prepareLessonForEditor(sectionLocalId: string, lessonLocalId: string) {
-    const section = sections.find((item) => item.localId === sectionLocalId)
-    const lesson = section?.lessons.find((item) => item.localId === lessonLocalId)
-
-    if (!lesson) {
-      setActionError('편집할 레슨을 찾을 수 없습니다.')
-      return null
-    }
-
-    if (lesson.lessonId) {
-      return {
-        lessonId: lesson.lessonId,
-        lessonTitle: lesson.title.trim() || '새 레슨',
-      }
-    }
-
-    setSaving(true)
-    setActionError(null)
-
-    try {
-      const persisted = await persistCourse()
-      const nextLessonId = persisted.lessonIdByLocalId[lessonLocalId]
-
-      if (!nextLessonId) {
-        throw new Error('레슨 저장이 완료되지 않아 편집기를 열 수 없습니다.')
-      }
-
-      return {
-        lessonId: nextLessonId,
-        lessonTitle: lesson.title.trim() || '새 레슨',
-      }
-    } catch (nextError) {
-      setActionError(nextError instanceof Error ? nextError.message : '레슨 저장 중 오류가 발생했습니다.')
-      return null
-    } finally {
-      setSaving(false)
-    }
-  }
-
   function handlePreview() {
     if (!courseId) {
       window.alert('미리보기 전에 먼저 저장해 주세요.')
       return
     }
 
-    window.open(`course-detail.html?courseId=${courseId}`, '_blank', 'noopener,noreferrer')
+    const previewUrl = new URL('course-detail.html', window.location.href)
+    previewUrl.searchParams.set('courseId', String(courseId))
+    previewUrl.searchParams.set('preview', 'student')
+    previewUrl.searchParams.set('returnTo', `${window.location.pathname}${window.location.search}${window.location.hash}`)
+
+    window.open(previewUrl.toString(), '_blank', 'noopener,noreferrer')
   }
 
   function promptThumbnailUrl() {
@@ -790,10 +816,42 @@ export default function CourseEditorPage() {
 
   const statusChip = getStatusChip(status)
   const isNewCourse = !courseId
+  const actionButtonsFloatingStyle = { top: `${EDITOR_ACTION_BUTTONS_STICKY_TOP_PX}px` }
+  const sideCardStickyStyle = { top: `${EDITOR_SIDE_CARD_STICKY_TOP_PX}px` }
+
+  function renderActionButtons(containerClassName: string) {
+    return (
+      <div className={containerClassName}>
+        <button
+          type="button"
+          onClick={handlePreview}
+          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+        >
+          <i className="fas fa-eye" /> 미리보기
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? '저장 중...' : '저장하기'}
+        </button>
+        <button
+          type="button"
+          onClick={handleRequestReview}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-[0_10px_15px_-3px_rgba(37,99,235,0.2)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <i className="fas fa-paper-plane" /> 심사 요청하기
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
-      <div className="sticky top-0 z-10 mb-6 flex flex-col gap-4 bg-[#F3F4F6] py-2 xl:flex-row xl:items-center xl:justify-between">
+      <div className="mb-6 flex flex-col gap-4 bg-[#F3F4F6] py-2 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -808,32 +866,16 @@ export default function CourseEditorPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handlePreview}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-          >
-            <i className="fas fa-eye" /> 미리보기
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? '저장 중...' : '저장하기'}
-          </button>
-          <button
-            type="button"
-            onClick={handleRequestReview}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-[0_10px_15px_-3px_rgba(37,99,235,0.2)] transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <i className="fas fa-paper-plane" /> 심사 요청하기
-          </button>
-        </div>
+        {renderActionButtons('flex flex-wrap gap-2 xl:justify-end')}
       </div>
+
+      <div id="course-editor-action-buttons-sentinel" className="h-px w-full" />
+
+      {showFloatingActionButtons ? (
+        <div className="pointer-events-none fixed left-8 right-8 z-30" style={actionButtonsFloatingStyle}>
+          {renderActionButtons('pointer-events-auto ml-auto flex w-fit max-w-full flex-wrap justify-end gap-2')}
+        </div>
+      ) : null}
 
       {actionError ? (
         <div className="mb-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
@@ -937,7 +979,7 @@ export default function CourseEditorPage() {
                   <textarea
                     value={targetAudienceText}
                     onChange={(event) => setTargetAudienceText(event.target.value)}
-                    placeholder="- 이런 학습자에게 추천합니다."
+                    placeholder="- 이런 학습자에게 추천합니다"
                     className="h-24 w-full resize-none rounded-lg border border-gray-300 p-2.5 text-sm outline-none transition focus:border-emerald-500"
                   />
                 </div>
@@ -947,7 +989,7 @@ export default function CourseEditorPage() {
                   <textarea
                     value={prerequisitesText}
                     onChange={(event) => setPrerequisitesText(event.target.value)}
-                    placeholder="- 필요한 사전 지식을 적어 주세요."
+                    placeholder="- 필요한 사전 지식을 적어 주세요"
                     className="h-24 w-full resize-none rounded-lg border border-gray-300 p-2.5 text-sm outline-none transition focus:border-emerald-500"
                   />
                 </div>
@@ -959,7 +1001,7 @@ export default function CourseEditorPage() {
             <h3 className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-2 font-bold text-gray-900">
               <i className="fas fa-briefcase text-blue-500" /> 직무 연계 설정
               <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-normal text-blue-600">
-                수강생에게 이 강의가 어떤 직무에 연결되는지 보여줍니다.
+                수강생에게 이 강의가 어떤 직무와 연결되는지 보여줍니다.
               </span>
             </h3>
 
@@ -1090,36 +1132,21 @@ export default function CourseEditorPage() {
                             />
                             <button
                               type="button"
-                              onClick={async () => {
+                              onClick={() => {
                                 if (lesson.kind === 'lecture') {
                                   promptLessonVideo(section.localId, lesson.localId, lesson.videoUrl)
                                   return
                                 }
-                                const preparedLesson = await prepareLessonForEditor(section.localId, lesson.localId)
-                                if (!preparedLesson) {
-                                  return
-                                }
-
                                 const editorCourseId = getCourseIdFromUrl()
                                 const editorHref = buildLessonEditorHref(
                                   lesson.kind === 'quiz' ? 'quiz' : 'assignment',
                                   {
-                                    lessonId: preparedLesson.lessonId,
-                                    lessonTitle: preparedLesson.lessonTitle,
+                                    lessonTitle: lesson.title,
                                     courseId: editorCourseId,
                                   },
                                 )
 
                                 window.location.assign(editorHref)
-                                return
-
-                                if (lesson.kind === 'quiz') {
-                                  return
-                                }
-
-                                return
-
-                                window.alert('세부 편집기는 다음 단계에서 연결합니다.')
                               }}
                               className={`rounded px-3 py-1.5 text-xs font-bold transition ${meta.buttonTone}`}
                             >
@@ -1194,7 +1221,7 @@ export default function CourseEditorPage() {
         </div>
 
         <div className="space-y-6">
-          <section className="sticky top-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <section className="sticky rounded-xl border border-gray-200 bg-white p-6 shadow-sm" style={sideCardStickyStyle}>
             <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900">
               <i className="fas fa-photo-video text-gray-400" /> 미디어 설정
             </h3>
@@ -1256,18 +1283,32 @@ export default function CourseEditorPage() {
 
             <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-xs leading-5 text-gray-500">
               {isNewCourse
-                ? '새 강의는 저장 후 courseId가 발급되고, 그 다음부터 미리보기와 상세 수정이 가능합니다.'
-                : '강의 저장 시 기본 정보, 메타데이터, 커리큘럼이 순서대로 백엔드 API에 동기화됩니다.'}
+                ? '새 강의는 먼저 저장해 courseId를 발급받은 뒤, 상세 설정과 미리보기를 사용할 수 있습니다.'
+                : '강의 저장 시 기본 정보, 메타데이터, 커리큘럼 순서대로 백엔드 API에 반영됩니다.'}
             </div>
 
             {loadedCourse?.status === 'IN_REVIEW' ? (
               <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs font-medium text-blue-700">
-                현재 이 강의는 심사 중입니다. 저장하면 선택한 상태값으로 다시 반영됩니다.
+                현재 이 강의는 심사 중입니다. 저장하면 선택한 공개 상태 값으로 다시 반영됩니다.
               </div>
             ) : null}
           </section>
         </div>
       </div>
+
+      {saveToast ? (
+        <div className="pointer-events-none fixed top-20 left-1/2 z-[1000] -translate-x-1/2">
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-xl border border-gray-700 bg-gray-900/90 px-5 py-3 text-sm font-bold text-white shadow-xl backdrop-blur-sm"
+          >
+            <i className="fas fa-info-circle mr-2 text-[#00C471]" />
+            {saveToast.message}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
+

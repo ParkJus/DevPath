@@ -1,3 +1,28 @@
+-- ============================================================
+-- DevPath 개발 환경 시드 데이터
+--
+-- 이 파일은 서버 기동 시 자동으로 실행된다 (spring.sql.init.mode=always).
+-- 모든 INSERT는 WHERE NOT EXISTS 조건이 붙어 있어 중복 실행해도 안전하다.
+--
+-- [주의] 이 파일에 없는 데이터(강의, 수강생 등)는 환경마다 다를 수 있다.
+--        팀원 간 데이터를 맞추려면 이 파일에 추가해야 한다.
+--
+-- 섹션 순서:
+--   1. Roles         - 권한 (LEARNER / INSTRUCTOR / ADMIN)
+--   2. Users         - 기본 계정 3개 (learner / instructor / admin)
+--   3. User Profiles - 강사·관리자 프로필
+--   4. Tags          - 기술 스택 태그
+--   5. Roadmaps      - 공식 로드맵 및 노드
+--   6. Courses       - 샘플 강의 5개 (PUBLISHED 2, DRAFT 2, IN_REVIEW 1)
+--   7. Course 부속 데이터 (섹션·강의·목표·태그 등)
+--   8. Enrollments   - 수강 신청 샘플
+--   9. QnA           - 질문·답변 샘플
+--  10. Reviews       - 수강평 샘플
+-- ============================================================
+
+-- ============================================================
+-- 1. Roles
+-- ============================================================
 INSERT INTO roles (role_name, description)
 SELECT 'ROLE_LEARNER', 'General learner'
 WHERE NOT EXISTS (
@@ -22,6 +47,9 @@ WHERE NOT EXISTS (
     WHERE role_name = 'ROLE_ADMIN'
 );
 
+-- ============================================================
+-- 2. Users  (비밀번호: devpath1234)
+-- ============================================================
 INSERT INTO users (email, password, name, role_name, is_active, created_at, updated_at)
 SELECT
     'learner@devpath.com',
@@ -71,6 +99,9 @@ UPDATE users
 SET password = '$2a$10$xh6.EW/FRzJBWfxqpdXh2uTVoepPhUxQRUH5OEwk90IpYeKjegkj.'
 WHERE email IN ('learner@devpath.com', 'instructor@devpath.com', 'admin@devpath.com');
 
+-- ============================================================
+-- 3. User Profiles
+-- ============================================================
 INSERT INTO user_profiles (
     user_id,
     profile_image,
@@ -159,6 +190,9 @@ FROM users u
 WHERE up.user_id = u.user_id
   AND u.email = 'admin@devpath.com';
 
+-- ============================================================
+-- 4. Tags
+-- ============================================================
 INSERT INTO tags (name, category, is_official, is_deleted)
 SELECT 'Java', 'Backend', TRUE, FALSE
 WHERE NOT EXISTS (
@@ -247,6 +281,9 @@ WHERE NOT EXISTS (
     WHERE name = 'Python'
 );
 
+-- ============================================================
+-- 5. Roadmaps & Nodes
+-- ============================================================
 INSERT INTO roadmaps (creator_id, title, description, is_official, is_public, is_deleted, created_at)
 SELECT
     u.user_id,
@@ -534,6 +571,15 @@ WHERE u.email = 'instructor@devpath.com'
   );
 
 
+-- ============================================================
+-- 6. Courses  (총 5개)
+--    - PUBLISHED  : Spring Boot Intro, React Dashboard Sprint
+--    - IN_REVIEW  : 스프링 부트 3.0 완전 정복
+--    - DRAFT      : JPA Practical Design, 제목 없는 강의 (초안)
+--
+-- [주의] 이 파일에 정의된 강의만 모든 환경에서 동일하게 존재한다.
+--        로컬 DB에 직접 추가한 강의는 이 파일에도 추가해야 팀원과 맞춰진다.
+-- ============================================================
 INSERT INTO courses (
     instructor_id,
     title,
@@ -749,6 +795,9 @@ WHERE u.email = 'instructor@devpath.com'
       WHERE title = '제목 없는 강의 (초안)'
   );
 
+-- ============================================================
+-- 7. Course 부속 데이터 (섹션·강의·목표·수강 대상·태그 등)
+-- ============================================================
 INSERT INTO course_prerequisites (course_id, prerequisite)
 SELECT c.course_id, 'Java syntax basics'
 FROM courses c
@@ -1382,11 +1431,11 @@ WHERE NOT EXISTS (
 
 -- ===========================
 
--- ========================================
--- B SECTION START
--- ========================================
+-- ============================================================
+-- B SECTION: 기능별 샘플 데이터
+-- ============================================================
 
--- [B-01] review / review_reply / review_report / review_template
+-- [B-01] 수강평 (review / review_reply / review_report / review_template)
 INSERT INTO review (
     course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at
 )
@@ -1543,7 +1592,7 @@ WHERE iu.email = 'instructor@devpath.com'
       WHERE rt.instructor_id = iu.user_id AND rt.title = '만족 리뷰 답글'
   );
 
--- [B-02] qna_questions / qna_answers / qna_answer_draft / qna_template
+-- [B-02] QnA (질문 / 답변 / 임시저장 / 답변 템플릿)
 INSERT INTO qna_questions (
     user_id, template_type, difficulty, title, content, adopted_answer_id,
     course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
@@ -1713,7 +1762,7 @@ WHERE iu.email = 'instructor@devpath.com'
       WHERE qt.instructor_id = iu.user_id AND qt.title = '코드 리뷰형 답변'
   );
 
--- [B-03] instructor_post / instructor_comment / likes
+-- [B-03] 강사 커뮤니티 (게시글 / 댓글 / 좋아요)
 INSERT INTO instructor_post (
     instructor_id, title, content, post_type, like_count, comment_count, is_deleted, created_at, updated_at
 )
@@ -1806,7 +1855,7 @@ WHERE ic.content = 'The weekly QnA slot is useful. Please share the agenda early
       SELECT 1 FROM instructor_comment_like cl WHERE cl.comment_id = ic.id AND cl.user_id = iu.user_id
   );
 
--- [B-04] coupon / promotion / conversion_stat
+-- [B-04] 마케팅 (쿠폰 / 프로모션 / 전환 통계)
 INSERT INTO coupon (
     instructor_id, coupon_code, coupon_title, discount_type, discount_value, target_course_id,
     max_usage_count, usage_count, expires_at, is_deleted, created_at
@@ -1881,7 +1930,7 @@ WHERE iu.email = 'instructor@devpath.com'
       WHERE cs.instructor_id = iu.user_id AND cs.course_id = c.course_id AND cs.calculated_at = '2026-02-28 23:00:00'
   );
 
--- [B-05] refund_request / refund_review / settlement / settlement_hold
+-- [B-05] 정산·환불 (환불 요청 / 심사 / 정산 / 정산 보류)
 INSERT INTO settlement (
     instructor_id, course_id, gross_amount, fee_amount, amount,
     status, is_deleted, purchased_at, settled_at, created_at
@@ -2083,7 +2132,7 @@ WHERE rr.status = 'REJECTED'
       SELECT 1 FROM refund_review rv WHERE rv.refund_request_id = rr.id
   );
 
--- [B-06] restricted / deactivated / withdrawn accounts
+-- [B-06] 계정 제한 (이용 제한 / 비활성 / 탈퇴 계정 샘플)
 INSERT INTO users (
     email, password, name, role_name, is_active, account_status, created_at, updated_at
 )
@@ -2117,7 +2166,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM users WHERE email = 'withdrawn-user@devpath.com'
 );
 
--- [B-07] notice / admin_role / admin_permission / account_log
+-- [B-07] 운영 (공지사항 / 관리자 권한 / 계정 로그)
 INSERT INTO notice (
     author_id, title, content, is_pinned, is_deleted, created_at, updated_at
 )
@@ -2205,7 +2254,7 @@ WHERE tu.email = 'withdrawn-user@devpath.com'
       WHERE al.target_user_id = tu.user_id AND al.log_type = 'WITHDRAW'
   );
 
--- [B-08] instructor_notification / dm_room / dm_message
+-- [B-08] 알림·메시지 (강사 알림 / DM 방 / DM 메시지)
 INSERT INTO instructor_notification (
     instructor_id, type, message, is_read, created_at
 )

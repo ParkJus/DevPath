@@ -45,7 +45,12 @@ class InstructorDashboardApiSmokeIntegrationTest {
 
   @Test
   void coursesEndpointLoads() throws Exception {
-    performOk("/api/instructor/courses");
+    mockMvc
+        .perform(get("/api/instructor/courses").with(authentication(instructorAuthentication())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data[0].thumbnailUrl").exists())
+        .andExpect(jsonPath("$.data[0].reviewCount").isNumber());
   }
 
   @Test

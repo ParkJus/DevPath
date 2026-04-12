@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import MarkdownContent from '../../components/MarkdownContent'
 import UserAvatar from '../../components/UserAvatar'
 import {
+  buildInstructorCourseOptions,
+  normalizeInstructorCourseTitle,
+} from '../../instructor/course-display'
+import {
   readInstructorChannelCustomization,
   sanitizeInstructorProfileImageUrl,
 } from '../../instructor-channel-customization'
-import { instructorQnaApi, userApi } from '../../lib/api'
+import { instructorCourseApi, instructorQnaApi, userApi } from '../../lib/api'
 import type { AuthSession } from '../../types/auth'
 import type {
+  InstructorCourseListItem,
   InstructorQnaInboxItem,
   InstructorQnaTemplate,
   InstructorQnaTimeline,
@@ -113,7 +118,9 @@ function normalizeLegacyText(value: string | null | undefined) {
 function normalizeQuestion(question: InstructorQnaInboxItem): InstructorQnaInboxItem {
   return {
     ...question,
-    courseTitle: normalizeLegacyText(question.courseTitle),
+    courseTitle: normalizeInstructorCourseTitle(
+      normalizeLegacyText(question.courseTitle) ?? question.courseTitle,
+    ),
     learnerName: normalizeLegacyText(question.learnerName),
     title: normalizeLegacyText(question.title) ?? question.title,
     content: normalizeLegacyText(question.content) ?? question.content,
@@ -223,6 +230,7 @@ function Modal({
 
 export default function InstructorQnaPage({ session }: { session: AuthSession }) {
   const [questions, setQuestions] = useState<InstructorQnaInboxItem[]>([])
+  const [courseCatalog, setCourseCatalog] = useState<InstructorCourseListItem[]>([])
   const [timeline, setTimeline] = useState<InstructorQnaTimeline | null>(null)
   const [statusFilter, setStatusFilter] = useState<QuestionStatusFilter>('pending')
   const [search, setSearch] = useState('')
@@ -269,6 +277,17 @@ export default function InstructorQnaPage({ session }: { session: AuthSession })
 
     return () => controller.abort()
   }, [statusFilter])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    instructorCourseApi
+      .getCourses(controller.signal)
+      .then((nextCourses) => setCourseCatalog(nextCourses))
+      .catch(() => {})
+
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -364,16 +383,7 @@ export default function InstructorQnaPage({ session }: { session: AuthSession })
     sanitizeInstructorProfileImageUrl(timeline?.publishedAnswer?.authorProfileImage) ??
     null
   const showAnswerForm = current ? current.status === 'UNANSWERED' || editingAnswer : false
-  const courseOptions = Array.from(
-    new Map(
-      questions
-        .filter((question) => question.courseId !== null)
-        .map((question) => [
-          String(question.courseId),
-          question.courseTitle ?? `강의 #${question.courseId}`,
-        ]),
-    ).entries(),
-  )
+  const courseOptions = buildInstructorCourseOptions(courseCatalog)
 
   function focusEditorSelection(start: number, end: number) {
     window.requestAnimationFrame(() => {

@@ -549,10 +549,10 @@ SELECT
     'Spring Boot Intro',
     'Fast path to practical API development',
     'Backend starter course covering Spring Boot, JPA, and security basics.',
-    '/images/courses/spring-boot.png',
+    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80',
     '/videos/trailers/spring-boot.mp4',
     'assets/courses/trailers/spring-boot.mp4',
-    95,
+    55200,
     99000,
     129000,
     'KRW',
@@ -592,7 +592,7 @@ SELECT
     'JPA Practical Design',
     'Entity design to query optimization',
     'Practical JPA patterns and performance optimization techniques.',
-    '/images/courses/jpa.png',
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
     '/videos/trailers/jpa.mp4',
     'assets/courses/trailers/jpa.mp4',
     110,
@@ -635,7 +635,7 @@ SELECT
     'React Dashboard Sprint',
     'Build analytics dashboards with React',
     'Frontend course focused on React dashboard layouts, reusable widgets, and product-ready charts.',
-    '/images/courses/react-dashboard.png',
+    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
     '/videos/trailers/react-dashboard.mp4',
     'assets/courses/trailers/react-dashboard.mp4',
     88,
@@ -653,6 +653,92 @@ WHERE u.email = 'instructor@devpath.com'
       SELECT 1
       FROM courses
       WHERE title = 'React Dashboard Sprint'
+  );
+
+INSERT INTO courses (
+    instructor_id,
+    title,
+    subtitle,
+    description,
+    thumbnail_url,
+    intro_video_url,
+    video_asset_key,
+    duration_seconds,
+    price,
+    original_price,
+    currency,
+    difficulty_level,
+    language,
+    has_certificate,
+    status,
+    published_at
+)
+SELECT
+    u.user_id,
+    '스프링 부트 3.0 완전 정복',
+    '실무 백엔드 프로젝트를 위한 스프링 부트 집중 과정',
+    '심사 중인 강의 예시로 사용하는 스프링 부트 3 기반 백엔드 실전 강의입니다.',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+    '/videos/trailers/spring-boot-advanced.mp4',
+    'assets/courses/trailers/spring-boot-advanced.mp4',
+    28800,
+    119000,
+    149000,
+    'KRW',
+    'INTERMEDIATE',
+    'ko',
+    TRUE,
+    'IN_REVIEW',
+    TIMESTAMP '2026-01-29 13:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM courses
+      WHERE title = '스프링 부트 3.0 완전 정복'
+  );
+
+INSERT INTO courses (
+    instructor_id,
+    title,
+    subtitle,
+    description,
+    thumbnail_url,
+    intro_video_url,
+    video_asset_key,
+    duration_seconds,
+    price,
+    original_price,
+    currency,
+    difficulty_level,
+    language,
+    has_certificate,
+    status,
+    published_at
+)
+SELECT
+    u.user_id,
+    '제목 없는 강의 (초안)',
+    '초안 강의 카드 표시용 샘플 데이터',
+    '강의 관리 화면의 작성 중 카드 예시에 사용하는 초안 강의입니다.',
+    NULL,
+    NULL,
+    NULL,
+    0,
+    0,
+    0,
+    'KRW',
+    NULL,
+    'ko',
+    FALSE,
+    'DRAFT',
+    TIMESTAMP '2026-01-30 11:00:00'
+FROM users u
+WHERE u.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM courses
+      WHERE title = '제목 없는 강의 (초안)'
   );
 
 INSERT INTO course_prerequisites (course_id, prerequisite)
@@ -1035,14 +1121,14 @@ INSERT INTO course_announcements (
 SELECT
     c.course_id,
     'EVENT',
-    'Offline security special event',
-    'Join the offline Spring Security special lecture and Q&A session.',
+    '오프라인 스프링 시큐리티 특강 안내',
+    '오프라인 스프링 시큐리티 특강과 Q&A 세션 일정을 안내드립니다.',
     TRUE,
     0,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     TIMESTAMP '2099-12-31 23:59:59',
-    'March offline special lecture',
+    '3월 오프라인 특강',
     'https://devpath.com/events/security-special',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
@@ -1052,7 +1138,7 @@ WHERE c.title = 'Spring Boot Intro'
       SELECT 1
       FROM course_announcements ca
       WHERE ca.course_id = c.course_id
-        AND ca.title = 'Offline security special event'
+        AND ca.title = '오프라인 스프링 시큐리티 특강 안내'
   );
 
 INSERT INTO course_announcements (
@@ -1073,8 +1159,8 @@ INSERT INTO course_announcements (
 SELECT
     c.course_id,
     'NORMAL',
-    'Course material update',
-    'The latest Spring Boot Intro materials and examples have been updated.',
+    '강의 자료 업데이트 안내',
+    '스프링 부트 입문 강의의 최신 자료와 예제 파일이 업데이트되었습니다.',
     FALSE,
     1,
     CURRENT_TIMESTAMP,
@@ -1090,8 +1176,21 @@ WHERE c.title = 'Spring Boot Intro'
       SELECT 1
       FROM course_announcements ca
       WHERE ca.course_id = c.course_id
-        AND ca.title = 'Course material update'
+        AND ca.title = '강의 자료 업데이트 안내'
   );
+
+UPDATE course_announcements
+SET title = '오프라인 스프링 시큐리티 특강 안내',
+    content = '오프라인 스프링 시큐리티 특강과 Q&A 세션 일정을 안내드립니다.',
+    event_banner_text = '3월 오프라인 특강'
+WHERE title = 'Offline security special event'
+   OR title = '오프라인 스프링 시큐리티 특강 안내';
+
+UPDATE course_announcements
+SET title = '강의 자료 업데이트 안내',
+    content = '스프링 부트 입문 강의의 최신 자료와 예제 파일이 업데이트되었습니다.'
+WHERE title = 'Course material update'
+   OR title = '강의 자료 업데이트 안내';
 
 INSERT INTO qna_question_templates
     (template_type, name, description, guide_example, sort_order, is_active, created_at, updated_at)
@@ -1202,6 +1301,36 @@ WHERE u.email = 'learner@devpath.com'
       WHERE r.course_id = c.course_id AND r.learner_id = u.user_id
   );
 
+INSERT INTO review (
+    course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at
+)
+SELECT c.course_id, u.user_id, 5,
+       '대시보드 실습 위주라서 바로 따라 만들 수 있었고, 차트와 레이아웃을 한 번에 정리하기 좋았습니다.',
+       'ANSWERED', FALSE, FALSE, '실습_구성이_좋아요,예제가_바로_써먹기_좋아요',
+       '2026-02-14 11:30:00', '2026-02-14 11:30:00'
+FROM users u, courses c
+WHERE u.email = 'learner2@devpath.com'
+  AND c.title = 'React Dashboard Sprint'
+  AND NOT EXISTS (
+      SELECT 1 FROM review r
+      WHERE r.course_id = c.course_id AND r.learner_id = u.user_id
+  );
+
+INSERT INTO review (
+    course_id, learner_id, rating, content, status, is_hidden, is_deleted, issue_tags_raw, created_at, updated_at
+)
+SELECT c.course_id, u.user_id, 4,
+       '차트 옵션 설명은 좋았는데 상태 관리와 API 연결 파트는 조금 더 천천히 짚어주면 더 좋을 것 같습니다.',
+       'UNANSWERED', FALSE, FALSE, '상태관리_설명이_더_필요해요,API_연결_보강이_필요해요',
+       '2026-02-16 16:20:00', '2026-02-16 16:20:00'
+FROM users u, courses c
+WHERE u.email = 'learner3@devpath.com'
+  AND c.title = 'React Dashboard Sprint'
+  AND NOT EXISTS (
+      SELECT 1 FROM review r
+      WHERE r.course_id = c.course_id AND r.learner_id = u.user_id
+  );
+
 INSERT INTO review_reply (
     review_id, instructor_id, content, is_deleted, created_at, updated_at
 )
@@ -1212,6 +1341,22 @@ FROM review r, users iu, courses c
 WHERE iu.email = 'instructor@devpath.com'
   AND c.title = 'Spring Boot Intro'
   AND r.course_id = c.course_id
+  AND NOT EXISTS (
+      SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.is_deleted = FALSE
+  );
+
+INSERT INTO review_reply (
+    review_id, instructor_id, content, is_deleted, created_at, updated_at
+)
+SELECT r.id, iu.user_id,
+       '좋은 피드백 감사합니다. 차트 구성 실습은 유지하면서 다음 업데이트에서 API 연결과 상태 관리 설명을 더 세분화해두겠습니다.',
+       FALSE, '2026-02-14 13:10:00', '2026-02-14 13:10:00'
+FROM review r
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+JOIN users lu ON lu.user_id = r.learner_id
+JOIN courses c ON c.course_id = r.course_id
+WHERE c.title = 'React Dashboard Sprint'
+  AND lu.email = 'learner2@devpath.com'
   AND NOT EXISTS (
       SELECT 1 FROM review_reply rr WHERE rr.review_id = r.id AND rr.is_deleted = FALSE
   );
@@ -1328,6 +1473,51 @@ WHERE u.email = 'learner@devpath.com'
       SELECT 1 FROM qna_questions q WHERE q.title = 'application.yml 설정이 반영되지 않는 이유가 궁금합니다'
   );
 
+INSERT INTO qna_questions (
+    user_id, template_type, difficulty, title, content, adopted_answer_id,
+    course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
+)
+SELECT u.user_id, 'DEBUGGING', 'MEDIUM',
+       'SecurityConfig 변경 후 로그인 흐름이 막히는 이유가 궁금합니다',
+       'SecurityConfig를 수정한 뒤부터 로그인 페이지 리다이렉트가 꼬이거나 403이 발생합니다. 필터 체인과 permitAll 설정을 어떤 순서로 보면 좋을까요?',
+       NULL, c.course_id, '00:15:42', 'UNANSWERED', 4, FALSE, '2026-02-11 09:20:00', '2026-02-11 09:20:00'
+FROM users u, courses c
+WHERE u.email = 'learner2@devpath.com'
+  AND c.title = 'Spring Boot Intro'
+  AND NOT EXISTS (
+      SELECT 1 FROM qna_questions q WHERE q.title = 'SecurityConfig 변경 후 로그인 흐름이 막히는 이유가 궁금합니다'
+  );
+
+INSERT INTO qna_questions (
+    user_id, template_type, difficulty, title, content, adopted_answer_id,
+    course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
+)
+SELECT u.user_id, 'IMPLEMENTATION', 'MEDIUM',
+       'React Query와 Chart.js 데이터를 같이 관리할 때 구조를 어떻게 나누면 좋을까요?',
+       '대시보드 페이지에서 React Query로 받아온 응답을 차트용 데이터로 가공하고 있는데, 컴포넌트가 길어져서 구조를 어떻게 나누는 게 좋은지 궁금합니다.',
+       NULL, c.course_id, '00:18:25', 'ANSWERED', 4, FALSE, '2026-02-15 09:30:00', '2026-02-15 10:20:00'
+FROM users u, courses c
+WHERE u.email = 'learner2@devpath.com'
+  AND c.title = 'React Dashboard Sprint'
+  AND NOT EXISTS (
+      SELECT 1 FROM qna_questions q WHERE q.title = 'React Query와 Chart.js 데이터를 같이 관리할 때 구조를 어떻게 나누면 좋을까요?'
+  );
+
+INSERT INTO qna_questions (
+    user_id, template_type, difficulty, title, content, adopted_answer_id,
+    course_id, lecture_timestamp, qna_status, view_count, is_deleted, created_at, updated_at
+)
+SELECT u.user_id, 'DEBUGGING', 'EASY',
+       'recharts 툴팁 포맷팅이 렌더링마다 바뀌는 문제를 어떻게 보면 될까요?',
+       '같은 데이터인데도 툴팁 숫자 형식이 간헐적으로 달라 보입니다. 포맷 함수를 어디에 두는 게 안전한지 궁금합니다.',
+       NULL, c.course_id, '00:27:40', 'UNANSWERED', 2, FALSE, '2026-02-16 19:05:00', '2026-02-16 19:05:00'
+FROM users u, courses c
+WHERE u.email = 'learner3@devpath.com'
+  AND c.title = 'React Dashboard Sprint'
+  AND NOT EXISTS (
+      SELECT 1 FROM qna_questions q WHERE q.title = 'recharts 툴팁 포맷팅이 렌더링마다 바뀌는 문제를 어떻게 보면 될까요?'
+  );
+
 INSERT INTO qna_answers (
     question_id, user_id, content, is_adopted, is_deleted, created_at, updated_at
 )
@@ -1337,6 +1527,19 @@ SELECT q.question_id, iu.user_id,
 FROM qna_questions q, users iu
 WHERE q.title = 'BeanCreationException이 발생할 때 어디부터 확인해야 하나요?'
   AND iu.email = 'instructor@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1 FROM qna_answers a WHERE a.question_id = q.question_id AND a.is_deleted = FALSE
+  );
+
+INSERT INTO qna_answers (
+    question_id, user_id, content, is_adopted, is_deleted, created_at, updated_at
+)
+SELECT q.question_id, iu.user_id,
+       '서버 응답 fetch와 차트 데이터 가공을 한 컴포넌트에 다 넣기보다, 조회 훅과 차트 변환 함수로 분리해두면 읽기와 테스트가 훨씬 쉬워집니다.',
+       FALSE, FALSE, '2026-02-15 11:00:00', '2026-02-15 11:00:00'
+FROM qna_questions q
+JOIN users iu ON iu.email = 'instructor@devpath.com'
+WHERE q.title = 'React Query와 Chart.js 데이터를 같이 관리할 때 구조를 어떻게 나누면 좋을까요?'
   AND NOT EXISTS (
       SELECT 1 FROM qna_answers a WHERE a.question_id = q.question_id AND a.is_deleted = FALSE
   );
@@ -1999,7 +2202,7 @@ SELECT
     'ROLE_LEARNER',
     TRUE,
     NOW(),
-    NOW()
+    TIMESTAMP '2026-01-20 09:00:00'
 WHERE NOT EXISTS (
     SELECT 1
     FROM users
@@ -4169,6 +4372,7 @@ INSERT INTO courses (
     title,
     subtitle,
     description,
+    thumbnail_url,
     price,
     original_price,
     currency,
@@ -4184,6 +4388,7 @@ SELECT
     '[A-CASE-A] Node Clearance Course',
     'Case A only course',
     'Course used to verify lesson completion, tags, quiz, and assignment pass.',
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
     0,
     0,
     'KRW',
@@ -4206,6 +4411,7 @@ INSERT INTO courses (
     title,
     subtitle,
     description,
+    thumbnail_url,
     price,
     original_price,
     currency,
@@ -4221,6 +4427,7 @@ SELECT
     '[A-CASE-B] Tag Missing Course',
     'Case B only course',
     'Course used to verify the missing required tag branch.',
+    'https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1200&q=80',
     0,
     0,
     'KRW',
@@ -4243,6 +4450,7 @@ INSERT INTO courses (
     title,
     subtitle,
     description,
+    thumbnail_url,
     price,
     original_price,
     currency,
@@ -4258,6 +4466,7 @@ SELECT
     '[A-CASE-C] Quiz Fail Course',
     'Case C only course',
     'Course used to verify the quiz failed branch.',
+    'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
     0,
     0,
     'KRW',
@@ -4274,6 +4483,50 @@ WHERE iu.email = 'instructor@devpath.com'
       FROM courses c
       WHERE c.title = '[A-CASE-C] Quiz Fail Course'
   );
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80'
+WHERE title = 'Spring Boot Intro';
+
+UPDATE courses
+SET duration_seconds = 55200,
+    difficulty_level = 'INTERMEDIATE',
+    published_at = TIMESTAMP '2026-01-20 09:00:00'
+WHERE title = 'Spring Boot Intro';
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80'
+WHERE title = 'JPA Practical Design';
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80'
+WHERE title = 'React Dashboard Sprint';
+
+UPDATE courses
+SET published_at = TIMESTAMP '2026-01-29 13:00:00'
+WHERE title = '스프링 부트 3.0 완전 정복';
+
+UPDATE courses
+SET published_at = TIMESTAMP '2026-01-30 11:00:00'
+WHERE title = '제목 없는 강의 (초안)';
+
+UPDATE courses
+SET status = 'DRAFT',
+    has_certificate = FALSE,
+    duration_seconds = 0
+WHERE title = '제목 없는 강의 (초안)';
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80'
+WHERE title = '[A-CASE-A] Node Clearance Course';
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1200&q=80'
+WHERE title = '[A-CASE-B] Tag Missing Course';
+
+UPDATE courses
+SET thumbnail_url = 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80'
+WHERE title = '[A-CASE-C] Quiz Fail Course';
 
 INSERT INTO course_sections (course_id, title, description, sort_order, is_published)
 SELECT
@@ -6668,6 +6921,168 @@ WHERE u.email = 'learner@devpath.com'
       FROM recommendation_histories rh
       WHERE rh.recommendation_id = rc.recommendation_change_id
         AND rh.action_type = 'CHANGE_IGNORE'
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'COMPLETED',
+    TIMESTAMP '2026-02-03 09:00:00',
+    TIMESTAMP '2026-03-10 22:10:00',
+    100,
+    TIMESTAMP '2026-03-10 22:10:00'
+FROM users u
+JOIN courses c ON c.title = 'Spring Boot Intro'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-02-08 13:30:00',
+    NULL,
+    62,
+    TIMESTAMP '2026-03-28 21:15:00'
+FROM users u
+JOIN courses c ON c.title = 'Spring Boot Intro'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-02-11 18:20:00',
+    NULL,
+    54,
+    TIMESTAMP '2026-03-29 20:40:00'
+FROM users u
+JOIN courses c ON c.title = 'JPA Practical Design'
+WHERE u.email = 'learner@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-02-12 19:10:00',
+    NULL,
+    37,
+    TIMESTAMP '2026-03-27 23:05:00'
+FROM users u
+JOIN courses c ON c.title = 'JPA Practical Design'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-02-14 10:40:00',
+    NULL,
+    68,
+    TIMESTAMP '2026-03-30 18:25:00'
+FROM users u
+JOIN courses c ON c.title = 'React Dashboard Sprint'
+WHERE u.email = 'learner2@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
+  );
+
+INSERT INTO course_enrollments (
+    user_id,
+    course_id,
+    status,
+    enrolled_at,
+    completed_at,
+    progress_percentage,
+    last_accessed_at
+)
+SELECT
+    u.user_id,
+    c.course_id,
+    'ACTIVE',
+    TIMESTAMP '2026-02-16 09:10:00',
+    NULL,
+    46,
+    TIMESTAMP '2026-03-31 09:35:00'
+FROM users u
+JOIN courses c ON c.title = 'React Dashboard Sprint'
+WHERE u.email = 'learner3@devpath.com'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_enrollments ce
+      WHERE ce.user_id = u.user_id
+        AND ce.course_id = c.course_id
   );
 
 -- ========================================

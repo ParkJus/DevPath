@@ -53,6 +53,7 @@ export interface InstructorCourseListItem {
   studentCount: number
   averageProgressPercent: number
   pendingQuestionCount: number
+  reviewCount?: number
   averageRating: number
   thumbnailUrl: string | null
   publishedAt: string | null

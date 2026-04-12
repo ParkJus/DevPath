@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { ErrorCard, LoadingCard, formatDate, formatNumber } from '../../account/ui'
 import UserAvatar from '../../components/UserAvatar'
-import { instructorReviewApi, userApi } from '../../lib/api'
+import {
+  buildInstructorCourseOptions,
+  normalizeInstructorCourseTitle,
+} from '../../instructor/course-display'
+import { instructorCourseApi, instructorReviewApi, userApi } from '../../lib/api'
 import type { AuthSession } from '../../types/auth'
 import type {
+  InstructorCourseListItem,
   InstructorReviewHelpful,
   InstructorReviewListItem,
   InstructorReviewSummary,
@@ -130,6 +135,7 @@ function normalizeReview(review: InstructorReviewListItem): InstructorReviewList
 
   return {
     ...review,
+    courseTitle: normalizeInstructorCourseTitle(review.courseTitle),
     learnerName: learnerNameMap[review.learnerName] ?? review.learnerName,
     content: t(review.content, legacyReviewContent),
     issueTags: review.issueTags.map(normalizeTag).filter(Boolean),
@@ -173,6 +179,7 @@ async function fetchReviewData(signal?: AbortSignal) {
 
 export default function InstructorReviewsPage({ session }: { session: AuthSession }) {
   const [reviews, setReviews] = useState<InstructorReviewListItem[]>([])
+  const [courseCatalog, setCourseCatalog] = useState<InstructorCourseListItem[]>([])
   const [summary, setSummary] = useState<InstructorReviewSummary | null>(null)
   const [helpful, setHelpful] = useState<InstructorReviewHelpful | null>(null)
   const [templates, setTemplates] = useState<InstructorReviewTemplate[]>([])
@@ -194,13 +201,18 @@ export default function InstructorReviewsPage({ session }: { session: AuthSessio
     const controller = new AbortController()
     setLoading(true)
     setError(null)
-    Promise.all([fetchReviewData(controller.signal), userApi.getMyProfile(controller.signal).catch(() => null)])
-      .then(([[nextReviews, nextSummary, nextHelpful, nextTemplates], nextProfile]) => {
+    Promise.all([
+      fetchReviewData(controller.signal),
+      userApi.getMyProfile(controller.signal).catch(() => null),
+      instructorCourseApi.getCourses(controller.signal).catch(() => []),
+    ])
+      .then(([[nextReviews, nextSummary, nextHelpful, nextTemplates], nextProfile, nextCourses]) => {
         setReviews(nextReviews.map(normalizeReview))
         setSummary(nextSummary)
         setHelpful(nextHelpful)
         setTemplates(nextTemplates)
         setProfile(nextProfile)
+        setCourseCatalog(nextCourses)
       })
       .catch((nextError: Error) => {
         if (!controller.signal.aborted) setError(nextError.message)
@@ -282,7 +294,7 @@ export default function InstructorReviewsPage({ session }: { session: AuthSessio
   const totalReviewCount = summary.totalReviews || reviews.length
   const unansweredCount = helpful.unansweredCount || reviews.filter((review) => !review.reply).length
   const lowRatingCount = reviews.filter((review) => review.rating <= 3).length
-  const courseOptions = Array.from(new Map(reviews.map((review) => [String(review.courseId), review.courseTitle])).entries())
+  const courseOptions = buildInstructorCourseOptions(courseCatalog)
   const keywordTags = buildKeywordTags(reviews)
   const templateOptions = templates.length > 0
     ? templates.map((template) => {

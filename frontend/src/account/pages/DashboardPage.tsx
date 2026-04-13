@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { dashboardApi, enrollmentApi, learningHistoryApi, notificationApi } from '../../lib/api'
+import { dashboardApi, enrollmentApi, learningHistoryApi, notificationApi, roadmapApi } from '../../lib/api'
 import { LearnerContentRow, LearnerPageShell, MyMenuSidebar } from '../template'
 import type { AuthSession } from '../../types/auth'
 import type {
@@ -10,6 +10,7 @@ import type {
   LearningHistorySummary,
   NotificationItem,
 } from '../../types/learner'
+import type { RoadmapDetail, RoadmapNodeItem } from '../../types/roadmap'
 
 type DashboardState = {
   summary: DashboardSummary
@@ -18,6 +19,7 @@ type DashboardState = {
   notifications: NotificationItem[]
   historySummary: LearningHistorySummary
   enrollments: Enrollment[]
+  roadmap: RoadmapDetail | null
 }
 
 const fallbackState: DashboardState = {
@@ -108,6 +110,7 @@ const fallbackState: DashboardState = {
       lastAccessedAt: '2026-01-25T12:00:00',
     },
   ],
+  roadmap: null,
 }
 
 function formatStudyTime(hoursValue: number | null | undefined) {
@@ -141,6 +144,15 @@ function buildWeeklyBars(heatmap: HeatmapEntry[]) {
   })
 }
 
+function buildSidebarNodes(nodes: RoadmapNodeItem[]) {
+  const sorted = [...nodes]
+    .filter((n) => n.branchGroup == null)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const currentIndex = sorted.findIndex((n) => n.status === 'IN_PROGRESS')
+  const start = currentIndex >= 0 ? Math.max(0, currentIndex - 2) : 0
+  return sorted.slice(start, start + 5)
+}
+
 function statusClass(status: string | null | undefined) {
   switch (status) {
     case 'IN_PROGRESS':
@@ -156,42 +168,75 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
   const [state, setState] = useState<DashboardState>(fallbackState)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [
-          summaryResponse,
-          heatmapResponse,
-          studyGroupResponse,
-          notificationResponse,
-          historySummaryResponse,
-          enrollmentResponse,
-        ] = await Promise.all([
-          dashboardApi.getSummary(),
-          dashboardApi.getHeatmap(),
-          dashboardApi.getStudyGroup(),
-          notificationApi.getMine(),
-          learningHistoryApi.getSummary(),
-          enrollmentApi.getMyEnrollments(),
-        ])
+    const controller = new AbortController()
+    const { signal } = controller
 
-        setState((current) => ({
-          summary: {
-            currentStreak: summaryResponse.currentStreak ?? current.summary.currentStreak,
-            totalStudyHours: summaryResponse.totalStudyHours ?? current.summary.totalStudyHours,
-            completedNodes: summaryResponse.completedNodes ?? current.summary.completedNodes,
-          },
-          heatmap: heatmapResponse.length ? heatmapResponse : current.heatmap,
-          studyGroup: studyGroupResponse.groups.length ? studyGroupResponse : current.studyGroup,
-          notifications: notificationResponse.length ? notificationResponse : current.notifications,
-          historySummary: historySummaryResponse,
-          enrollments: enrollmentResponse.length ? enrollmentResponse : current.enrollments,
-        }))
+    async function load() {
+      const [
+        summaryResult,
+        heatmapResult,
+        studyGroupResult,
+        notificationResult,
+        historySummaryResult,
+        enrollmentResult,
+      ] = await Promise.allSettled([
+        dashboardApi.getSummary(signal),
+        dashboardApi.getHeatmap(signal),
+        dashboardApi.getStudyGroup(signal),
+        notificationApi.getMine(signal),
+        learningHistoryApi.getSummary(signal),
+        enrollmentApi.getMyEnrollments(signal),
+      ])
+
+      setState((current) => ({
+        summary:
+          summaryResult.status === 'fulfilled'
+            ? {
+                currentStreak: summaryResult.value.currentStreak ?? current.summary.currentStreak,
+                totalStudyHours: summaryResult.value.totalStudyHours ?? current.summary.totalStudyHours,
+                completedNodes: summaryResult.value.completedNodes ?? current.summary.completedNodes,
+              }
+            : current.summary,
+        heatmap:
+          heatmapResult.status === 'fulfilled' && heatmapResult.value.length
+            ? heatmapResult.value
+            : current.heatmap,
+        studyGroup:
+          studyGroupResult.status === 'fulfilled'
+            ? studyGroupResult.value
+            : current.studyGroup,
+        notifications:
+          notificationResult.status === 'fulfilled' && notificationResult.value.length
+            ? notificationResult.value
+            : current.notifications,
+        historySummary:
+          historySummaryResult.status === 'fulfilled'
+            ? historySummaryResult.value
+            : current.historySummary,
+        enrollments:
+          enrollmentResult.status === 'fulfilled' && enrollmentResult.value.length
+            ? enrollmentResult.value
+            : current.enrollments,
+        roadmap: current.roadmap,
+      }))
+    }
+
+    async function loadRoadmap() {
+      try {
+        const listResult = await roadmapApi.getMyRoadmaps(signal)
+        const first = listResult.roadmaps[0]
+        if (!first) return
+        const detail = await roadmapApi.getMyRoadmapDetail(first.customRoadmapId, signal)
+        setState((current) => ({ ...current, roadmap: detail }))
       } catch {
-        // 원본 대시보드 화면은 그대로 유지하고, API 값만 불러오지 못한 경우 기본 데이터를 사용합니다.
+        // 로드맵 없으면 사이드바 미표시 유지
       }
     }
 
     void load()
+    void loadRoadmap()
+
+    return () => controller.abort()
   }, [])
 
   const completedCourses =
@@ -206,7 +251,8 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
   const weeklyBars = buildWeeklyBars(state.heatmap)
   const studyGroup = state.studyGroup.groups[0] ?? fallbackState.studyGroup.groups[0]
   const communityItems = state.notifications.slice(0, 2)
-  const roadmapProgress = Math.max(0, Math.min(100, recentEnrollment.progressPercentage ?? 60))
+  const roadmapProgress = state.roadmap?.progressRate ?? Math.max(0, Math.min(100, recentEnrollment.progressPercentage ?? 60))
+  const sidebarNodes = state.roadmap ? buildSidebarNodes(state.roadmap.nodes) : []
 
   return (
     <LearnerPageShell>
@@ -513,80 +559,79 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
               <h3 className="flex items-center gap-2 font-bold text-gray-900">
                 <i className="fas fa-map text-brand" /> 나의 학습 로드맵
               </h3>
-              <span className="rounded bg-gray-100 px-2 py-1 text-[10px] text-gray-500">Backend</span>
+              {state.roadmap && (
+                <span className="max-w-[120px] truncate rounded bg-gray-100 px-2 py-1 text-[10px] text-gray-500">
+                  {state.roadmap.title}
+                </span>
+              )}
             </div>
 
             <div className="roadmap-container relative pb-2">
               <div className="roadmap-line" />
               <div className="roadmap-progress" style={{ height: `${Math.max(50, roadmapProgress)}%` }} />
 
-              <div className="mb-4">
-                <div className="phase-label-container">
-                  <span className="phase-label">Phase 1. 기초 다지기</span>
-                </div>
-
-                <div className="roadmap-item">
-                  <div className="step-icon completed">
-                    <i className="fas fa-check text-xs" />
-                  </div>
-                  <div className="pt-1.5">
-                    <h4 className="text-sm font-bold text-gray-400 line-through">CS 기초 (OS, Network)</h4>
-                  </div>
-                </div>
-
-                <div className="roadmap-item">
-                  <div className="step-icon completed">
-                    <i className="fas fa-check text-xs" />
-                  </div>
-                  <div className="pt-1.5">
-                    <h4 className="text-sm font-bold text-gray-400 line-through">웹 기초 (HTML/CSS)</h4>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="phase-label-container">
-                  <span className="phase-label active">Phase 2. 핵심 언어</span>
-                </div>
-
-                <div className="roadmap-item">
-                  <div className="step-icon current">
-                    <div className="bg-brand h-2.5 w-2.5 rounded-full animate-pulse" />
-                  </div>
-
-                  <div className="relative -mt-1 rounded-lg border border-green-200 bg-green-50 p-2 shadow-sm">
-                    <h4 className="mb-1 text-sm font-bold text-gray-900">{recentEnrollment.courseTitle}</h4>
-                    <div className="h-1.5 w-full rounded-full border border-green-100 bg-white">
-                      <div className="bg-brand h-1.5 rounded-full" style={{ width: `${roadmapProgress}%` }} />
+              {sidebarNodes.length > 0 ? (
+                <>
+                  {sidebarNodes.map((node) => {
+                    if (node.status === 'COMPLETED') {
+                      return (
+                        <div key={node.customNodeId} className="roadmap-item">
+                          <div className="step-icon completed">
+                            <i className="fas fa-check text-xs" />
+                          </div>
+                          <div className="pt-1.5">
+                            <h4 className="text-sm font-bold text-gray-400 line-through">{node.title}</h4>
+                          </div>
+                        </div>
+                      )
+                    }
+                    if (node.status === 'IN_PROGRESS') {
+                      const progress = Math.round((node.lessonCompletionRate ?? 0) * 100)
+                      return (
+                        <div key={node.customNodeId} className="roadmap-item">
+                          <div className="step-icon current">
+                            <div className="bg-brand h-2.5 w-2.5 rounded-full animate-pulse" />
+                          </div>
+                          <div className="relative -mt-1 rounded-lg border border-green-200 bg-green-50 p-2 shadow-sm">
+                            <h4 className="mb-1 text-sm font-bold text-gray-900">{node.title}</h4>
+                            <div className="h-1.5 w-full rounded-full border border-green-100 bg-white">
+                              <div className="bg-brand h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+                            </div>
+                            <p className="mt-1 text-right text-[10px] text-gray-500">{progress}% 완료</p>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div key={node.customNodeId} className="roadmap-item">
+                        <div className="step-icon waiting">
+                          <i className="fas fa-lock text-[10px]" />
+                        </div>
+                        <div className="pt-1.5">
+                          <h4 className="text-sm font-bold text-gray-400">{node.title}</h4>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div className="roadmap-item mt-6">
+                    <div className="step-icon border-2 border-yellow-400 bg-yellow-100 text-yellow-600 shadow-sm">
+                      <i className="fas fa-flag text-xs" />
                     </div>
-                    <p className="mt-1 text-right text-[10px] text-gray-500">{roadmapProgress}% 완료</p>
+                    <div className="pt-1.5">
+                      <h4 className="text-sm font-bold text-gray-900">로드맵 완주</h4>
+                    </div>
                   </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <i className="fas fa-map text-3xl text-gray-200 mb-3" />
+                  <p className="text-xs text-gray-400">
+                    로드맵을 불러오는 중이거나
+                    <br />
+                    아직 로드맵이 없습니다.
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <div className="phase-label-container">
-                  <span className="phase-label">Phase 3. 프레임워크</span>
-                </div>
-
-                <div className="roadmap-item">
-                  <div className="step-icon waiting">
-                    <i className="fas fa-lock text-[10px]" />
-                  </div>
-                  <div className="pt-1.5">
-                    <h4 className="text-sm font-bold text-gray-400">Spring Framework</h4>
-                  </div>
-                </div>
-              </div>
-
-              <div className="roadmap-item mt-6">
-                <div className="step-icon border-2 border-yellow-400 bg-yellow-100 text-yellow-600 shadow-sm">
-                  <i className="fas fa-flag text-xs" />
-                </div>
-                <div className="pt-1.5">
-                  <h4 className="text-sm font-bold text-gray-900">백엔드 트랙 완주</h4>
-                </div>
-              </div>
+              )}
             </div>
 
             <button

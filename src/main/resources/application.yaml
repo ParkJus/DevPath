@@ -35,7 +35,8 @@ spring:
   datasource:
     # Postgres 연결
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:devpath_db}
+    # 로컬 Docker Postgres 접속 시 SSL 모드 제어가 필요할 수 있음
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:devpath_db}?sslmode=${DB_SSLMODE:disable}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
 
@@ -43,12 +44,13 @@ spring:
     init:
       # 시작 시 SQL 실행
       mode: always
+      encoding: UTF-8
 
   jpa:
     hibernate:
       # 엔티티 기준 스키마 재생성 (개발 단계)
       ddl-auto: create
-    show-sql: true
+    show-sql: false
     defer-datasource-initialization: true
     properties:
       hibernate:
@@ -65,7 +67,7 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    org.hibernate.SQL: info
 
 springdoc:
   swagger-ui:
@@ -75,15 +77,15 @@ springdoc:
 app:
   oauth2:
     # 로그인 후 리다이렉트 URL
-    redirect-url: ${DEVPATH_OAUTH2_REDIRECT_URL:${OAUTH2_REDIRECT_URL:http://localhost:3000/oauth2/redirect}}
+    redirect-url: ${DEVPATH_OAUTH2_REDIRECT_URL:${OAUTH2_REDIRECT_URL:http://localhost:8084/oauth2/redirect}}
     # OAuth2 허용 Origin
-    allowed-origins: ${DEVPATH_OAUTH2_ALLOWED_ORIGINS:${OAUTH2_ALLOWED_ORIGINS:http://localhost:3000}}
+    allowed-origins: ${DEVPATH_OAUTH2_ALLOWED_ORIGINS:${OAUTH2_ALLOWED_ORIGINS:http://localhost:8084}}
   security:
     # HTTPS 강제 여부
     require-https: ${DEVPATH_REQUIRE_HTTPS:${REQUIRE_HTTPS:false}}
   cors:
     # CORS 허용 Origin
-    allowed-origins: ${DEVPATH_CORS_ALLOWED_ORIGINS:${CORS_ALLOWED_ORIGINS:http://localhost:3000}}
+    allowed-origins: ${DEVPATH_CORS_ALLOWED_ORIGINS:${CORS_ALLOWED_ORIGINS:http://localhost:8084}}
 
 jwt:
   # Base64 HMAC 키
@@ -101,6 +103,9 @@ ocr:
 gemini:
   api:
     key: ${GEMINI_API_KEY:AIzaSyDUI9Qh78d3nseIWDq2OyD290ZIWzA3MXc}
+anthropic:
+  # Claude Vision OCR 사용 시 필요 (없으면 Python OCR 서버 → Tesseract.js 폴백)
+  api-key: ${ANTHROPIC_API_KEY:}
 
 blog:
   publish:

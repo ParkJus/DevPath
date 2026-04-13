@@ -39,6 +39,8 @@ export default defineConfig({
         instructorMentoring: resolve(__dirname, 'instructor-mentoring.html'),
         instructorMarketing: resolve(__dirname, 'instructor-marketing.html'),
         instructorReviews: resolve(__dirname, 'instructor-reviews.html'),
+        instructorProfile: resolve(__dirname, 'instructor-profile.html'),
+        instructorEditProfile: resolve(__dirname, 'instructor-edit-profile.html'),
         lectureList: resolve(__dirname, 'lecture-list.html'),
         courseDetail: resolve(__dirname, 'course-detail.html'),
         instructorChannel: resolve(__dirname, 'instructor-channel.html'),
@@ -54,7 +56,7 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 5173,
+    port: 8084,
     proxy: {
       '/api': proxyToBackend,
       '/oauth2': proxyToBackend,
@@ -67,6 +69,6 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    port: 4173,
+    port: 8084,
   },
 })

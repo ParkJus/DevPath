@@ -2,6 +2,8 @@ export interface DashboardSummary {
   totalStudyHours: number | null
   completedNodes: number | null
   currentStreak: number | null
+  studyHoursDeltaMinutes?: number | null
+  lastLessonInfo?: string | null
 }
 
 export interface HeatmapEntry {
@@ -17,6 +19,7 @@ export interface DashboardStudyGroupItem {
   joinedAt: string | null
   plannedEndDate: string | null
   currentMemberCount: number | null
+  memberIds?: number[]
 }
 
 export interface DashboardStudyGroup {

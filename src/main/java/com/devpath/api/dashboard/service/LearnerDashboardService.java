@@ -6,8 +6,11 @@ import com.devpath.api.dashboard.dto.DashboardStudyGroupResponse;
 import com.devpath.api.dashboard.dto.DashboardSummaryResponse;
 import com.devpath.api.dashboard.dto.HeatmapResponse;
 import com.devpath.common.provider.GeminiProvider;
+import com.devpath.domain.course.entity.CourseStatus;
+import com.devpath.domain.course.repository.CourseRepository;
 import com.devpath.domain.dashboard.entity.DashboardSnapshot;
 import com.devpath.domain.dashboard.repository.DashboardSnapshotRepository;
+import com.devpath.domain.learning.entity.LessonProgress;
 import com.devpath.domain.learning.entity.clearance.ClearanceStatus;
 import com.devpath.domain.learning.entity.proof.ProofCard;
 import com.devpath.domain.learning.repository.LessonProgressRepository;
@@ -23,11 +26,13 @@ import com.devpath.domain.study.entity.StudyGroupStatus;
 import com.devpath.domain.study.repository.StudyGroupMemberRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +51,7 @@ public class LearnerDashboardService {
     private final StudyGroupMemberRepository studyGroupMemberRepository;
     private final ProofCardRepository proofCardRepository;
     private final ProofCardTagRepository proofCardTagRepository;
+    private final CourseRepository courseRepository;
     private final GeminiProvider geminiProvider;
 
     public DashboardSummaryResponse getSummary(Long learnerId) {
@@ -55,11 +61,15 @@ public class LearnerDashboardService {
 
         int totalStudyHours = calculateTotalStudyHours(learnerId);
         int completedNodes = calculateCompletedNodes(learnerId);
+        Integer studyHoursDeltaMinutes = calculateStudyDeltaMinutes(learnerId);
+        String lastLessonInfo = resolveLastLessonInfo(learnerId);
 
         return DashboardSummaryResponse.builder()
                 .totalStudyHours(totalStudyHours)
                 .completedNodes(completedNodes)
                 .currentStreak(currentStreak)
+                .studyHoursDeltaMinutes(studyHoursDeltaMinutes)
+                .lastLessonInfo(lastLessonInfo)
                 .build();
     }
 
@@ -107,8 +117,13 @@ public class LearnerDashboardService {
         List<DashboardStudyGroupResponse.StudyGroupItem> groups = activeMemberships.stream()
                 .map(member -> {
                     StudyGroup group = member.getStudyGroup();
-                    int memberCount = (int) studyGroupMemberRepository
-                            .countByStudyGroupIdAndJoinStatus(group.getId(), StudyGroupJoinStatus.APPROVED);
+                    List<StudyGroupMember> approvedMembers = studyGroupMemberRepository
+                            .findAllByStudyGroupIdAndJoinStatus(group.getId(), StudyGroupJoinStatus.APPROVED);
+                    int memberCount = approvedMembers.size();
+                    List<Long> memberIds = approvedMembers.stream()
+                            .map(StudyGroupMember::getLearnerId)
+                            .limit(4)
+                            .toList();
                     return DashboardStudyGroupResponse.StudyGroupItem.builder()
                             .groupId(group.getId())
                             .name(group.getName())
@@ -117,6 +132,7 @@ public class LearnerDashboardService {
                             .joinedAt(member.getJoinedAt())
                             .plannedEndDate(group.getPlannedEndDate())
                             .currentMemberCount(memberCount)
+                            .memberIds(memberIds)
                             .build();
                 })
                 .toList();
@@ -222,21 +238,57 @@ public class LearnerDashboardService {
     }
 
     private DashboardGrowthRecommendationResponse buildFallbackRecommendation() {
+        List<String> publishedCourseTitles = courseRepository
+                .findTop3ByStatusOrderByPublishedAtDescCourseIdDesc(CourseStatus.PUBLISHED)
+                .stream()
+                .map(course -> course.getTitle())
+                .limit(2)
+                .toList();
+
+        String title1 = publishedCourseTitles.size() > 0 ? publishedCourseTitles.get(0) : "Advanced SQL & Tuning";
+        String title2 = publishedCourseTitles.size() > 1 ? publishedCourseTitles.get(1) : "Spring Security 실전";
+
         return DashboardGrowthRecommendationResponse.builder()
                 .analysisText("현재 역량을 바탕으로 다음 단계 학습을 추천합니다.")
                 .recommendations(List.of(
                         RecommendationItem.builder()
-                                .courseTitle("Advanced SQL & Tuning")
+                                .courseTitle(title1)
                                 .matchRateIncrease(20)
                                 .iconClass("fa-database")
                                 .build(),
                         RecommendationItem.builder()
-                                .courseTitle("Spring Security 실전")
+                                .courseTitle(title2)
                                 .matchRateIncrease(15)
                                 .iconClass("fa-lock")
                                 .build()
                 ))
                 .build();
+    }
+
+    private Integer calculateStudyDeltaMinutes(Long learnerId) {
+        long todayTotalSeconds = lessonProgressRepository.sumProgressSecondsByLearnerId(learnerId);
+        int todayTotalMinutes = (int) (todayTotalSeconds / 60);
+
+        int yesterdayTotalMinutes = dashboardSnapshotRepository
+                .findByLearnerIdAndSnapshotDate(learnerId, LocalDate.now().minusDays(1))
+                .map(snapshot -> snapshot.getTotalStudyHours() * 60)
+                .orElse(0);
+
+        int delta = todayTotalMinutes - yesterdayTotalMinutes;
+        return delta > 0 ? delta : null;
+    }
+
+    private String resolveLastLessonInfo(Long learnerId) {
+        List<LessonProgress> recent = lessonProgressRepository
+                .findRecentByUserIdWithLessonAndSection(learnerId, PageRequest.of(0, 1));
+        if (recent.isEmpty()) {
+            return null;
+        }
+        LessonProgress lp = recent.get(0);
+        String sectionTitle = lp.getLesson().getSection().getTitle();
+        int lessonOrder = lp.getLesson().getOrderIndex() != null ? lp.getLesson().getOrderIndex() : 0;
+        String lessonTitle = lp.getLesson().getTitle();
+        return sectionTitle + " - " + lessonOrder + "강. " + lessonTitle;
     }
 
     private int toActivityLevel(int dailyStudyHours) {

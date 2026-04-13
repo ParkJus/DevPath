@@ -49,5 +49,8 @@ public class DashboardStudyGroupResponse {
 
         @Schema(description = "현재 승인된 멤버 수", example = "4")
         private Integer currentMemberCount;
+
+        @Schema(description = "승인된 멤버의 learnerId 목록 (아바타 렌더링용, 최대 4개)")
+        private List<Long> memberIds;
     }
 }

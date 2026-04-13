@@ -224,6 +224,8 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
                 currentStreak: summaryResult.value.currentStreak ?? current.summary.currentStreak,
                 totalStudyHours: summaryResult.value.totalStudyHours ?? current.summary.totalStudyHours,
                 completedNodes: summaryResult.value.completedNodes ?? current.summary.completedNodes,
+                studyHoursDeltaMinutes: summaryResult.value.studyHoursDeltaMinutes,
+                lastLessonInfo: summaryResult.value.lastLessonInfo,
               }
             : current.summary,
         heatmap:
@@ -362,7 +364,13 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
                   {studyTime.hours}h <span className="text-lg text-gray-400">{studyTime.minutes}m</span>
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-gray-400">어제보다 2시간 더함</p>
+              {state.summary.studyHoursDeltaMinutes != null && state.summary.studyHoursDeltaMinutes > 0 && (
+                <p className="mt-1 text-[10px] text-gray-400">
+                  어제보다 {Math.floor(state.summary.studyHoursDeltaMinutes / 60) > 0
+                    ? `${Math.floor(state.summary.studyHoursDeltaMinutes / 60)}h `
+                    : ''}{state.summary.studyHoursDeltaMinutes % 60}m 더함
+                </p>
+              )}
             </div>
           </div>
 
@@ -389,7 +397,9 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
                     <h4 className="text-sm font-bold text-gray-900">{recentEnrollment.courseTitle}</h4>
                     <span className="text-brand text-lg font-extrabold">{recentEnrollment.progressPercentage ?? 60}%</span>
                   </div>
-                  <p className="mb-2 text-xs text-gray-500">섹션 5. 객체지향 심화 - 2강. 인터페이스</p>
+                  {state.summary.lastLessonInfo && (
+                    <p className="mb-2 text-xs text-gray-500">{state.summary.lastLessonInfo}</p>
+                  )}
                   <div className="mb-1 h-2 w-full rounded-full bg-gray-100">
                     <div
                       className="bg-brand h-2 rounded-full transition-all duration-1000"
@@ -453,8 +463,14 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
                   </div>
                 </div>
                 <div className="mt-4 flex -space-x-2">
-                  <img className="h-8 w-8 rounded-full border-2 border-white bg-gray-200" src="https://api.dicebear.com/7.x/avataaars/svg?seed=1" alt="m1" />
-                  <img className="h-8 w-8 rounded-full border-2 border-white bg-gray-200" src="https://api.dicebear.com/7.x/avataaars/svg?seed=2" alt="m2" />
+                  {(studyGroup.memberIds ?? [1, 2]).slice(0, 2).map((memberId, idx) => (
+                    <img
+                      key={memberId}
+                      className="h-8 w-8 rounded-full border-2 border-white bg-gray-200"
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${memberId}`}
+                      alt={`m${idx + 1}`}
+                    />
+                  ))}
                   {(studyGroup.currentMemberCount ?? 0) > 2 && (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-[10px] font-bold text-gray-500">
                       +{(studyGroup.currentMemberCount ?? 0) - 2}

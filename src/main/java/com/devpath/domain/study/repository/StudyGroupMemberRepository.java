@@ -24,4 +24,9 @@ public interface StudyGroupMemberRepository extends JpaRepository<StudyGroupMemb
             Long learnerId,
             StudyGroupJoinStatus joinStatus
     );
+
+    List<StudyGroupMember> findAllByStudyGroupIdAndJoinStatus(
+            Long studyGroupId,
+            StudyGroupJoinStatus joinStatus
+    );
 }

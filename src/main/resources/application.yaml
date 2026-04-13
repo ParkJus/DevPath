@@ -100,7 +100,7 @@ ocr:
 
 gemini:
   api:
-    key: ${GEMINI_API_KEY:AIzaSyAI2_SisH-evir3f8J4ZKQDCze1A0Jnm24}
+    key: ${GEMINI_API_KEY:AIzaSyDUI9Qh78d3nseIWDq2OyD290ZIWzA3MXc}
 
 blog:
   publish:

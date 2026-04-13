@@ -56,6 +56,7 @@ import type {
   DashboardStudyGroup,
   DashboardSummary,
   Enrollment,
+  GrowthRecommendation,
   HeatmapEntry,
   LearningHistoryDetail,
   LearningHistorySummary,
@@ -343,6 +344,15 @@ export const roadmapApi = {
       { auth: true },
     )
   },
+
+  // [TEST] 노드 완료 즉시 분기 추천 테스트용 — 실 서비스 전 삭제 대상
+  testRunDiagnosis(originalRoadmapId: number, originalNodeId: number) {
+    return request<{ score: number; maxScore: number; branchType: string; recommendedNodes: string }>(
+      `/api/me/roadmaps/${originalRoadmapId}/diagnosis/test-run?originalNodeId=${originalNodeId}`,
+      { method: 'POST' },
+      { auth: true },
+    )
+  },
 }
 
 export const authApi = {
@@ -380,6 +390,13 @@ export const dashboardApi = {
   getStudyGroup(signal?: AbortSignal) {
     return request<DashboardStudyGroup>(
       '/api/me/dashboard/study-group',
+      { method: 'GET', signal },
+      { auth: true },
+    )
+  },
+  getGrowthRecommendation(signal?: AbortSignal) {
+    return request<GrowthRecommendation>(
+      '/api/me/dashboard/growth-recommendation',
       { method: 'GET', signal },
       { auth: true },
     )

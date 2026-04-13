@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,4 +57,15 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
             where lp.user.id = :learnerId
             """)
     Long sumProgressSecondsByLearnerId(@Param("learnerId") Long learnerId);
+
+    @Query("""
+            select lp
+            from LessonProgress lp
+            join fetch lp.lesson l
+            join fetch l.section s
+            where lp.user.id = :userId
+            and lp.lastWatchedAt is not null
+            order by lp.lastWatchedAt desc
+            """)
+    List<LessonProgress> findRecentByUserIdWithLessonAndSection(@Param("userId") Long userId, Pageable pageable);
 }

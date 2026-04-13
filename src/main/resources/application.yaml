@@ -100,6 +100,9 @@ ocr:
   # sourceTextHint를 로컬/테스트 fallback으로 허용할지 여부
   allow-source-text-fallback: ${OCR_ALLOW_SOURCE_TEXT_FALLBACK:true}
 
+gemini:
+  api:
+    key: ${GEMINI_API_KEY:AIzaSyDUI9Qh78d3nseIWDq2OyD290ZIWzA3MXc}
 anthropic:
   # Claude Vision OCR 사용 시 필요 (없으면 Python OCR 서버 → Tesseract.js 폴백)
   api-key: ${ANTHROPIC_API_KEY:}

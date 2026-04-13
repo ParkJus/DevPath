@@ -2,6 +2,8 @@ export interface DashboardSummary {
   totalStudyHours: number | null
   completedNodes: number | null
   currentStreak: number | null
+  studyHoursDeltaMinutes?: number | null
+  lastLessonInfo?: string | null
 }
 
 export interface HeatmapEntry {
@@ -15,6 +17,9 @@ export interface DashboardStudyGroupItem {
   status: string
   maxMembers: number | null
   joinedAt: string | null
+  plannedEndDate: string | null
+  currentMemberCount: number | null
+  memberIds?: number[]
 }
 
 export interface DashboardStudyGroup {
@@ -253,4 +258,15 @@ export interface CertificateDownloadHistoryDetail {
   downloadHistoryId: number
   downloadReason: string
   downloadedAt: string | null
+}
+
+export interface GrowthRecommendationItem {
+  courseTitle: string
+  matchRateIncrease: number
+  iconClass: string
+}
+
+export interface GrowthRecommendation {
+  analysisText: string
+  recommendations: GrowthRecommendationItem[]
 }

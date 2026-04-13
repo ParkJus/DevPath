@@ -43,5 +43,14 @@ public class DashboardStudyGroupResponse {
 
         @Schema(description = "가입 승인 시각")
         private LocalDateTime joinedAt;
+
+        @Schema(description = "예정 종료일", example = "2026-03-01T00:00:00")
+        private LocalDateTime plannedEndDate;
+
+        @Schema(description = "현재 승인된 멤버 수", example = "4")
+        private Integer currentMemberCount;
+
+        @Schema(description = "승인된 멤버의 learnerId 목록 (아바타 렌더링용, 최대 4개)")
+        private List<Long> memberIds;
     }
 }

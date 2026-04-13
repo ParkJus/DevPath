@@ -2,6 +2,7 @@ package com.devpath.api.dashboard.controller;
 
 import static com.devpath.common.security.AuthenticationUtils.requireUserId;
 
+import com.devpath.api.dashboard.dto.DashboardGrowthRecommendationResponse;
 import com.devpath.api.dashboard.dto.DashboardStudyGroupResponse;
 import com.devpath.api.dashboard.dto.DashboardSummaryResponse;
 import com.devpath.api.dashboard.dto.HeatmapResponse;
@@ -47,5 +48,13 @@ public class LearnerDashboardController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long learnerId
     ) {
         return ApiResponse.ok(dashboardService.getDashboardStudyGroup(requireUserId(learnerId)));
+    }
+
+    @GetMapping("/growth-recommendation")
+    @Operation(summary = "Get AI growth recommendation", description = "Get AI-powered growth recommendation based on the learner's proof card tags.")
+    public ApiResponse<DashboardGrowthRecommendationResponse> getGrowthRecommendation(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long learnerId
+    ) {
+        return ApiResponse.ok(dashboardService.getGrowthRecommendation(requireUserId(learnerId)));
     }
 }

@@ -6,6 +6,7 @@ import type {
   DashboardStudyGroup,
   DashboardSummary,
   Enrollment,
+  GrowthRecommendation,
   HeatmapEntry,
   LearningHistorySummary,
   NotificationItem,
@@ -22,6 +23,7 @@ type DashboardState = {
   enrollments: Enrollment[]
   roadmap: RoadmapDetail | null
   proofCards: ProofCardGalleryItem[]
+  growthRecommendation: GrowthRecommendation | null
 }
 
 const fallbackState: DashboardState = {
@@ -115,6 +117,7 @@ const fallbackState: DashboardState = {
   ],
   roadmap: null,
   proofCards: [],
+  growthRecommendation: null,
 }
 
 function formatStudyTime(hoursValue: number | null | undefined) {
@@ -191,6 +194,7 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
         historySummaryResult,
         enrollmentResult,
         proofCardsResult,
+        growthRecommendationResult,
       ] = await Promise.allSettled([
         dashboardApi.getSummary(signal),
         dashboardApi.getHeatmap(signal),
@@ -199,6 +203,7 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
         learningHistoryApi.getSummary(signal),
         enrollmentApi.getMyEnrollments(signal),
         proofCardApi.getGallery(signal),
+        dashboardApi.getGrowthRecommendation(signal),
       ])
 
       setState((current) => ({
@@ -235,6 +240,10 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
           proofCardsResult.status === 'fulfilled' && proofCardsResult.value.length
             ? proofCardsResult.value
             : current.proofCards,
+        growthRecommendation:
+          growthRecommendationResult.status === 'fulfilled'
+            ? growthRecommendationResult.value
+            : current.growthRecommendation,
       }))
     }
 
@@ -542,22 +551,40 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
               </div>
 
               <div className="flex h-full flex-col gap-4 md:flex-row">
-                <div className="flex flex-1 flex-col justify-center gap-2 rounded-xl bg-purple-50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-xl text-purple-600 shadow-sm">
-                      <i className="fas fa-database" />
+                {state.growthRecommendation?.recommendations?.[0] && (
+                  <div className="flex flex-1 flex-col justify-center gap-2 rounded-xl bg-purple-50 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-xl text-purple-600 shadow-sm">
+                        <i className={`fas ${state.growthRecommendation.recommendations[0].iconClass}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {state.growthRecommendation.recommendations[0].courseTitle}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          매칭률{' '}
+                          <span className="font-bold text-purple-600">
+                            +{state.growthRecommendation.recommendations[0].matchRateIncrease}%
+                          </span>{' '}
+                          상승
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">Advanced SQL & Tuning</p>
-                      <p className="text-[10px] text-gray-500">
-                        매칭률 <span className="font-bold text-purple-600">+20%</span> 상승
-                      </p>
-                    </div>
+                    {state.growthRecommendation.recommendations[1] && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-white px-3 py-2">
+                        <i className={`fas ${state.growthRecommendation.recommendations[1].iconClass} text-purple-400 text-sm`} />
+                        <div>
+                          <p className="text-xs font-bold text-gray-800">
+                            {state.growthRecommendation.recommendations[1].courseTitle}
+                          </p>
+                          <p className="text-[10px] text-gray-400">
+                            +{state.growthRecommendation.recommendations[1].matchRateIncrease}% 상승
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <button className="mt-2 w-full rounded-lg border border-purple-200 bg-white py-2 text-[11px] font-bold text-purple-600 transition hover:bg-purple-100">
-                    로드맵에 추가하기
-                  </button>
-                </div>
+                )}
 
                 <div className="flex flex-1 flex-col justify-center rounded-xl bg-slate-900 p-4 text-white">
                   <div className="mb-2 flex items-center gap-2">
@@ -567,9 +594,7 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
                     <span className="text-xs font-bold text-gray-300">Analysis</span>
                   </div>
                   <p className="text-xs leading-relaxed text-gray-300">
-                    "네트워크 역량(Excellent)에 비해 <strong className="text-white">DB 역량(Good)</strong>이 다소 낮습니다.
-                    <br />
-                    SQL 튜닝을 보완하여 백엔드 밸런스를 맞춰보세요!"
+                    {state.growthRecommendation?.analysisText ?? '학습 데이터를 분석하여 성장 제안을 준비 중입니다.'}
                   </p>
                 </div>
               </div>

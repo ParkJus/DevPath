@@ -255,3 +255,14 @@ export interface CertificateDownloadHistoryDetail {
   downloadReason: string
   downloadedAt: string | null
 }
+
+export interface GrowthRecommendationItem {
+  courseTitle: string
+  matchRateIncrease: number
+  iconClass: string
+}
+
+export interface GrowthRecommendation {
+  analysisText: string
+  recommendations: GrowthRecommendationItem[]
+}

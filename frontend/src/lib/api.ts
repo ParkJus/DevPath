@@ -55,6 +55,7 @@ import type {
   DashboardStudyGroup,
   DashboardSummary,
   Enrollment,
+  GrowthRecommendation,
   HeatmapEntry,
   LearningHistoryDetail,
   LearningHistorySummary,
@@ -272,6 +273,13 @@ export const dashboardApi = {
   getStudyGroup(signal?: AbortSignal) {
     return request<DashboardStudyGroup>(
       '/api/me/dashboard/study-group',
+      { method: 'GET', signal },
+      { auth: true },
+    )
+  },
+  getGrowthRecommendation(signal?: AbortSignal) {
+    return request<GrowthRecommendation>(
+      '/api/me/dashboard/growth-recommendation',
       { method: 'GET', signal },
       { auth: true },
     )

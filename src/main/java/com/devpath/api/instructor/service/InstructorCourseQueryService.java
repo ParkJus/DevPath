@@ -13,6 +13,7 @@ import com.devpath.domain.course.entity.CourseObjective;
 import com.devpath.domain.course.entity.CourseSection;
 import com.devpath.domain.course.entity.CourseTagMap;
 import com.devpath.domain.course.entity.CourseTargetAudience;
+import com.devpath.domain.course.entity.EnrollmentStatus;
 import com.devpath.domain.course.entity.Lesson;
 import com.devpath.domain.course.repository.CourseEnrollmentRepository;
 import com.devpath.domain.course.repository.CourseMaterialRepository;
@@ -27,10 +28,14 @@ import com.devpath.domain.user.entity.UserProfile;
 import com.devpath.domain.user.repository.UserProfileRepository;
 import com.devpath.domain.user.repository.UserRepository;
 import com.devpath.domain.user.repository.UserTechStackRepository;
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,6 +46,37 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class InstructorCourseQueryService {
+
+    private static final String DEFAULT_COURSE_THUMBNAIL =
+            "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80";
+    private static final String DEFAULT_COURSE_CATEGORY = "General";
+
+    private static final Map<String, String> COURSE_THUMBNAIL_FALLBACKS = Map.ofEntries(
+            Map.entry(
+                    "Spring Boot Intro",
+                    "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80"
+            ),
+            Map.entry(
+                    "JPA Practical Design",
+                    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80"
+            ),
+            Map.entry(
+                    "React Dashboard Sprint",
+                    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80"
+            ),
+            Map.entry(
+                    "[A-CASE-A] Node Clearance Course",
+                    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80"
+            ),
+            Map.entry(
+                    "[A-CASE-B] Tag Missing Course",
+                    "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1200&q=80"
+            ),
+            Map.entry(
+                    "[A-CASE-C] Quiz Fail Course",
+                    "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80"
+            )
+    );
 
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
@@ -79,9 +115,13 @@ public class InstructorCourseQueryService {
 
         return courses.stream()
                 .map(course -> {
-                    List<CourseEnrollment> enrollments = enrollmentsByCourseId.getOrDefault(course.getCourseId(), List.of());
+                    List<CourseEnrollment> enrollments = enrollmentsByCourseId.getOrDefault(course.getCourseId(), List.of())
+                            .stream()
+                            .filter(this::isCountableEnrollment)
+                            .toList();
                     List<Review> reviews = reviewsByCourseId.getOrDefault(course.getCourseId(), List.of());
-                    List<String> tags = courseTagMapRepository.findTagNamesByCourseId(course.getCourseId());
+                    List<CourseTagMap> tagMaps = courseTagMapRepository.findAllByCourseCourseId(course.getCourseId());
+                    List<String> tags = buildCourseTagNames(tagMaps);
                     List<Lesson> lessons = lessonRepository.findAllBySectionCourseCourseId(course.getCourseId());
 
                     double averageProgressPercent = enrollments.stream()
@@ -102,16 +142,18 @@ public class InstructorCourseQueryService {
                             course.getCourseId(),
                             course.getTitle(),
                             course.getStatus() == null ? null : course.getStatus().name(),
-                            tags.isEmpty() ? "General" : tags.get(0),
+                            resolveCourseCategoryLabel(tagMaps),
                             course.getDifficultyLevel() == null ? "-" : course.getDifficultyLevel().name(),
                             course.getDurationSeconds(),
                             (long) lessons.size(),
                             (long) enrollments.size(),
                             round(averageProgressPercent),
-                            questionRepository.countByCourseIdAndIsDeletedFalse(course.getCourseId()),
+                            questionRepository.countUnansweredByCourseId(course.getCourseId()),
+                            (long) reviews.size(),
                             round(averageRating),
-                            course.getThumbnailUrl(),
-                            course.getPublishedAt()
+                            resolveCourseThumbnailUrl(course),
+                            course.getPublishedAt(),
+                            tags
                     );
                 })
                 .toList();
@@ -147,7 +189,7 @@ public class InstructorCourseQueryService {
                 .difficultyLevel(course.getDifficultyLevel() == null ? null : course.getDifficultyLevel().name())
                 .language(course.getLanguage())
                 .hasCertificate(course.getHasCertificate())
-                .thumbnailUrl(course.getThumbnailUrl())
+                .thumbnailUrl(resolveCourseThumbnailUrl(course))
                 .introVideoUrl(course.getIntroVideoUrl())
                 .videoAssetKey(course.getVideoAssetKey())
                 .durationSeconds(course.getDurationSeconds())
@@ -185,6 +227,11 @@ public class InstructorCourseQueryService {
     }
 
     // 강의 목표 엔티티 목록을 응답 DTO로 변환한다.
+    private boolean isCountableEnrollment(CourseEnrollment enrollment) {
+        EnrollmentStatus status = enrollment.getStatus();
+        return status == EnrollmentStatus.ACTIVE || status == EnrollmentStatus.COMPLETED;
+    }
+
     private List<CourseDetailResponse.ObjectiveItem> mapObjectives(List<CourseObjective> objectives) {
         return objectives.stream()
                 .map(objective -> CourseDetailResponse.ObjectiveItem.builder()
@@ -230,7 +277,7 @@ public class InstructorCourseQueryService {
         return CourseDetailResponse.InstructorInfo.builder()
                 .instructorId(instructorId)
                 .channelName(resolveChannelName(userProfile))
-                .profileImage(userProfile == null ? null : userProfile.getProfileImage())
+                .profileImage(userProfile == null ? null : userProfile.getDisplayProfileImage())
                 .headline(userProfile == null ? null : userProfile.getBio())
                 .specialties(specialties == null ? Collections.emptyList() : specialties)
                 .channelApiPath("/api/instructors/" + instructorId + "/channel")
@@ -314,7 +361,101 @@ public class InstructorCourseQueryService {
                 .toList();
     }
 
+    private List<String> buildCourseTagNames(List<CourseTagMap> tagMaps) {
+        return tagMaps.stream()
+                .map(CourseTagMap::getTag)
+                .filter(Objects::nonNull)
+                .map(tag -> normalizeBlank(tag.getName()))
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    private String resolveCourseCategoryLabel(List<CourseTagMap> tagMaps) {
+        Map<String, Long> categoryCounts = tagMaps.stream()
+                .map(CourseTagMap::getTag)
+                .filter(Objects::nonNull)
+                .map(tag -> normalizeCourseCategory(tag.getCategory()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), LinkedHashMap::new, Collectors.counting()));
+
+        if (categoryCounts.isEmpty()) {
+            return DEFAULT_COURSE_CATEGORY;
+        }
+
+        return categoryCounts.entrySet().stream()
+                .sorted(
+                        Comparator.<Map.Entry<String, Long>>comparingLong(Map.Entry::getValue).reversed()
+                                .thenComparingInt(entry -> getCourseCategoryPriority(entry.getKey()))
+                                .thenComparing(Map.Entry::getKey)
+                )
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(DEFAULT_COURSE_CATEGORY);
+    }
+
+    private String normalizeCourseCategory(String value) {
+        String normalized = normalizeBlank(value);
+
+        if (normalized == null) {
+            return null;
+        }
+
+        String categoryKey = normalized
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[\\s/_-]+", "");
+
+        return switch (categoryKey) {
+            case "BACKEND", "SERVER", "백엔드" -> "Backend";
+            case "FRONTEND", "CLIENT", "프론트엔드" -> "Frontend";
+            case "AI", "AIDATA", "ARTIFICIALINTELLIGENCE", "MACHINELEARNING", "인공지능" -> "AI";
+            case "DATABASE", "DB", "데이터베이스" -> "Database";
+            case "DEVOPS", "데브옵스" -> "DevOps";
+            case "FULLSTACK", "풀스택" -> "FullStack";
+            case "GENERAL", "일반" -> DEFAULT_COURSE_CATEGORY;
+            default -> null;
+        };
+    }
+
+    private int getCourseCategoryPriority(String category) {
+        return switch (category) {
+            case "Backend" -> 1;
+            case "Frontend" -> 2;
+            case "AI" -> 3;
+            case "Database" -> 4;
+            case "DevOps" -> 5;
+            case "FullStack" -> 6;
+            case DEFAULT_COURSE_CATEGORY -> 7;
+            default -> 99;
+        };
+    }
+
     private double round(double value) {
         return Math.round(value * 10.0) / 10.0;
+    }
+
+    private String resolveCourseThumbnailUrl(Course course) {
+        String thumbnailUrl = normalizeBlank(course.getThumbnailUrl());
+
+        if (thumbnailUrl != null) {
+            String normalizedThumbnailUrl = thumbnailUrl.toLowerCase();
+
+            if (normalizedThumbnailUrl.startsWith("http://")
+                    || normalizedThumbnailUrl.startsWith("https://")
+                    || normalizedThumbnailUrl.startsWith("data:")) {
+                return thumbnailUrl;
+            }
+        }
+
+        return COURSE_THUMBNAIL_FALLBACKS.getOrDefault(course.getTitle(), DEFAULT_COURSE_THUMBNAIL);
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
     }
 }

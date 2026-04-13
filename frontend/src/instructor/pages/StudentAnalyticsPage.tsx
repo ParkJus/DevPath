@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ErrorCard, LoadingCard, formatNumber } from '../../account/ui'
+import { buildInstructorCourseOptions } from '../../instructor/course-display'
 import { instructorAnalyticsApi } from '../../lib/api'
 import type { InstructorAnalyticsDashboard } from '../../types/instructor'
 
@@ -152,6 +153,14 @@ export default function StudentAnalyticsPage() {
     return () => controller.abort()
   }, [courseId])
 
+  const availableCourseOptions = analytics ? buildInstructorCourseOptions(analytics.courseOptions) : []
+
+  useEffect(() => {
+    if (courseId !== null && !availableCourseOptions.some(([value]) => Number(value) === courseId)) {
+      setCourseId(null)
+    }
+  }, [courseId, availableCourseOptions])
+
   if (loading) {
     return (
       <div className="p-6">
@@ -199,6 +208,7 @@ export default function StudentAnalyticsPage() {
     tone: getDifficultyTone(item.weaknessScore),
   }))
   const performanceSummary = buildPerformanceSummary(analytics)
+  const courseOptions = availableCourseOptions
 
   const metrics = [
     {
@@ -255,9 +265,9 @@ export default function StudentAnalyticsPage() {
               className="cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-300"
             >
               <option value="all">전체 강의</option>
-              {analytics.courseOptions.map((course) => (
-                <option key={course.courseId} value={course.courseId}>
-                  {course.title}
+              {courseOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>

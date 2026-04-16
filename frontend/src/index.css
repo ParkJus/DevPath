@@ -463,6 +463,41 @@ pre {
   animation-delay: 2s;
 }
 
+[data-aos] {
+  transition-property: opacity, transform;
+  transition-duration: 1200ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+[data-aos].aos-init {
+  opacity: 0;
+}
+
+[data-aos="fade-up"].aos-init {
+  transform: translate3d(0, 48px, 0);
+}
+
+[data-aos="fade-right"].aos-init {
+  transform: translate3d(-48px, 0, 0);
+}
+
+[data-aos="fade-left"].aos-init {
+  transform: translate3d(48px, 0, 0);
+}
+
+[data-aos].aos-animate {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-aos] {
+    transition: none;
+    will-change: auto;
+  }
+}
+
 .hide-scroll::-webkit-scrollbar {
   display: none;
 }

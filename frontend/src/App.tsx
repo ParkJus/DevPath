@@ -5,11 +5,6 @@ import SiteHeader from './components/SiteHeader'
 import { authApi, userApi } from './lib/api'
 import { AUTH_SESSION_SYNC_EVENT, clearStoredAuthSession, readStoredAuthSession } from './lib/auth-session'
 
-type AosInstance = {
-  init: (options: { duration: number; once: boolean; offset: number }) => void
-  refresh?: () => void
-}
-
 const headerLinks = [
   { key: 'roadmap', href: 'roadmap-hub.html', label: '로드맵' },
   { key: 'lecture', href: 'lecture-list.html', label: '강의' },
@@ -75,14 +70,53 @@ function syncAuthViewInLocation(view: AuthView | null) {
 }
 
 function initAos() {
-  const aos = (window as Window & { AOS?: AosInstance }).AOS
+  const elements = Array.from(document.querySelectorAll<HTMLElement>('[data-aos]'))
 
-  aos?.init({
-    duration: 800,
-    once: true,
-    offset: 100,
+  if (elements.length === 0) {
+    return undefined
+  }
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    elements.forEach((element) => {
+      element.classList.add('aos-animate')
+    })
+    return undefined
+  }
+
+  elements.forEach((element) => {
+    const delay = Number(element.dataset.aosDelay ?? 0)
+
+    if (Number.isFinite(delay) && delay > 0) {
+      element.style.transitionDelay = `${delay}ms`
+    }
+
+    element.classList.add('aos-init')
   })
-  aos?.refresh?.()
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return
+        }
+
+        entry.target.classList.add('aos-animate')
+        observer.unobserve(entry.target)
+      })
+    },
+    {
+      rootMargin: '0px 0px -18% 0px',
+      threshold: 0.18,
+    },
+  )
+
+  elements.forEach((element) => {
+    observer.observe(element)
+  })
+
+  return () => {
+    observer.disconnect()
+  }
 }
 
 function getHeaderMoveStyle(key: HeaderMoveKey): CSSProperties {
@@ -103,7 +137,7 @@ function App() {
 
   useEffect(() => {
     document.title = 'DevPath - 개발자 성장의 모든 것'
-    initAos()
+    return initAos()
   }, [])
 
   useEffect(() => {

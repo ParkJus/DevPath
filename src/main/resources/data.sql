@@ -11634,3 +11634,81 @@ WHERE NOT EXISTS (
       AND r.learner_id = u.user_id
       AND r.is_deleted = FALSE
 );
+
+-- [CATALOG] frontend@devpath.com 정산 관리 데이터
+INSERT INTO settlement (
+    instructor_id, course_id, gross_amount, fee_amount, amount,
+    status, is_deleted, purchased_at, settled_at, created_at
+)
+WITH frontend_settlement_seed(
+    course_title, gross_amount, fee_amount, amount,
+    status, purchased_at, settled_at, created_at
+) AS (
+    VALUES
+        ('React 19 프론트엔드 실전 가이드', 79000, 15800, 63200, 'COMPLETED', TIMESTAMP '2026-01-08 10:20:00', TIMESTAMP '2026-01-15 11:00:00', TIMESTAMP '2026-01-15 11:00:00'),
+        ('Next.js 14 제품 개발 실전', 99000, 19800, 79200, 'COMPLETED', TIMESTAMP '2026-01-18 15:35:00', TIMESTAMP '2026-01-25 10:30:00', TIMESTAMP '2026-01-25 10:30:00'),
+        ('React 19 프론트엔드 실전 가이드', 79000, 15800, 63200, 'COMPLETED', TIMESTAMP '2026-02-06 09:40:00', TIMESTAMP '2026-02-13 14:00:00', TIMESTAMP '2026-02-13 14:00:00'),
+        ('Flutter로 MVP 앱 출시하기', 69000, 13800, 55200, 'COMPLETED', TIMESTAMP '2026-02-16 20:10:00', TIMESTAMP '2026-02-23 13:20:00', TIMESTAMP '2026-02-23 13:20:00'),
+        ('Next.js 14 제품 개발 실전', 99000, 19800, 79200, 'COMPLETED', TIMESTAMP '2026-03-04 11:15:00', TIMESTAMP '2026-03-11 16:10:00', TIMESTAMP '2026-03-11 16:10:00'),
+        ('React 19 프론트엔드 실전 가이드', 79000, 15800, 63200, 'COMPLETED', TIMESTAMP '2026-03-19 18:25:00', TIMESTAMP '2026-03-26 10:45:00', TIMESTAMP '2026-03-26 10:45:00'),
+        ('Flutter로 MVP 앱 출시하기', 69000, 13800, 55200, 'COMPLETED', TIMESTAMP '2026-04-04 12:30:00', TIMESTAMP '2026-04-11 11:30:00', TIMESTAMP '2026-04-11 11:30:00'),
+        ('Next.js 14 제품 개발 실전', 99000, 19800, 79200, 'COMPLETED', TIMESTAMP '2026-04-10 09:15:00', TIMESTAMP '2026-04-16 17:30:00', TIMESTAMP '2026-04-16 17:30:00'),
+        ('React 19 프론트엔드 실전 가이드', 79000, 15800, 63200, 'PENDING', TIMESTAMP '2026-04-15 13:20:00', CAST(NULL AS TIMESTAMP), TIMESTAMP '2026-04-15 13:20:00'),
+        ('Next.js 14 제품 개발 실전', 99000, 19800, 79200, 'PENDING', TIMESTAMP '2026-04-16 10:05:00', CAST(NULL AS TIMESTAMP), TIMESTAMP '2026-04-16 10:05:00'),
+        ('Flutter로 MVP 앱 출시하기', 69000, 13800, 55200, 'PENDING', TIMESTAMP '2026-04-16 17:30:00', CAST(NULL AS TIMESTAMP), TIMESTAMP '2026-04-16 17:30:00'),
+        ('Next.js 14 제품 개발 실전', 99000, 19800, 79200, 'HELD', TIMESTAMP '2026-04-13 16:40:00', CAST(NULL AS TIMESTAMP), TIMESTAMP '2026-04-13 16:40:00'),
+        ('React 19 프론트엔드 실전 가이드', 79000, 15800, 63200, 'HELD', TIMESTAMP '2026-04-14 19:05:00', CAST(NULL AS TIMESTAMP), TIMESTAMP '2026-04-14 19:05:00')
+)
+SELECT
+    iu.user_id,
+    c.course_id,
+    seed.gross_amount,
+    seed.fee_amount,
+    seed.amount,
+    seed.status,
+    FALSE,
+    seed.purchased_at,
+    seed.settled_at,
+    seed.created_at
+FROM frontend_settlement_seed seed
+JOIN users iu ON iu.email = 'frontend@devpath.com'
+JOIN courses c ON c.title = seed.course_title
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM settlement s
+    WHERE s.instructor_id = iu.user_id
+      AND s.course_id = c.course_id
+      AND s.purchased_at = seed.purchased_at
+      AND s.gross_amount = seed.gross_amount
+      AND s.is_deleted = FALSE
+);
+
+INSERT INTO settlement_hold (
+    settlement_id, admin_id, reason, held_at
+)
+WITH frontend_settlement_hold_seed(
+    course_title, purchased_at, reason, held_at
+) AS (
+    VALUES
+        ('Next.js 14 제품 개발 실전', TIMESTAMP '2026-04-13 16:40:00', '환불 문의가 접수되어 정산 확인 중입니다.', TIMESTAMP '2026-04-14 09:30:00'),
+        ('React 19 프론트엔드 실전 가이드', TIMESTAMP '2026-04-14 19:05:00', '결제 수단 확인이 필요해 일시 보류되었습니다.', TIMESTAMP '2026-04-15 10:15:00')
+)
+SELECT
+    s.id,
+    au.user_id,
+    seed.reason,
+    seed.held_at
+FROM frontend_settlement_hold_seed seed
+JOIN users iu ON iu.email = 'frontend@devpath.com'
+JOIN users au ON au.email = 'admin@devpath.com'
+JOIN courses c ON c.title = seed.course_title
+JOIN settlement s ON s.instructor_id = iu.user_id
+                 AND s.course_id = c.course_id
+                 AND s.purchased_at = seed.purchased_at
+                 AND s.status = 'HELD'
+                 AND s.is_deleted = FALSE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM settlement_hold sh
+    WHERE sh.settlement_id = s.id
+);

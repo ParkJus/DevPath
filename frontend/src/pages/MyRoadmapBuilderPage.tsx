@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { readStoredAuthSession } from '../lib/auth-session'
 
 // ────────────────────────────────────────────
 // 타입 정의
 // ────────────────────────────────────────────
 
 interface SkillModule {
-  id: string
+  dbId: number        // builder_modules.id (저장 요청 시 사용)
+  id: string          // moduleId 문자열 (중복 방지 키)
   title: string
   category: string
   icon: string
@@ -28,95 +30,20 @@ interface TimelineRow {
 }
 
 // ────────────────────────────────────────────
-// 모듈 데이터베이스 (하드코딩 — 추후 API 연동)
+// 카테고리 옵션
 // ────────────────────────────────────────────
 
-const DB: Record<string, SkillModule[]> = {
-  frontend: [
-    { id: 'cs-net', title: '인터넷 & 네트워크', category: 'CS 기초', icon: 'fas fa-globe', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['HTTP/HTTPS', 'DNS 작동원리', '도메인 & 호스팅'] },
-    { id: 'fe-html', title: 'HTML / CSS', category: '웹 마크업', icon: 'fab fa-html5', color: 'text-orange-500', bgColor: 'bg-orange-50', topics: ['시맨틱 태그', 'Flexbox & Grid', '반응형 웹', 'SEO 기초'] },
-    { id: 'fe-js', title: 'JavaScript', category: '언어 기초', icon: 'fab fa-js', color: 'text-yellow-500', bgColor: 'bg-yellow-50', topics: ['ES6+', 'DOM 조작', '비동기(Promise/Async)', '이벤트 루프'] },
-    { id: 'fe-ts', title: 'TypeScript', category: '언어 심화', icon: 'fas fa-file-code', color: 'text-blue-600', bgColor: 'bg-blue-50', topics: ['정적 타이핑', '인터페이스', '제네릭'] },
-    { id: 'fe-react', title: 'React', category: '프레임워크', icon: 'fab fa-react', color: 'text-cyan-500', bgColor: 'bg-cyan-50', topics: ['컴포넌트 생명주기', 'React Hooks', '상태 관리', '라우팅'] },
-    { id: 'fe-next', title: 'Next.js', category: '풀스택 웹', icon: 'fas fa-n', color: 'text-black', bgColor: 'bg-gray-200', topics: ['SSR / SSG', 'App Router', 'API Routes', '최적화'] },
-  ],
-  backend: [
-    { id: 'cs-net', title: '인터넷 & 네트워크', category: 'CS 기초', icon: 'fas fa-globe', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['TCP/IP', 'HTTP 메서드', 'CORS', '웹 소켓'] },
-    { id: 'cs-os', title: 'OS 및 일반 지식', category: 'CS 기초', icon: 'fas fa-terminal', color: 'text-gray-700', bgColor: 'bg-gray-200', topics: ['터미널 명령어', '프로세스와 스레드', '메모리 관리', '동시성'] },
-    { id: 'be-java', title: 'Java Programming', category: '언어 기초', icon: 'fab fa-java', color: 'text-red-500', bgColor: 'bg-red-50', topics: ['객체지향(OOP)', 'JVM 메모리 구조', '컬렉션 프레임워크', '스트림 API'] },
-    { id: 'be-spring', title: 'Spring Boot', category: '프레임워크', icon: 'fas fa-leaf', color: 'text-green-500', bgColor: 'bg-green-50', topics: ['의존성 주입(DI)', 'AOP', 'Spring MVC', 'JPA / Hibernate'] },
-    { id: 'db-rdb', title: '관계형 데이터베이스', category: '데이터베이스', icon: 'fas fa-database', color: 'text-indigo-500', bgColor: 'bg-indigo-50', topics: ['PostgreSQL / MySQL', '정규화', '트랜잭션(ACID)', '인덱스 최적화'] },
-    { id: 'be-api', title: 'API 설계', category: '웹 개발', icon: 'fas fa-network-wired', color: 'text-purple-500', bgColor: 'bg-purple-50', topics: ['RESTful 설계', 'GraphQL', 'JWT 인증', 'OAuth 2.0'] },
-    { id: 'be-redis', title: 'Redis & 캐싱', category: '데이터베이스', icon: 'fas fa-memory', color: 'text-red-500', bgColor: 'bg-red-50', topics: ['In-Memory DB', '세션 관리', '캐싱 전략', 'Pub/Sub'] },
-    { id: 'infra-docker', title: 'Docker', category: 'DevOps', icon: 'fab fa-docker', color: 'text-blue-600', bgColor: 'bg-blue-50', topics: ['컨테이너화', 'Dockerfile', 'Docker Compose', '볼륨 관리'] },
-  ],
-  devops: [
-    { id: 'cs-os', title: 'Linux Administration', category: 'OS', icon: 'fab fa-linux', color: 'text-black', bgColor: 'bg-gray-200', topics: ['쉘 스크립트', '권한 관리(chmod)', '시스템 모니터링', 'SSH'] },
-    { id: 'infra-docker', title: 'Docker 심화', category: '컨테이너', icon: 'fab fa-docker', color: 'text-blue-600', bgColor: 'bg-blue-50', topics: ['멀티스테이지 빌드', '네트워크 브릿지', '이미지 경량화'] },
-    { id: 'do-cicd', title: 'CI/CD 파이프라인', category: '자동화', icon: 'fas fa-sync-alt', color: 'text-teal-500', bgColor: 'bg-teal-50', topics: ['GitHub Actions', 'Jenkins', '파이프라인 구축', '자동 배포'] },
-    { id: 'do-k8s', title: 'Kubernetes', category: '오케스트레이션', icon: 'fas fa-dharmachakra', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['Pod & Service', 'Deployment', 'Ingress', 'Helm Chart'] },
-    { id: 'do-aws', title: 'AWS 인프라', category: '클라우드', icon: 'fab fa-aws', color: 'text-orange-400', bgColor: 'bg-orange-50', topics: ['EC2 & VPC', 'S3 스토리지', 'IAM 권한', 'RDS & ElastiCache'] },
-  ],
-  fullstack: [
-    { id: 'fe-react', title: 'React / Next.js', category: '프론트엔드', icon: 'fab fa-react', color: 'text-cyan-500', bgColor: 'bg-cyan-50', topics: ['클라이언트 UI', '상태 관리', '서버 사이드 렌더링'] },
-    { id: 'fs-node', title: 'Node.js / Express', category: '백엔드', icon: 'fab fa-node-js', color: 'text-green-600', bgColor: 'bg-green-50', topics: ['JavaScript 런타임', '미들웨어', 'REST API 구축'] },
-    { id: 'be-spring', title: 'Spring Boot (선택)', category: '백엔드', icon: 'fas fa-leaf', color: 'text-green-500', bgColor: 'bg-green-50', topics: ['엔터프라이즈 백엔드', 'JPA 연동', '보안 설정'] },
-    { id: 'db-rdb', title: 'PostgreSQL', category: '데이터베이스', icon: 'fas fa-database', color: 'text-indigo-500', bgColor: 'bg-indigo-50', topics: ['RDBMS 기본', '데이터 모델링'] },
-    { id: 'infra-docker', title: 'Docker', category: '배포', icon: 'fab fa-docker', color: 'text-blue-600', bgColor: 'bg-blue-50', topics: ['풀스택 앱 컨테이너화', 'Compose 연동'] },
-  ],
-  ai: [
-    { id: 'ai-py', title: 'Python Programming', category: '언어 기초', icon: 'fab fa-python', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['데이터 타입', 'Numpy', 'Pandas', '데이터 전처리'] },
-    { id: 'ai-math', title: '수학 및 통계', category: '기초 지식', icon: 'fas fa-square-root-alt', color: 'text-gray-700', bgColor: 'bg-gray-200', topics: ['선형대수학', '미적분', '확률과 통계'] },
-    { id: 'ai-ml', title: 'Machine Learning', category: '인공지능', icon: 'fas fa-robot', color: 'text-orange-500', bgColor: 'bg-orange-50', topics: ['Scikit-learn', '지도 학습', '비지도 학습', '모델 평가'] },
-    { id: 'ai-dl', title: 'Deep Learning', category: '인공지능', icon: 'fas fa-brain', color: 'text-purple-500', bgColor: 'bg-purple-50', topics: ['PyTorch / TensorFlow', '신경망 기초', 'CNN', 'RNN / LSTM'] },
-    { id: 'ai-nlp', title: 'NLP & LLM', category: '자연어 처리', icon: 'fas fa-language', color: 'text-green-600', bgColor: 'bg-green-50', topics: ['트랜스포머 아키텍처', 'Hugging Face', '프롬프트 엔지니어링', 'RAG'] },
-  ],
-  data_engineer: [
-    { id: 'ai-py', title: 'Python / Scala', category: '언어 기초', icon: 'fab fa-python', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['데이터 파이프라인 개발', '분산 처리 기초'] },
-    { id: 'db-rdb', title: 'Advanced SQL', category: '데이터베이스', icon: 'fas fa-database', color: 'text-indigo-500', bgColor: 'bg-indigo-50', topics: ['복잡한 조인', '윈도우 함수', '쿼리 실행 계획 튜닝'] },
-    { id: 'de-dw', title: 'Data Warehouse', category: '데이터 저장소', icon: 'fas fa-cubes', color: 'text-blue-400', bgColor: 'bg-blue-50', topics: ['BigQuery', 'Snowflake', '데이터 마트 설계'] },
-    { id: 'de-spark', title: 'Apache Spark', category: '분산 처리', icon: 'fas fa-bolt', color: 'text-orange-500', bgColor: 'bg-orange-50', topics: ['RDD', 'Spark SQL', '대용량 데이터 변환'] },
-    { id: 'de-kafka', title: 'Apache Kafka', category: '스트리밍', icon: 'fas fa-stream', color: 'text-black', bgColor: 'bg-gray-200', topics: ['이벤트 스트리밍', 'Pub/Sub 구조', '실시간 파이프라인'] },
-  ],
-  android: [
-    { id: 'app-kt', title: 'Kotlin Programming', category: '언어 기초', icon: 'fas fa-code', color: 'text-purple-600', bgColor: 'bg-purple-50', topics: ['코틀린 문법', 'Null 안정성', '컬렉션 및 람다'] },
-    { id: 'app-and', title: 'Android Studio', category: '환경 구성', icon: 'fab fa-android', color: 'text-green-500', bgColor: 'bg-green-50', topics: ['IDE 활용', 'Gradle 빌드', '에뮬레이터'] },
-    { id: 'app-ui', title: 'Jetpack Compose', category: 'UI 개발', icon: 'fas fa-layer-group', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['선언형 UI', '상태 호이스팅', '애니메이션', '레이아웃'] },
-    { id: 'app-coroutine', title: 'Coroutines & Flow', category: '비동기', icon: 'fas fa-water', color: 'text-cyan-500', bgColor: 'bg-cyan-50', topics: ['비동기 프로그래밍', '백그라운드 스레드', '데이터 스트림'] },
-    { id: 'app-arch', title: 'Architecture (MVVM)', category: '아키텍처', icon: 'fas fa-project-diagram', color: 'text-orange-500', bgColor: 'bg-orange-50', topics: ['ViewModel', 'LiveData', '의존성 주입(Hilt)'] },
-  ],
-  ios: [
-    { id: 'app-swift', title: 'Swift Programming', category: '언어 기초', icon: 'fab fa-apple', color: 'text-black', bgColor: 'bg-gray-200', topics: ['옵셔널', '구조체와 클래스', '프로토콜 지향 프로그래밍'] },
-    { id: 'app-swiftui', title: 'SwiftUI', category: 'UI 개발', icon: 'fas fa-layer-group', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['선언형 뷰', '상태 관리(@State)', '네비게이션'] },
-    { id: 'app-combine', title: 'Combine', category: '반응형', icon: 'fas fa-stream', color: 'text-purple-500', bgColor: 'bg-purple-50', topics: ['Publisher / Subscriber', '데이터 바인딩'] },
-    { id: 'app-coredata', title: 'Core Data', category: '데이터베이스', icon: 'fas fa-database', color: 'text-indigo-500', bgColor: 'bg-indigo-50', topics: ['로컬 데이터 저장', '엔티티 관리', '마이그레이션'] },
-  ],
-  game: [
-    { id: 'game-math', title: '3D Math & Physics', category: '기초 지식', icon: 'fas fa-square-root-alt', color: 'text-gray-700', bgColor: 'bg-gray-200', topics: ['벡터와 행렬', '쿼터니언 회전', '충돌 처리', '물리 엔진'] },
-    { id: 'game-cs', title: 'C# Programming', category: '언어 기초', icon: 'fas fa-code', color: 'text-purple-600', bgColor: 'bg-purple-50', topics: ['C# 문법', '이벤트와 델리게이트', '가비지 컬렉션'] },
-    { id: 'game-unity', title: 'Unity Engine', category: '엔진 활용', icon: 'fab fa-unity', color: 'text-black', bgColor: 'bg-gray-200', topics: ['컴포넌트 패턴', '씬 관리', '애니메이터', 'UI 시스템'] },
-    { id: 'game-cpp', title: 'C++ Programming', category: '언어 심화', icon: 'fas fa-file-code', color: 'text-blue-600', bgColor: 'bg-blue-50', topics: ['포인터와 참조', '메모리 관리', 'STL 라이브러리'] },
-    { id: 'game-unreal', title: 'Unreal Engine', category: '엔진 활용', icon: 'fas fa-gamepad', color: 'text-orange-500', bgColor: 'bg-orange-50', topics: ['블루프린트', '액터 시스템', '메테리얼 에디터'] },
-  ],
-  blockchain: [
-    { id: 'bc-crypto', title: 'Cryptography', category: '암호학', icon: 'fas fa-key', color: 'text-yellow-600', bgColor: 'bg-yellow-50', topics: ['해시 함수', '공개키/개인키', '디지털 서명'] },
-    { id: 'bc-basics', title: 'Blockchain Basics', category: '블록체인', icon: 'fas fa-link', color: 'text-gray-700', bgColor: 'bg-gray-200', topics: ['P2P 네트워크', '합의 알고리즘(PoW/PoS)', '분산 원장'] },
-    { id: 'bc-sol', title: 'Solidity', category: '스마트 컨트랙트', icon: 'fab fa-ethereum', color: 'text-purple-500', bgColor: 'bg-purple-50', topics: ['EVM', '토큰 표준(ERC-20)', '가스비 최적화'] },
-    { id: 'bc-web3', title: 'Web3.js / Ethers.js', category: '프론트엔드 연동', icon: 'fas fa-plug', color: 'text-blue-500', bgColor: 'bg-blue-50', topics: ['DApp 구축', '지갑 연동(Metamask)', 'RPC 통신'] },
-  ],
-}
-
 const CATEGORY_OPTIONS = [
-  { value: 'frontend', label: '프런트엔드 (Frontend)' },
-  { value: 'backend', label: '백엔드 (Backend) ⭐추천' },
-  { value: 'devops', label: '데브옵스 (DevOps)' },
-  { value: 'fullstack', label: '풀스택 (Full Stack)' },
-  { value: 'ai', label: 'AI 엔지니어 (AI Engineer)' },
+  { value: 'frontend',      label: '프런트엔드 (Frontend)' },
+  { value: 'backend',       label: '백엔드 (Backend) ⭐추천' },
+  { value: 'devops',        label: '데브옵스 (DevOps)' },
+  { value: 'fullstack',     label: '풀스택 (Full Stack)' },
+  { value: 'ai',            label: 'AI 엔지니어 (AI Engineer)' },
   { value: 'data_engineer', label: '데이터 엔지니어 (Data Engineer)' },
-  { value: 'android', label: '안드로이드 (Android)' },
-  { value: 'ios', label: 'iOS (iOS)' },
-  { value: 'game', label: '게임 개발자 (Game Developer)' },
-  { value: 'blockchain', label: '블록체인 (Blockchain)' },
+  { value: 'android',       label: '안드로이드 (Android)' },
+  { value: 'ios',           label: 'iOS (iOS)' },
+  { value: 'game',          label: '게임 개발자 (Game Developer)' },
+  { value: 'blockchain',    label: '블록체인 (Blockchain)' },
 ]
 
 function makeInstanceId() {
@@ -128,22 +55,67 @@ function makeInstanceId() {
 // ────────────────────────────────────────────
 
 function MyRoadmapBuilderPage() {
+  const [session] = useState(() => readStoredAuthSession())
   const [category, setCategory] = useState('backend')
   const [search, setSearch] = useState('')
+  const [items, setItems] = useState<SkillModule[]>([])
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [nodes, setNodes] = useState<BuilderNode[]>([])
   const [branchTarget, setBranchTarget] = useState<number | null>(null)
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [roadmapTitle, setRoadmapTitle] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const mainRef = useRef<HTMLDivElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
-  // 이미 사용된 모듈 ID 집합
-  const usedIds = useMemo(() => new Set(nodes.map((n) => n.module.id)), [nodes])
+  // ── 카테고리 변경 시 API 호출 ──
+  useEffect(() => {
+    setLoading(true)
+    setFetchError(null)
+    fetch(`/api/builder/modules?category=${category}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`서버 오류 (${res.status})`)
+        return res.json()
+      })
+      .then((data) => {
+        const raw = (data.data ?? []) as Array<{
+          id: number; moduleId: string; category: string; title: string
+          icon: string; color: string; bgColor: string; topics: string[]
+        }>
+        setItems(raw.map((m) => ({
+          dbId: m.id,
+          id: m.moduleId,
+          title: m.title,
+          category: m.category,
+          icon: m.icon,
+          color: m.color,
+          bgColor: m.bgColor,
+          topics: m.topics,
+        })))
+      })
+      .catch((err: Error) => setFetchError(err.message))
+      .finally(() => setLoading(false))
+  }, [category])
 
-  // 현재 최대 sortOrder
+  // 모달 열릴 때 포커스
+  useEffect(() => {
+    if (saveModalOpen) {
+      setTimeout(() => titleInputRef.current?.focus(), 50)
+    }
+  }, [saveModalOpen])
+
+  // dbId 기준 중복 방지 (크로스 카테고리 혼합 시에도 정확)
+  const usedIds = useMemo(() => new Set(nodes.map((n) => n.module.dbId)), [nodes])
+
   const maxSortOrder = useMemo(
     () => (nodes.length === 0 ? 0 : Math.max(...nodes.map((n) => n.sortOrder))),
     [nodes],
   )
 
-  // sortOrder 기준으로 rows 그룹화
+  // sortOrder 기준 rows 그룹화
   const rows = useMemo<TimelineRow[]>(() => {
     const map = new Map<number, BuilderNode[]>()
     for (const node of nodes) {
@@ -162,7 +134,6 @@ function MyRoadmapBuilderPage() {
 
   // 좌측 패널 필터링
   const filteredItems = useMemo(() => {
-    const items = DB[category] ?? []
     const q = search.toLowerCase()
     if (!q) return items
     return items.filter(
@@ -171,15 +142,14 @@ function MyRoadmapBuilderPage() {
         item.category.toLowerCase().includes(q) ||
         item.topics.some((t) => t.toLowerCase().includes(q)),
     )
-  }, [category, search])
+  }, [items, search])
 
-  // C-2: 모듈 추가 (척추 or 분기)
+  // 모듈 추가 (척추 or 분기)
   const handleAdd = useCallback(
     (module: SkillModule) => {
-      if (usedIds.has(module.id)) return
+      if (usedIds.has(module.dbId)) return
 
       if (branchTarget === null) {
-        // 척추 노드 추가
         setNodes((prev) => [
           ...prev,
           { instanceId: makeInstanceId(), module, sortOrder: maxSortOrder + 1, branchGroup: null },
@@ -188,7 +158,6 @@ function MyRoadmapBuilderPage() {
           mainRef.current?.scrollTo({ top: mainRef.current.scrollHeight, behavior: 'smooth' })
         }, 50)
       } else {
-        // 분기 추가: 기존 척추를 branchGroup=1로 전환, 새 모듈을 branchGroup=2로 추가
         setNodes((prev) => {
           const updated = prev.map((n) =>
             n.sortOrder === branchTarget && n.branchGroup === null
@@ -206,7 +175,7 @@ function MyRoadmapBuilderPage() {
     [usedIds, branchTarget, maxSortOrder],
   )
 
-  // C-2: 분기 모드 진입
+  // 분기 모드 진입
   const handleBranchActivate = useCallback(
     (sortOrder: number) => {
       const rowNodes = nodes.filter((n) => n.sortOrder === sortOrder)
@@ -219,7 +188,7 @@ function MyRoadmapBuilderPage() {
     [nodes],
   )
 
-  // C-2: 노드 삭제 + 후처리
+  // 노드 삭제 + 후처리
   const handleRemove = useCallback((instanceId: string) => {
     setNodes((prev) => {
       const target = prev.find((n) => n.instanceId === instanceId)
@@ -231,20 +200,18 @@ function MyRoadmapBuilderPage() {
       let updated: BuilderNode[]
 
       if (branchGroup === null) {
-        // 척추 노드 삭제 → 해당 sortOrder 이후 전체 -1 재정렬
+        // 척추 노드 삭제 → 이후 sortOrder 전부 -1 재정렬
         updated = prev
           .filter((n) => n.instanceId !== instanceId)
           .map((n) => (n.sortOrder > sortOrder ? { ...n, sortOrder: n.sortOrder - 1 } : n))
       } else {
-        // 분기 노드 삭제
-        const remaining = sameRow
-        if (remaining.length === 1) {
+        if (sameRow.length === 1) {
           // 분기 하나 남음 → 척추로 복원
           updated = prev
             .filter((n) => n.instanceId !== instanceId)
             .map((n) => (n.sortOrder === sortOrder ? { ...n, branchGroup: null } : n))
         } else {
-          // 분기 둘 다 삭제되는 경우 (이미 마지막 하나)
+          // 마지막 분기 노드 삭제 → row 제거 + 이후 재정렬
           updated = prev
             .filter((n) => n.instanceId !== instanceId)
             .map((n) => (n.sortOrder > sortOrder ? { ...n, sortOrder: n.sortOrder - 1 } : n))
@@ -263,12 +230,135 @@ function MyRoadmapBuilderPage() {
     }
   }, [nodes.length])
 
+  // 저장 모달 열기
+  const openSaveModal = useCallback(() => {
+    setSaveError(null)
+    setRoadmapTitle('')
+    setSaveModalOpen(true)
+  }, [])
+
+  // 로드맵 저장
+  const handleSave = useCallback(async () => {
+    if (!session?.userId) return
+    if (!roadmapTitle.trim()) {
+      setSaveError('로드맵 이름을 입력해주세요.')
+      return
+    }
+
+    setSaving(true)
+    setSaveError(null)
+
+    try {
+      const res = await fetch(`/api/builder/roadmaps?userId=${session.userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: roadmapTitle.trim(),
+          modules: nodes.map((n) => ({
+            builderModuleId: n.module.dbId,
+            sortOrder: n.sortOrder,
+            branchGroup: n.branchGroup,
+          })),
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error((errData as { message?: string }).message ?? `저장 실패 (${res.status})`)
+      }
+
+      setSaveModalOpen(false)
+      setNodes([])
+      setBranchTarget(null)
+      setRoadmapTitle('')
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }, [session?.userId, roadmapTitle, nodes])
+
+  // ────────────────────────────────────────────
+  // 미로그인 가드
+  // ────────────────────────────────────────────
+
+  if (!session?.userId) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-lg">
+          <i className="fas fa-lock mb-4 block text-4xl text-gray-300" />
+          <h2 className="mb-2 text-xl font-bold text-gray-800">로그인이 필요합니다</h2>
+          <p className="mb-6 text-sm text-gray-500">나만의 로드맵 빌더를 사용하려면 먼저 로그인해주세요.</p>
+          <a
+            href="/login.html"
+            className="inline-block rounded-lg bg-[#00C471] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-green-600"
+          >
+            로그인하러 가기
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   // ────────────────────────────────────────────
   // 렌더
   // ────────────────────────────────────────────
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#0F172A]">
+
+      {/* 저장 성공 토스트 */}
+      {saveSuccess && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-xl">
+          <i className="fas fa-check-circle mr-2 text-[#00C471]" />
+          로드맵이 저장되었습니다!
+        </div>
+      )}
+
+      {/* 저장 모달 */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <h2 className="mb-1 text-xl font-extrabold text-gray-900">로드맵 저장</h2>
+            <p className="mb-6 text-sm text-gray-500">나만의 로드맵 이름을 입력해주세요.</p>
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={roadmapTitle}
+              onChange={(e) => setRoadmapTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+              placeholder="예: 내 백엔드 개발자 로드맵"
+              maxLength={200}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium focus:border-[#00C471] focus:outline-none focus:ring-2 focus:ring-[#00C471]/20"
+            />
+            {saveError && (
+              <p className="mt-2 text-xs font-bold text-red-500">
+                <i className="fas fa-exclamation-circle mr-1" />{saveError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setSaveModalOpen(false)}
+                disabled={saving}
+                className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || !roadmapTitle.trim()}
+                className="flex items-center gap-2 rounded-lg bg-[#00C471] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-green-600 disabled:opacity-50"
+              >
+                {saving ? <><i className="fas fa-spinner fa-spin" /> 저장 중...</> : <><i className="fas fa-save" /> 저장</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 헤더 */}
       <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
@@ -287,14 +377,16 @@ function MyRoadmapBuilderPage() {
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-lg border border-transparent px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-red-50 hover:text-red-500"
+            disabled={nodes.length === 0}
+            className="rounded-lg border border-transparent px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <i className="fas fa-rotate-right mr-1" /> 초기화
           </button>
           <button
             type="button"
-            onClick={() => alert('로드맵이 저장되었습니다!')}
-            className="flex items-center gap-2 rounded-lg bg-[#00C471] px-5 py-2 text-sm font-bold text-white shadow-md transition hover:bg-green-600"
+            onClick={openSaveModal}
+            disabled={nodes.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-[#00C471] px-5 py-2 text-sm font-bold text-white shadow-md transition hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <i className="fas fa-save" /> 로드맵 저장
           </button>
@@ -327,7 +419,7 @@ function MyRoadmapBuilderPage() {
             </div>
           </div>
 
-          {/* C-3: 분기 모드 배너 */}
+          {/* 분기 모드 배너 */}
           {branchTarget !== null && (
             <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-3">
               <div className="flex items-start justify-between gap-2">
@@ -366,55 +458,82 @@ function MyRoadmapBuilderPage() {
           </div>
 
           {/* 모듈 목록 */}
-          <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
-            {filteredItems.map((module) => {
-              const isUsed = usedIds.has(module.id)
-              const isAvailableForBranch = branchTarget !== null && !isUsed
-              return (
-                <div
-                  key={module.id}
-                  onClick={() => handleAdd(module)}
-                  className={[
-                    'group flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200',
-                    isUsed
-                      ? 'cursor-not-allowed border-dashed border-[#CBD5E1] bg-[#F1F5F9] opacity-60'
-                      : isAvailableForBranch
-                        ? 'border-amber-300 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_4px_12px_rgba(245,158,11,0.15)]'
-                        : 'border-[#E2E8F0] hover:-translate-y-0.5 hover:border-[#00C471] hover:shadow-[0_4px_12px_rgba(0,196,113,0.1)] active:scale-[0.98]',
-                  ].join(' ')}
+          <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
+                <i className="fas fa-spinner fa-spin text-2xl" />
+                <p className="text-sm font-medium">모듈 불러오는 중...</p>
+              </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-red-400">
+                <i className="fas fa-exclamation-triangle text-2xl" />
+                <p className="text-sm font-bold">모듈을 불러오지 못했습니다.</p>
+                <p className="text-xs text-gray-400">{fetchError}</p>
+                <button
+                  type="button"
+                  onClick={() => setCategory((c) => c)}
+                  className="mt-1 rounded-lg border border-red-200 px-4 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50"
                 >
-                  <div className={[
-                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100',
-                    isUsed ? 'bg-gray-100' : `${module.bgColor} transition-transform group-hover:scale-110`,
-                  ].join(' ')}>
-                    <i className={`${module.icon} ${isUsed ? 'text-gray-400' : module.color} text-lg`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center justify-between">
-                      <h4 className={`truncate text-sm font-bold ${isUsed ? 'text-gray-500' : 'text-gray-800'}`}>
-                        {module.title}
-                      </h4>
-                      <span className="ml-2 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
-                        {module.category}
-                      </span>
+                  다시 시도
+                </button>
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
+                <i className="fas fa-search text-2xl" />
+                <p className="text-sm font-medium">검색 결과가 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredItems.map((module) => {
+                  const isUsed = usedIds.has(module.dbId)
+                  const isAvailableForBranch = branchTarget !== null && !isUsed
+                  return (
+                    <div
+                      key={module.dbId}
+                      onClick={() => handleAdd(module)}
+                      className={[
+                        'group flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200',
+                        isUsed
+                          ? 'cursor-not-allowed border-dashed border-[#CBD5E1] bg-[#F1F5F9] opacity-60'
+                          : isAvailableForBranch
+                            ? 'border-amber-300 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_4px_12px_rgba(245,158,11,0.15)]'
+                            : 'border-[#E2E8F0] hover:-translate-y-0.5 hover:border-[#00C471] hover:shadow-[0_4px_12px_rgba(0,196,113,0.1)] active:scale-[0.98]',
+                      ].join(' ')}
+                    >
+                      <div className={[
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100',
+                        isUsed ? 'bg-gray-100' : `${module.bgColor} transition-transform group-hover:scale-110`,
+                      ].join(' ')}>
+                        <i className={`${module.icon} ${isUsed ? 'text-gray-400' : module.color} text-lg`} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center justify-between">
+                          <h4 className={`truncate text-sm font-bold ${isUsed ? 'text-gray-500' : 'text-gray-800'}`}>
+                            {module.title}
+                          </h4>
+                          <span className="ml-2 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
+                            {module.category}
+                          </span>
+                        </div>
+                        <p className="line-clamp-2 text-[11px] leading-tight text-gray-400">
+                          <span className={`font-semibold ${isUsed ? 'text-gray-400' : isAvailableForBranch ? 'text-amber-500' : 'text-[#00C471]'}`}>
+                            {isAvailableForBranch ? '+ 분기:' : '포함:'}
+                          </span>{' '}
+                          {module.topics.join(', ')}
+                        </p>
+                      </div>
+                      {isUsed ? (
+                        <div className="mt-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-[#00C471]">
+                          <i className="fas fa-check" />
+                        </div>
+                      ) : (
+                        <i className={`mt-2 fas ${isAvailableForBranch ? 'fa-code-branch text-amber-400' : 'fa-plus-circle text-gray-300 group-hover:text-[#00C471]'} transition-colors`} />
+                      )}
                     </div>
-                    <p className="line-clamp-2 text-[11px] leading-tight text-gray-400">
-                      <span className={`font-semibold ${isUsed ? 'text-gray-400' : isAvailableForBranch ? 'text-amber-500' : 'text-[#00C471]'}`}>
-                        {isAvailableForBranch ? '+ 분기:' : '포함:'}
-                      </span>{' '}
-                      {module.topics.join(', ')}
-                    </p>
-                  </div>
-                  {isUsed ? (
-                    <div className="mt-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-[#00C471]">
-                      <i className="fas fa-check" />
-                    </div>
-                  ) : (
-                    <i className={`mt-2 fas ${isAvailableForBranch ? 'fa-code-branch text-amber-400' : 'fa-plus-circle text-gray-300 group-hover:text-[#00C471]'} transition-colors`} />
-                  )}
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            )}
           </div>
         </aside>
 
@@ -446,17 +565,15 @@ function MyRoadmapBuilderPage() {
                 </div>
               </div>
 
-              {/* C-4: rows 렌더링 */}
+              {/* rows 렌더링 */}
               {rows.map((row) => (
                 <div key={row.sortOrder} className="group relative z-10 mb-8 builder-step-enter">
                   {row.isBranching ? (
                     // ── 분기 row ──
                     <div className="flex items-start">
-                      {/* 번호 */}
                       <div className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-white text-xl font-black text-amber-500 shadow-lg">
                         {row.sortOrder}
                       </div>
-                      {/* 두 카드 나란히 */}
                       <div className="ml-8 grid flex-1 grid-cols-2 gap-4">
                         {row.nodes.map((node, idx) => (
                           <BranchCard
@@ -505,7 +622,7 @@ function MyRoadmapBuilderPage() {
 }
 
 // ────────────────────────────────────────────
-// C-5: 척추 카드 컴포넌트
+// 척추 카드 컴포넌트
 // ────────────────────────────────────────────
 
 function SpineCard({
@@ -524,7 +641,6 @@ function SpineCard({
     <div className="group/card relative ml-8 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#00C471] hover:shadow-xl">
       <div className="absolute -left-2 top-7 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-gray-200 bg-white transition-colors duration-300 group-hover/card:border-[#00C471]" />
 
-      {/* 액션 버튼 */}
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 opacity-0 transition-all group-hover/card:opacity-100">
         <button
           type="button"
@@ -573,12 +689,12 @@ function SpineCard({
 }
 
 // ────────────────────────────────────────────
-// C-5: 분기 카드 컴포넌트
+// 분기 카드 컴포넌트
 // ────────────────────────────────────────────
 
-const BRANCH_COLORS: Record<string, { border: string; badge: string; dot: string }> = {
-  A: { border: 'border-amber-300 hover:border-amber-400', badge: 'bg-amber-100 text-amber-600', dot: 'border-amber-300 bg-white' },
-  B: { border: 'border-purple-300 hover:border-purple-400', badge: 'bg-purple-100 text-purple-600', dot: 'border-purple-300 bg-white' },
+const BRANCH_COLORS: Record<string, { border: string; badge: string }> = {
+  A: { border: 'border-amber-300 hover:border-amber-400', badge: 'bg-amber-100 text-amber-600' },
+  B: { border: 'border-purple-300 hover:border-purple-400', badge: 'bg-purple-100 text-purple-600' },
 }
 
 function BranchCard({
@@ -594,11 +710,9 @@ function BranchCard({
   const colors = BRANCH_COLORS[label]
   return (
     <div className={`group/card relative cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${colors.border}`}>
-      {/* 분기 라벨 뱃지 */}
       <span className={`absolute -top-2.5 left-4 rounded-full px-2 py-0.5 text-[10px] font-black ${colors.badge}`}>
         {label}
       </span>
-      {/* 삭제 버튼 */}
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRemove(instanceId) }}

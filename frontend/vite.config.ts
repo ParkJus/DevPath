@@ -51,6 +51,7 @@ export default defineConfig({
         profile: resolve(__dirname, 'profile.html'),
         settings: resolve(__dirname, 'settings.html'),
         learningLogGallery: resolve(__dirname, 'learning-log-gallery.html'),
+        myRoadmap: resolve(__dirname, 'my-roadmap.html'),
       },
     },
   },

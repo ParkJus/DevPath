@@ -805,7 +805,7 @@ function installGlobalActions() {
   }
 
   window.approveCourse = async (courseId: number) => {
-    if (!window.confirm('이 강의를 승인할까?')) {
+    if (!window.confirm('이 강의를 승인하시겠습니까?')) {
       return
     }
 

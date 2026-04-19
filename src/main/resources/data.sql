@@ -12098,3 +12098,302 @@ WHERE reporter.email = 'learner3@devpath.com'
         AND mr.content_id IS NULL
         AND mr.reason = '프로필 소개에 외부 연락처 유도가 반복되어 관리자 검토 후 경고 처리했습니다.'
   );
+-- ============================================================
+-- 로드맵 허브 기본 구성
+-- ============================================================
+WITH roadmap_hub_official_seed(title) AS (
+    VALUES
+        ('Full Stack'),
+        ('DevOps'),
+        ('DevSecOps'),
+        ('Data Analyst'),
+        ('AI Engineer'),
+        ('AI and Data Scientist'),
+        ('Data Engineer'),
+        ('Android'),
+        ('Machine Learning'),
+        ('PostgreSQL'),
+        ('iOS'),
+        ('Blockchain'),
+        ('QA'),
+        ('Software Architect'),
+        ('Cyber Security'),
+        ('UX Design'),
+        ('Technical Writer'),
+        ('Game Developer'),
+        ('Server Side Game Developer'),
+        ('MLOps'),
+        ('Product Manager'),
+        ('Engineering Manager'),
+        ('Developer Relations'),
+        ('BI Analyst'),
+        ('SQL'),
+        ('Computer Science'),
+        ('React'),
+        ('Vue'),
+        ('Angular'),
+        ('JavaScript'),
+        ('TypeScript'),
+        ('Node.js'),
+        ('Python'),
+        ('System Design'),
+        ('Java'),
+        ('ASP.NET Core'),
+        ('API Design'),
+        ('Spring Boot'),
+        ('Flutter'),
+        ('C++'),
+        ('Rust'),
+        ('Go Roadmap'),
+        ('Design and Architecture'),
+        ('GraphQL'),
+        ('React Native'),
+        ('Design System'),
+        ('Prompt Engineering'),
+        ('MongoDB'),
+        ('Linux'),
+        ('Kubernetes'),
+        ('Docker'),
+        ('AWS'),
+        ('Terraform'),
+        ('Data Structures & Algorithms'),
+        ('Redis'),
+        ('Git and GitHub'),
+        ('PHP'),
+        ('Cloudflare'),
+        ('AI Red Teaming'),
+        ('AI Agents'),
+        ('Next.js'),
+        ('Code Review'),
+        ('Kotlin'),
+        ('HTML'),
+        ('CSS'),
+        ('Swift & Swift UI'),
+        ('Shell / Bash'),
+        ('Laravel'),
+        ('Elasticsearch'),
+        ('WordPress'),
+        ('Django'),
+        ('Ruby'),
+        ('Ruby on Rails'),
+        ('Claude Code'),
+        ('Vibe Coding'),
+        ('Scala'),
+        ('OpenClaw')
+)
+INSERT INTO roadmaps (creator_id, title, description, is_official, is_public, is_deleted, created_at)
+SELECT
+    admin_user.user_id,
+    seed.title,
+    CONCAT(seed.title, ' 학습 흐름을 담은 DevPath 공식 로드맵입니다.'),
+    TRUE,
+    TRUE,
+    FALSE,
+    CURRENT_TIMESTAMP
+FROM roadmap_hub_official_seed seed
+JOIN users admin_user ON admin_user.email = 'admin@devpath.com'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmaps roadmap
+    WHERE roadmap.title = seed.title
+);
+
+WITH roadmap_hub_section_seed(section_key, title, description, layout_type, sort_order, is_active) AS (
+    VALUES
+        ('role-based', '역할 기반 로드맵', '직무 중심 로드맵 허브 구성입니다.', 'CARD_GRID', 0, TRUE),
+        ('skill-based', '기술 기반 로드맵', '기술 중심 로드맵 허브 구성입니다.', 'CHIP_GRID', 1, TRUE),
+        ('project-ideas', '프로젝트 아이디어', '프로젝트 아이디어 섹션입니다.', 'LINK_LIST', 2, TRUE),
+        ('best-practices', '베스트 프랙티스', '실무 베스트 프랙티스 섹션입니다.', 'LINK_LIST', 3, TRUE)
+)
+INSERT INTO roadmap_hub_sections (section_key, title, description, layout_type, sort_order, is_active)
+SELECT seed.section_key, seed.title, seed.description, seed.layout_type, seed.sort_order, seed.is_active
+FROM roadmap_hub_section_seed seed
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_hub_sections section_item
+    WHERE section_item.section_key = seed.section_key
+);
+
+UPDATE roadmap_hub_sections
+SET title = CASE section_key
+        WHEN 'role-based' THEN '역할 기반 로드맵'
+        WHEN 'skill-based' THEN '기술 기반 로드맵'
+        WHEN 'project-ideas' THEN '프로젝트 아이디어'
+        WHEN 'best-practices' THEN '베스트 프랙티스'
+        ELSE title
+    END
+WHERE section_key IN ('role-based', 'skill-based', 'project-ideas', 'best-practices');
+
+WITH roadmap_hub_item_seed(
+    section_key,
+    item_title,
+    subtitle,
+    icon_class,
+    linked_roadmap_title,
+    is_featured,
+    sort_order,
+    is_active
+) AS (
+    VALUES
+        ('role-based', '프론트엔드', 'Frontend', 'fas fa-desktop', 'Frontend Entry Roadmap', FALSE, 0, TRUE),
+        ('role-based', '백엔드', 'Backend', 'fas fa-server', 'Backend Master Roadmap', TRUE, 1, TRUE),
+        ('role-based', '풀스택', 'Full Stack', 'fas fa-layer-group', 'Full Stack', FALSE, 2, TRUE),
+        ('role-based', '데브옵스', 'DevOps', 'fas fa-infinity', 'DevOps', TRUE, 3, TRUE),
+        ('role-based', '데브섹옵스', 'DevSecOps', 'fas fa-shield-halved', 'DevSecOps', FALSE, 4, TRUE),
+        ('role-based', '데이터 분석가', 'Data Analyst', 'fas fa-chart-line', 'Data Analyst', FALSE, 5, TRUE),
+        ('role-based', 'AI 엔지니어', 'AI Engineer', 'fas fa-brain', 'AI Engineer', TRUE, 6, TRUE),
+        ('role-based', 'AI·데이터 사이언티스트', 'AI and Data Scientist', 'fas fa-atom', 'AI and Data Scientist', FALSE, 7, TRUE),
+        ('role-based', '데이터 엔지니어', 'Data Engineer', 'fas fa-database', 'Data Engineer', FALSE, 8, TRUE),
+        ('role-based', '안드로이드', 'Android', 'fab fa-android', 'Android', FALSE, 9, TRUE),
+        ('role-based', '머신러닝', 'Machine Learning', 'fas fa-microchip', 'Machine Learning', FALSE, 10, TRUE),
+        ('role-based', 'PostgreSQL 전문가', 'PostgreSQL', 'fas fa-database', 'PostgreSQL', FALSE, 11, TRUE),
+        ('role-based', 'iOS 개발자', 'iOS', 'fab fa-apple', 'iOS', FALSE, 12, TRUE),
+        ('role-based', '블록체인', 'Blockchain', 'fas fa-link', 'Blockchain', FALSE, 13, TRUE),
+        ('role-based', 'QA 엔지니어', 'QA', 'fas fa-vial', 'QA', FALSE, 14, TRUE),
+        ('role-based', '소프트웨어 아키텍트', 'Software Architect', 'fas fa-sitemap', 'Software Architect', FALSE, 15, TRUE),
+        ('role-based', '사이버 보안', 'Cyber Security', 'fas fa-user-shield', 'Cyber Security', TRUE, 16, TRUE),
+        ('role-based', 'UX 디자인', 'UX Design', 'fas fa-bezier-curve', 'UX Design', FALSE, 17, TRUE),
+        ('role-based', '테크니컬 라이터', 'Technical Writer', 'fas fa-pen-fancy', 'Technical Writer', FALSE, 18, TRUE),
+        ('role-based', '게임 개발자', 'Game Developer', 'fas fa-gamepad', 'Game Developer', FALSE, 19, TRUE),
+        ('role-based', '서버 사이드 게임 개발자', 'Server Side Game Developer', 'fas fa-dice-d20', 'Server Side Game Developer', FALSE, 20, TRUE),
+        ('role-based', 'MLOps 엔지니어', 'MLOps', 'fas fa-gears', 'MLOps', TRUE, 21, TRUE),
+        ('role-based', '프로덕트 매니저', 'Product Manager', 'fas fa-clipboard-list', 'Product Manager', FALSE, 22, TRUE),
+        ('role-based', '엔지니어링 매니저', 'Engineering Manager', 'fas fa-users', 'Engineering Manager', FALSE, 23, TRUE),
+        ('role-based', '데브렐', 'Developer Relations', 'fas fa-bullhorn', 'Developer Relations', FALSE, 24, TRUE),
+        ('role-based', 'BI 분석가', 'BI Analyst', 'fas fa-chart-pie', 'BI Analyst', FALSE, 25, TRUE),
+        ('skill-based', 'SQL', NULL, NULL, 'SQL', FALSE, 0, TRUE),
+        ('skill-based', 'Computer Science', NULL, NULL, 'Computer Science', FALSE, 1, TRUE),
+        ('skill-based', 'React', NULL, NULL, 'React', FALSE, 2, TRUE),
+        ('skill-based', 'Vue', NULL, NULL, 'Vue', FALSE, 3, TRUE),
+        ('skill-based', 'Angular', NULL, NULL, 'Angular', FALSE, 4, TRUE),
+        ('skill-based', 'JavaScript', NULL, NULL, 'JavaScript', FALSE, 5, TRUE),
+        ('skill-based', 'TypeScript', NULL, NULL, 'TypeScript', FALSE, 6, TRUE),
+        ('skill-based', 'Node.js', NULL, NULL, 'Node.js', FALSE, 7, TRUE),
+        ('skill-based', 'Python', NULL, NULL, 'Python', FALSE, 8, TRUE),
+        ('skill-based', 'System Design', NULL, NULL, 'System Design', FALSE, 9, TRUE),
+        ('skill-based', 'Java', NULL, NULL, 'Java', FALSE, 10, TRUE),
+        ('skill-based', 'ASP.NET Core', NULL, NULL, 'ASP.NET Core', FALSE, 11, TRUE),
+        ('skill-based', 'API Design', NULL, NULL, 'API Design', FALSE, 12, TRUE),
+        ('skill-based', 'Spring Boot', NULL, NULL, 'Spring Boot', FALSE, 13, TRUE),
+        ('skill-based', 'Flutter', NULL, NULL, 'Flutter', FALSE, 14, TRUE),
+        ('skill-based', 'C++', NULL, NULL, 'C++', FALSE, 15, TRUE),
+        ('skill-based', 'Rust', NULL, NULL, 'Rust', FALSE, 16, TRUE),
+        ('skill-based', 'Go Roadmap', NULL, NULL, 'Go Roadmap', FALSE, 17, TRUE),
+        ('skill-based', 'Design and Architecture', NULL, NULL, 'Design and Architecture', FALSE, 18, TRUE),
+        ('skill-based', 'GraphQL', NULL, NULL, 'GraphQL', FALSE, 19, TRUE),
+        ('skill-based', 'React Native', NULL, NULL, 'React Native', FALSE, 20, TRUE),
+        ('skill-based', 'Design System', NULL, NULL, 'Design System', FALSE, 21, TRUE),
+        ('skill-based', 'Prompt Engineering', NULL, NULL, 'Prompt Engineering', FALSE, 22, TRUE),
+        ('skill-based', 'MongoDB', NULL, NULL, 'MongoDB', FALSE, 23, TRUE),
+        ('skill-based', 'Linux', NULL, NULL, 'Linux', FALSE, 24, TRUE),
+        ('skill-based', 'Kubernetes', NULL, NULL, 'Kubernetes', FALSE, 25, TRUE),
+        ('skill-based', 'Docker', NULL, NULL, 'Docker', FALSE, 26, TRUE),
+        ('skill-based', 'AWS', NULL, NULL, 'AWS', FALSE, 27, TRUE),
+        ('skill-based', 'Terraform', NULL, NULL, 'Terraform', FALSE, 28, TRUE),
+        ('skill-based', 'Data Structures & Algorithms', NULL, NULL, 'Data Structures & Algorithms', FALSE, 29, TRUE),
+        ('skill-based', 'Redis', NULL, NULL, 'Redis', FALSE, 30, TRUE),
+        ('skill-based', 'Git and GitHub', NULL, NULL, 'Git and GitHub', FALSE, 31, TRUE),
+        ('skill-based', 'PHP', NULL, NULL, 'PHP', FALSE, 32, TRUE),
+        ('skill-based', 'Cloudflare', NULL, NULL, 'Cloudflare', FALSE, 33, TRUE),
+        ('skill-based', 'AI Red Teaming', NULL, NULL, 'AI Red Teaming', FALSE, 34, TRUE),
+        ('skill-based', 'AI Agents', NULL, NULL, 'AI Agents', FALSE, 35, TRUE),
+        ('skill-based', 'Next.js', NULL, NULL, 'Next.js', FALSE, 36, TRUE),
+        ('skill-based', 'Code Review', NULL, NULL, 'Code Review', FALSE, 37, TRUE),
+        ('skill-based', 'Kotlin', NULL, NULL, 'Kotlin', FALSE, 38, TRUE),
+        ('skill-based', 'HTML', NULL, NULL, 'HTML', FALSE, 39, TRUE),
+        ('skill-based', 'CSS', NULL, NULL, 'CSS', FALSE, 40, TRUE),
+        ('skill-based', 'Swift & Swift UI', NULL, NULL, 'Swift & Swift UI', FALSE, 41, TRUE),
+        ('skill-based', 'Shell / Bash', NULL, NULL, 'Shell / Bash', FALSE, 42, TRUE),
+        ('skill-based', 'Laravel', NULL, NULL, 'Laravel', FALSE, 43, TRUE),
+        ('skill-based', 'Elasticsearch', NULL, NULL, 'Elasticsearch', FALSE, 44, TRUE),
+        ('skill-based', 'WordPress', NULL, NULL, 'WordPress', FALSE, 45, TRUE),
+        ('skill-based', 'Django', NULL, NULL, 'Django', FALSE, 46, TRUE),
+        ('skill-based', 'Ruby', NULL, NULL, 'Ruby', FALSE, 47, TRUE),
+        ('skill-based', 'Ruby on Rails', NULL, NULL, 'Ruby on Rails', FALSE, 48, TRUE),
+        ('skill-based', 'Claude Code', NULL, NULL, 'Claude Code', FALSE, 49, TRUE),
+        ('skill-based', 'Vibe Coding', NULL, NULL, 'Vibe Coding', FALSE, 50, TRUE),
+        ('skill-based', 'Scala', NULL, NULL, 'Scala', FALSE, 51, TRUE),
+        ('skill-based', 'OpenClaw', NULL, NULL, 'OpenClaw', FALSE, 52, TRUE),
+        ('project-ideas', 'Frontend', NULL, NULL, NULL, FALSE, 0, TRUE),
+        ('project-ideas', 'Backend', NULL, NULL, NULL, FALSE, 1, TRUE),
+        ('project-ideas', 'DevOps', NULL, NULL, NULL, FALSE, 2, TRUE),
+        ('best-practices', 'AWS', NULL, NULL, NULL, FALSE, 0, TRUE),
+        ('best-practices', 'API Security', NULL, NULL, NULL, FALSE, 1, TRUE),
+        ('best-practices', 'Backend Performance', NULL, NULL, NULL, FALSE, 2, TRUE),
+        ('best-practices', 'Frontend Performance', NULL, NULL, NULL, FALSE, 3, TRUE),
+        ('best-practices', 'Code Review', NULL, NULL, NULL, FALSE, 4, TRUE)
+)
+INSERT INTO roadmap_hub_items (
+    section_id,
+    title,
+    subtitle,
+    icon_class,
+    linked_roadmap_id,
+    sort_order,
+    is_active,
+    is_featured
+)
+SELECT
+    section_item.id,
+    seed.item_title,
+    seed.subtitle,
+    seed.icon_class,
+    roadmap.roadmap_id,
+    seed.sort_order,
+    seed.is_active,
+    seed.is_featured
+FROM roadmap_hub_item_seed seed
+JOIN roadmap_hub_sections section_item
+    ON section_item.section_key = seed.section_key
+LEFT JOIN roadmaps roadmap
+    ON roadmap.title = seed.linked_roadmap_title
+   AND roadmap.is_official = TRUE
+   AND roadmap.is_deleted = FALSE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_hub_items item
+    WHERE item.section_id = section_item.id
+      AND (
+          item.title = seed.item_title
+          OR (seed.subtitle IS NOT NULL AND item.subtitle = seed.subtitle)
+      )
+);
+
+UPDATE roadmap_hub_items item
+SET
+    title = CASE item.subtitle
+        WHEN 'Frontend' THEN '프론트엔드'
+        WHEN 'Backend' THEN '백엔드'
+        WHEN 'Full Stack' THEN '풀스택'
+        WHEN 'DevOps' THEN '데브옵스'
+        WHEN 'DevSecOps' THEN '데브섹옵스'
+        WHEN 'Data Analyst' THEN '데이터 분석가'
+        WHEN 'AI Engineer' THEN 'AI 엔지니어'
+        WHEN 'AI and Data Scientist' THEN 'AI·데이터 사이언티스트'
+        WHEN 'Data Engineer' THEN '데이터 엔지니어'
+        WHEN 'Android' THEN '안드로이드'
+        WHEN 'Machine Learning' THEN '머신러닝'
+        WHEN 'PostgreSQL' THEN 'PostgreSQL 전문가'
+        WHEN 'iOS' THEN 'iOS 개발자'
+        WHEN 'Blockchain' THEN '블록체인'
+        WHEN 'QA' THEN 'QA 엔지니어'
+        WHEN 'Software Architect' THEN '소프트웨어 아키텍트'
+        WHEN 'Cyber Security' THEN '사이버 보안'
+        WHEN 'UX Design' THEN 'UX 디자인'
+        WHEN 'Technical Writer' THEN '테크니컬 라이터'
+        WHEN 'Game Developer' THEN '게임 개발자'
+        WHEN 'Server Side Game Developer' THEN '서버 사이드 게임 개발자'
+        WHEN 'MLOps' THEN 'MLOps 엔지니어'
+        WHEN 'Product Manager' THEN '프로덕트 매니저'
+        WHEN 'Engineering Manager' THEN '엔지니어링 매니저'
+        WHEN 'Developer Relations' THEN '데브렐'
+        WHEN 'BI Analyst' THEN 'BI 분석가'
+        ELSE item.title
+    END,
+    is_featured = CASE
+        WHEN item.subtitle IN ('Backend', 'AI Engineer', 'DevOps', 'MLOps', 'Cyber Security') THEN TRUE
+        ELSE FALSE
+    END
+FROM roadmap_hub_sections section_item
+WHERE item.section_id = section_item.id
+  AND section_item.section_key = 'role-based';

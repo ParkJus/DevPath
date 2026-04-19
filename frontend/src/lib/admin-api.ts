@@ -7,6 +7,7 @@ import type {
   AdminTag,
 } from '../types/admin'
 import type { CourseCatalogMenu } from '../types/course-catalog'
+import type { AdminRoadmapHubCatalog, RoadmapHubCatalog } from '../types/roadmap-hub'
 import type { ApiResponse } from '../types/home'
 import { expireStoredAuthSession, readStoredAuthSession } from './auth-session'
 
@@ -137,6 +138,16 @@ export const adminApi = {
   },
   updateCourseCatalogMenu(payload: CourseCatalogMenu) {
     return request<CourseCatalogMenu>('/api/admin/course-catalog', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  // 관리자 로드맵 허브 편집기는 섹션 목록과 공식 로드맵 선택지를 함께 사용한다.
+  getRoadmapHubCatalog(signal?: AbortSignal) {
+    return request<AdminRoadmapHubCatalog>('/api/admin/roadmap-hub', { method: 'GET', signal })
+  },
+  updateRoadmapHubCatalog(payload: RoadmapHubCatalog) {
+    return request<AdminRoadmapHubCatalog>('/api/admin/roadmap-hub', {
       method: 'PUT',
       body: JSON.stringify(payload),
     })

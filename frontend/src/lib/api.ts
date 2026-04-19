@@ -6,6 +6,7 @@ import type {
   CourseWishlistMutationResponse,
 } from '../types/course'
 import type { CourseCatalogMenu } from '../types/course-catalog'
+import type { RoadmapHubCatalog } from '../types/roadmap-hub'
 import type {
   InstructorAnalyticsDashboard,
   InstructorAnnouncementDetail,
@@ -306,6 +307,10 @@ export const homeApi = {
 }
 
 export const roadmapApi = {
+  // 로드맵 허브 공개 화면에서 관리자 저장 결과를 그대로 불러온다.
+  getHubCatalog(signal?: AbortSignal) {
+    return request<RoadmapHubCatalog>('/api/roadmaps/hub-catalog', { method: 'GET', signal })
+  },
   getMyRoadmaps(signal?: AbortSignal) {
     const session = readStoredAuthSession()
     const query = session?.userId ? `?userId=${session.userId}` : ''

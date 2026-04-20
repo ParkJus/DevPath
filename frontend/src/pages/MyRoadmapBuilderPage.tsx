@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { readStoredAuthSession } from '../lib/auth-session'
 
 // ────────────────────────────────────────────
@@ -28,6 +40,10 @@ interface TimelineRow {
   nodes: BuilderNode[]
   isBranching: boolean
 }
+
+type ActiveDrag =
+  | { kind: 'MODULE'; module: SkillModule }
+  | { kind: 'NODE'; instanceId: string; sortOrder: number; branchGroup: number | null }
 
 // ────────────────────────────────────────────
 // 카테고리 옵션
@@ -68,8 +84,14 @@ function MyRoadmapBuilderPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  )
 
   // ── 카테고리 변경 시 API 호출 ──
   useEffect(() => {
@@ -224,6 +246,16 @@ function MyRoadmapBuilderPage() {
     })
   }, [])
 
+  const handleSwapBranch = useCallback((sortOrder: number) => {
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.sortOrder === sortOrder && n.branchGroup !== null
+          ? { ...n, branchGroup: n.branchGroup === 1 ? 2 : 1 }
+          : n,
+      ),
+    )
+  }, [])
+
   const handleClear = useCallback(() => {
     if (nodes.length === 0) return
     if (window.confirm('진행 중인 커리큘럼 설계를 모두 초기화하시겠습니까?')) {
@@ -282,6 +314,94 @@ function MyRoadmapBuilderPage() {
     }
   }, [session?.userId, roadmapTitle, nodes])
 
+  // ── 드래그 핸들러 ──
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDrag(event.active.data.current as ActiveDrag)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveDrag(null)
+    const { active, over } = event
+    if (!over) return
+
+    const drag = active.data.current as ActiveDrag
+    const overId = String(over.id)
+
+    if (drag.kind === 'MODULE') {
+      if (usedIds.has(drag.module.dbId)) return
+
+      if (overId.startsWith('gap-')) {
+        const insertAfter = parseInt(overId.slice(4))
+        const newSortOrder = insertAfter + 1
+        setNodes((prev) => {
+          const shifted = prev.map((n) =>
+            n.sortOrder >= newSortOrder ? { ...n, sortOrder: n.sortOrder + 1 } : n,
+          )
+          return [
+            ...shifted,
+            { instanceId: makeInstanceId(), module: drag.module, sortOrder: newSortOrder, branchGroup: null },
+          ]
+        })
+      } else if (overId.startsWith('on-spine-')) {
+        const targetSortOrder = parseInt(overId.slice(9))
+        setNodes((prev) => {
+          const hasExistingBranch = prev.some(
+            (n) => n.sortOrder === targetSortOrder && n.branchGroup !== null,
+          )
+          if (hasExistingBranch) return prev
+          const updated = prev.map((n) =>
+            n.sortOrder === targetSortOrder && n.branchGroup === null
+              ? { ...n, branchGroup: 1 }
+              : n,
+          )
+          return [
+            ...updated,
+            { instanceId: makeInstanceId(), module: drag.module, sortOrder: targetSortOrder, branchGroup: 2 },
+          ]
+        })
+      }
+    } else if (drag.kind === 'NODE') {
+      if (overId === 'trash') {
+        handleRemove(drag.instanceId)
+      } else if (overId.startsWith('gap-') && drag.branchGroup === null) {
+        const insertAfter = parseInt(overId.slice(4))
+        const movingSortOrder = drag.sortOrder
+        if (insertAfter === movingSortOrder) return
+        setNodes((prev) => {
+          const sortOrders = [...new Set(prev.map((n) => n.sortOrder))].sort((a, b) => a - b)
+          const idx = sortOrders.indexOf(movingSortOrder)
+          if (idx === -1) return prev
+          sortOrders.splice(idx, 1)
+          let insertIdx: number
+          if (insertAfter === 0) {
+            insertIdx = 0
+          } else {
+            insertIdx = sortOrders.findIndex((s) => s > insertAfter)
+            if (insertIdx === -1) insertIdx = sortOrders.length
+          }
+          sortOrders.splice(insertIdx, 0, movingSortOrder)
+          const mapping = new Map(sortOrders.map((old, i) => [old, i + 1]))
+          return prev.map((n) => ({ ...n, sortOrder: mapping.get(n.sortOrder) ?? n.sortOrder }))
+        })
+      } else if (overId.startsWith('branch-swap-')) {
+        const targetInstanceId = overId.slice(12)
+        if (drag.branchGroup !== null) {
+          setNodes((prev) => {
+            const dragNode = prev.find((n) => n.instanceId === drag.instanceId)
+            const targetNode = prev.find((n) => n.instanceId === targetInstanceId)
+            if (!dragNode || !targetNode || dragNode.sortOrder !== targetNode.sortOrder) return prev
+            return prev.map((n) => {
+              if (n.instanceId === drag.instanceId) return { ...n, branchGroup: targetNode.branchGroup }
+              if (n.instanceId === targetInstanceId) return { ...n, branchGroup: dragNode.branchGroup }
+              return n
+            })
+          })
+        }
+      }
+      // NODE → on-spine, 분기 NODE → gap: 무시
+    }
+  }
+
   // ────────────────────────────────────────────
   // 미로그인 가드
   // ────────────────────────────────────────────
@@ -304,11 +424,20 @@ function MyRoadmapBuilderPage() {
     )
   }
 
+  // ── DnD 파생값 ──
+  const isDraggingModule    = activeDrag?.kind === 'MODULE'
+  const isDraggingNode      = activeDrag?.kind === 'NODE'
+  const isDraggingSpineNode = activeDrag?.kind === 'NODE' && activeDrag.branchGroup === null
+  const showGaps            = activeDrag !== null
+  const draggedModule       = activeDrag?.kind === 'MODULE' ? activeDrag.module : null
+  const terminalGapId       = rows.length === 0 ? 'gap-0' : `gap-${maxSortOrder}`
+
   // ────────────────────────────────────────────
   // 렌더
   // ────────────────────────────────────────────
 
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#0F172A]">
 
       {/* 저장 성공 토스트 */}
@@ -431,7 +560,7 @@ function MyRoadmapBuilderPage() {
                     {branchTarget}번 위치에 분기 추가 중
                   </p>
                   <p className="mt-0.5 text-[11px] text-amber-600">
-                    왼쪽 모듈을 클릭하면 분기 노드로 추가됩니다.
+                    모듈을 클릭하거나 드래그하면 분기 노드로 추가됩니다.
                   </p>
                 </div>
                 <button
@@ -490,52 +619,25 @@ function MyRoadmapBuilderPage() {
                   const isUsed = usedIds.has(module.dbId)
                   const isAvailableForBranch = branchTarget !== null && !isUsed
                   return (
-                    <div
+                    <DraggableModuleCard
                       key={module.dbId}
-                      onClick={() => handleAdd(module)}
-                      className={[
-                        'group flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200',
-                        isUsed
-                          ? 'cursor-not-allowed border-dashed border-[#CBD5E1] bg-[#F1F5F9] opacity-60'
-                          : isAvailableForBranch
-                            ? 'border-amber-300 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_4px_12px_rgba(245,158,11,0.15)]'
-                            : 'border-[#E2E8F0] hover:-translate-y-0.5 hover:border-[#00C471] hover:shadow-[0_4px_12px_rgba(0,196,113,0.1)] active:scale-[0.98]',
-                      ].join(' ')}
-                    >
-                      <div className={[
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100',
-                        isUsed ? 'bg-gray-100' : `${module.bgColor} transition-transform group-hover:scale-110`,
-                      ].join(' ')}>
-                        <i className={`${module.icon} ${isUsed ? 'text-gray-400' : module.color} text-lg`} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex items-center justify-between">
-                          <h4 className={`truncate text-sm font-bold ${isUsed ? 'text-gray-500' : 'text-gray-800'}`}>
-                            {module.title}
-                          </h4>
-                          <span className="ml-2 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
-                            {module.category}
-                          </span>
-                        </div>
-                        <p className="line-clamp-2 text-[11px] leading-tight text-gray-400">
-                          <span className={`font-semibold ${isUsed ? 'text-gray-400' : isAvailableForBranch ? 'text-amber-500' : 'text-[#00C471]'}`}>
-                            {isAvailableForBranch ? '+ 분기:' : '포함:'}
-                          </span>{' '}
-                          {module.topics.join(', ')}
-                        </p>
-                      </div>
-                      {isUsed ? (
-                        <div className="mt-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-[#00C471]">
-                          <i className="fas fa-check" />
-                        </div>
-                      ) : (
-                        <i className={`mt-2 fas ${isAvailableForBranch ? 'fa-code-branch text-amber-400' : 'fa-plus-circle text-gray-300 group-hover:text-[#00C471]'} transition-colors`} />
-                      )}
-                    </div>
+                      module={module}
+                      isUsed={isUsed}
+                      isAvailableForBranch={isAvailableForBranch}
+                      onAdd={handleAdd}
+                    />
                   )
                 })}
               </div>
             )}
+          </div>
+
+          {/* 하단 드래그 힌트 */}
+          <div className="shrink-0 border-t border-gray-100 bg-gray-50 px-4 py-2.5">
+            <p className="text-center text-[11px] text-gray-400">
+              <i className="fas fa-hand-pointer mr-1 text-[#00C471]" />클릭으로 추가 ·
+              <i className="fas fa-arrows-alt mx-1 text-blue-400" />드래그로 위치 지정 · 순서 변경 · 분기 생성
+            </p>
           </div>
         </aside>
 
@@ -560,92 +662,497 @@ function MyRoadmapBuilderPage() {
                   <div className="absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-gray-200 bg-white" />
                   <h3 className="text-lg font-bold text-gray-900">로드맵 설계 시작</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    왼쪽 목록에서 원하는 챕터를{' '}
-                    <strong className="text-[#00C471]">클릭</strong>하여 추가하세요.
-                    척추 노드의 <i className="fas fa-code-branch text-amber-400" /> 버튼으로 분기를 만들 수 있습니다.
+                    왼쪽 목록에서 모듈을{' '}
+                    <strong className="text-[#00C471]">클릭</strong>하거나{' '}
+                    <strong className="text-blue-500">드래그</strong>하여 원하는 위치에 추가하세요.
+                    척추 노드 위에 드래그하면 분기를 만들 수 있습니다.
                   </p>
                 </div>
               </div>
 
-              {/* rows 렌더링 */}
-              {rows.map((row) => (
-                <div key={row.sortOrder} className="group relative z-10 mb-8 builder-step-enter">
-                  {row.isBranching ? (
-                    // ── 분기 row ──
-                    <div className="flex items-start">
-                      <div className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-white text-xl font-black text-amber-500 shadow-lg">
-                        {row.sortOrder}
-                      </div>
-                      <div className="ml-8 grid flex-1 grid-cols-2 gap-4">
-                        {row.nodes.map((node, idx) => (
-                          <BranchCard
-                            key={node.instanceId}
-                            node={node}
-                            label={idx === 0 ? 'A' : 'B'}
-                            onRemove={handleRemove}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    // ── 척추 row ──
-                    <div className="flex items-start">
-                      <div className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#00C471] bg-white text-xl font-black text-[#00C471] shadow-lg transition-colors duration-300 group-hover:border-red-400 group-hover:bg-red-50 group-hover:text-red-500">
-                        {row.sortOrder}
-                      </div>
-                      <SpineCard
-                        node={row.nodes[0]}
-                        onRemove={handleRemove}
-                        onBranch={handleBranchActivate}
-                        isBranchActive={branchTarget === row.sortOrder}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+              {/* gap-0: rows 있을 때만 (없으면 TerminalDropZone이 gap-0 커버) */}
+              {rows.length > 0 && (
+                <DroppableGap id="gap-0" forModule={isDraggingModule} forSpineNode={isDraggingSpineNode} draggedModule={draggedModule} />
+              )}
 
-              {/* 추가 유도 영역 */}
-              <div className="relative z-10 mt-6 flex items-center">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-300">
-                  <i className="fas fa-mouse-pointer" />
-                </div>
-                <div className="ml-8 flex-1 rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-white p-6 text-center font-bold text-[#94A3B8] shadow-sm">
-                  <i className="fas fa-hand-pointer mb-2 block text-2xl text-gray-300" />
-                  왼쪽 패널에서 학습할 모듈을 클릭하세요
-                </div>
-              </div>
+              {/* rows 렌더링 */}
+              {rows.map((row, idx) => {
+                const isDraggingThisRowBranch =
+                  activeDrag?.kind === 'NODE' &&
+                  activeDrag.branchGroup !== null &&
+                  activeDrag.sortOrder === row.sortOrder
+                const nodeA = row.nodes[0]
+                const nodeB = row.nodes[1]
+
+                return (
+                  <div key={row.sortOrder}>
+                    <div className="group relative z-10 mb-2 builder-step-enter">
+                      {row.isBranching ? (
+                        // ── 분기 row ──
+                        <div className="flex items-start">
+                          <div className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-white text-xl font-black text-amber-500 shadow-lg">
+                            {row.sortOrder}
+                          </div>
+                          <div className="relative ml-8 grid flex-1 grid-cols-2 gap-4">
+                            {/* ⇄ 스왑 버튼 */}
+                            {row.nodes.length === 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSwapBranch(row.sortOrder)}
+                                className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-[11px] font-bold text-gray-400 opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:border-amber-300 hover:text-amber-500"
+                              >
+                                ⇄ 순서 변경
+                              </button>
+                            )}
+                            {row.nodes.length === 2 ? (
+                              <>
+                                <DraggableBranchCard
+                                  node={nodeA}
+                                  label="A"
+                                  onRemove={handleRemove}
+                                  isDraggingBranchSibling={isDraggingThisRowBranch && activeDrag?.instanceId !== nodeA.instanceId}
+                                />
+                                <DraggableBranchCard
+                                  node={nodeB}
+                                  label="B"
+                                  onRemove={handleRemove}
+                                  isDraggingBranchSibling={isDraggingThisRowBranch && activeDrag?.instanceId !== nodeB.instanceId}
+                                />
+                              </>
+                            ) : (
+                              row.nodes.map((node, i) => (
+                                <DraggableBranchCard
+                                  key={node.instanceId}
+                                  node={node}
+                                  label={i === 0 ? 'A' : 'B'}
+                                  onRemove={handleRemove}
+                                  isDraggingBranchSibling={false}
+                                />
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        // ── 척추 row ──
+                        <div className="flex items-start">
+                          <div className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#00C471] bg-white text-xl font-black text-[#00C471] shadow-lg transition-colors duration-300 group-hover:border-red-400 group-hover:bg-red-50 group-hover:text-red-500">
+                            {row.sortOrder}
+                          </div>
+                          <DraggableSpineCard
+                            node={row.nodes[0]}
+                            onRemove={handleRemove}
+                            onBranch={handleBranchActivate}
+                            isBranchActive={branchTarget === row.sortOrder}
+                            isDraggingModule={isDraggingModule}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {/* 마지막 row gap은 TerminalDropZone이 커버하므로 스킵 */}
+                    {idx < rows.length - 1 && (
+                      <DroppableGap
+                        id={`gap-${row.sortOrder}`}
+                        forModule={isDraggingModule}
+                        forSpineNode={isDraggingSpineNode}
+                        draggedModule={draggedModule}
+                      />
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* TerminalDropZone: 힌트 박스 대체, 항상 렌더 */}
+              <TerminalDropZone
+                id={terminalGapId}
+                showGaps={showGaps}
+                forModule={isDraggingModule}
+                forSpineNode={isDraggingSpineNode}
+                draggedModule={draggedModule}
+              />
 
             </div>
           </div>
         </main>
+      </div>
+
+      {/* TrashZone: 노드 드래그 중에만 표시 (fixed 우하단) */}
+      {isDraggingNode && <TrashZone />}
+
+      {/* DragOverlay */}
+      <DragOverlay dropAnimation={null}>
+        {activeDrag?.kind === 'MODULE' && (
+          <MiniDragPreview
+            title={activeDrag.module.title}
+            icon={activeDrag.module.icon}
+            color={activeDrag.module.color}
+            bgColor={activeDrag.module.bgColor}
+          />
+        )}
+        {activeDrag?.kind === 'NODE' && (
+          <div className="flex cursor-grabbing items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 shadow-2xl">
+            <i className="fas fa-grip-vertical text-gray-400" />
+            {nodes.find((n) => n.instanceId === activeDrag.instanceId)?.module.title ?? ''}
+          </div>
+        )}
+      </DragOverlay>
+
+    </div>
+    </DndContext>
+  )
+}
+
+// ────────────────────────────────────────────
+// TrashZone
+// ────────────────────────────────────────────
+
+function TrashZone() {
+  const { isOver, setNodeRef } = useDroppable({ id: 'trash' })
+  return (
+    <div
+      ref={setNodeRef}
+      className={[
+        'fixed bottom-8 right-8 z-50 flex items-center gap-2 rounded-2xl border-2 border-dashed px-6 py-4 text-sm font-bold shadow-2xl transition-all duration-200',
+        isOver
+          ? 'scale-110 border-red-400 bg-red-100 text-red-600'
+          : 'border-red-300 bg-white text-red-400',
+      ].join(' ')}
+    >
+      <i className={`fas fa-trash-alt text-lg ${isOver ? 'animate-bounce' : ''}`} />
+      {isOver ? '놓아서 삭제' : '드래그하여 삭제'}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────
+// TerminalDropZone (힌트 박스 대체, 항상 렌더)
+// ────────────────────────────────────────────
+
+function TerminalDropZone({
+  id,
+  showGaps,
+  forModule,
+  forSpineNode,
+  draggedModule,
+}: {
+  id: string
+  showGaps: boolean
+  forModule: boolean
+  forSpineNode: boolean
+  draggedModule: SkillModule | null
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id })
+
+  // 드래그 없음 → 기존 힌트 박스
+  if (!showGaps) {
+    return (
+      <div ref={setNodeRef} className="relative z-10 mt-6 flex items-center">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-300">
+          <i className="fas fa-mouse-pointer" />
+        </div>
+        <div className="ml-8 flex-1 rounded-2xl border-2 border-dashed border-[#CBD5E1] bg-white p-6 text-center font-bold text-[#94A3B8] shadow-sm">
+          <i className="fas fa-hand-pointer mb-2 block text-2xl text-gray-300" />
+          왼쪽 패널에서 모듈을 클릭하거나 드래그하세요
+        </div>
+      </div>
+    )
+  }
+
+  // MODULE 드래그 + hover → 반투명 미리보기
+  if (isOver && forModule && draggedModule) {
+    return (
+      <div ref={setNodeRef} className="z-20 mt-6">
+        <ModuleDropPreview module={draggedModule} />
+      </div>
+    )
+  }
+
+  // MODULE 드래그 중 (not hover) → 초록 점선 초대
+  if (forModule) {
+    return (
+      <div ref={setNodeRef} className="relative z-10 mt-6 flex items-center">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[#00C471] bg-white text-xl text-[#00C471]">
+          <i className="fas fa-plus" />
+        </div>
+        <div className="ml-8 flex-1 rounded-2xl border-2 border-dashed border-[#00C471] bg-green-50 p-6 text-center font-bold text-[#00C471]">
+          <i className="fas fa-arrow-down mb-2 block text-2xl opacity-60" />
+          여기에 드래그하여 끝에 추가
+        </div>
+      </div>
+    )
+  }
+
+  // Spine NODE 드래그 + hover → 파란 강조
+  if (isOver && forSpineNode) {
+    return (
+      <div ref={setNodeRef} className="relative z-10 mt-6 flex items-center">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-blue-400 bg-blue-50 text-xl text-blue-500">
+          <i className="fas fa-arrows-alt-v" />
+        </div>
+        <div className="ml-8 flex-1 rounded-2xl border-2 border-blue-400 bg-blue-50 p-6 text-center font-bold text-blue-500">
+          여기에 놓기
+        </div>
+      </div>
+    )
+  }
+
+  // Spine NODE 드래그 중 (not hover) → 연한 파란 점선
+  return (
+    <div ref={setNodeRef} className="relative z-10 mt-6 flex items-center">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-blue-300 bg-white text-xl text-blue-300">
+        <i className="fas fa-arrows-alt-v" />
+      </div>
+      <div className="ml-8 flex-1 rounded-2xl border-2 border-dashed border-blue-200 bg-white p-6 text-center font-bold text-blue-300">
+        <i className="fas fa-arrow-down mb-2 block text-2xl opacity-40" />
+        여기에 드래그하여 끝으로 이동
       </div>
     </div>
   )
 }
 
 // ────────────────────────────────────────────
-// 척추 카드 컴포넌트
+// DroppableGap
 // ────────────────────────────────────────────
 
-function SpineCard({
+function DroppableGap({
+  id,
+  forModule,
+  forSpineNode,
+  draggedModule,
+}: {
+  id: string
+  forModule: boolean
+  forSpineNode: boolean
+  draggedModule: SkillModule | null
+}) {
+  const active = forModule || forSpineNode
+  const { isOver, setNodeRef } = useDroppable({ id })
+
+  // MODULE 드래그 중 hover → 반투명 미리보기
+  if (isOver && forModule && draggedModule) {
+    return (
+      <div ref={setNodeRef} className="z-20 my-3">
+        <ModuleDropPreview module={draggedModule} />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={[
+        'relative z-20 flex items-center justify-center transition-all duration-150',
+        active ? 'my-2 min-h-[56px]' : 'h-2',
+      ].join(' ')}
+    >
+      {active && (
+        isOver && forSpineNode ? (
+          <div className="mx-8 w-full rounded-xl border-2 border-blue-400 bg-blue-50 py-2 text-center text-xs font-bold text-blue-500">
+            <i className="fas fa-arrows-alt-v mr-1" />여기에 이동
+          </div>
+        ) : (
+          <div className={[
+            'absolute inset-x-0 mx-8 rounded-full transition-all duration-150',
+            forModule ? 'border border-dashed border-[#00C471] opacity-40' : 'border border-dashed border-blue-300 opacity-40',
+          ].join(' ')} />
+        )
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────
+// MiniDragPreview
+// ────────────────────────────────────────────
+
+function MiniDragPreview({
+  title, icon, color, bgColor,
+}: {
+  title: string; icon: string; color: string; bgColor: string
+}) {
+  return (
+    <div className="flex cursor-grabbing items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-2xl">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bgColor}`}>
+        <i className={`${icon} ${color} text-lg`} />
+      </div>
+      <span className="text-sm font-bold text-gray-800">{title}</span>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────
+// ModuleDropPreview
+// ────────────────────────────────────────────
+
+function ModuleDropPreview({ module }: { module: SkillModule }) {
+  return (
+    <div className="pointer-events-none flex items-start opacity-50">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[#00C471] bg-white text-xl text-[#00C471]">
+        <i className="fas fa-plus" />
+      </div>
+      <div className="relative ml-8 w-full rounded-2xl border-2 border-dashed border-[#00C471] bg-green-50 p-5">
+        <div className="flex items-start gap-4">
+          <div className={`mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 text-2xl ${module.bgColor}`}>
+            <i className={`${module.icon} ${module.color}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-2 text-lg font-bold text-gray-700">{module.title}</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {module.topics.map((topic) => (
+                <span key={topic} className="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-[10px] font-medium text-gray-500">
+                  # {topic}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────
+// DraggableModuleCard
+// ────────────────────────────────────────────
+
+function DraggableModuleCard({
+  module,
+  isUsed,
+  isAvailableForBranch,
+  onAdd,
+}: {
+  module: SkillModule
+  isUsed: boolean
+  isAvailableForBranch: boolean
+  onAdd: (module: SkillModule) => void
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `module-${module.dbId}`,
+    data: { kind: 'MODULE', module } as ActiveDrag,
+    disabled: isUsed,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={() => !isUsed && onAdd(module)}
+      className={[
+        'group flex items-start gap-3 rounded-xl border bg-white p-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200',
+        isUsed
+          ? 'cursor-not-allowed border-dashed border-[#CBD5E1] bg-[#F1F5F9] opacity-60'
+          : isAvailableForBranch
+            ? 'cursor-pointer border-amber-300 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_4px_12px_rgba(245,158,11,0.15)]'
+            : 'cursor-grab border-[#E2E8F0] hover:-translate-y-0.5 hover:border-[#00C471] hover:shadow-[0_4px_12px_rgba(0,196,113,0.1)]',
+        isDragging ? 'opacity-40 scale-95' : '',
+      ].join(' ')}
+      {...(!isUsed ? attributes : {})}
+      {...(!isUsed ? listeners : {})}
+    >
+      <div className={[
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-100',
+        isUsed ? 'bg-gray-100' : `${module.bgColor} transition-transform group-hover:scale-110`,
+      ].join(' ')}>
+        <i className={`${module.icon} ${isUsed ? 'text-gray-400' : module.color} text-lg`} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center justify-between">
+          <h4 className={`truncate text-sm font-bold ${isUsed ? 'text-gray-500' : 'text-gray-800'}`}>
+            {module.title}
+          </h4>
+          <span className="ml-2 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
+            {module.category}
+          </span>
+        </div>
+        <p className="line-clamp-2 text-[11px] leading-tight text-gray-400">
+          <span className={`font-semibold ${isUsed ? 'text-gray-400' : isAvailableForBranch ? 'text-amber-500' : 'text-[#00C471]'}`}>
+            {isAvailableForBranch ? '+ 분기:' : '포함:'}
+          </span>{' '}
+          {module.topics.join(', ')}
+        </p>
+      </div>
+      {isUsed ? (
+        <div className="mt-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs text-[#00C471]">
+          <i className="fas fa-check" />
+        </div>
+      ) : (
+        <i className={`mt-2 fas ${isAvailableForBranch ? 'fa-code-branch text-amber-400' : 'fa-plus-circle text-gray-300 group-hover:text-[#00C471]'} transition-colors`} />
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────
+// DraggableSpineCard
+// ────────────────────────────────────────────
+
+function DraggableSpineCard({
   node,
   onRemove,
   onBranch,
   isBranchActive,
+  isDraggingModule,
 }: {
   node: BuilderNode
   onRemove: (id: string) => void
   onBranch: (sortOrder: number) => void
   isBranchActive: boolean
+  isDraggingModule: boolean
 }) {
   const { module, sortOrder, instanceId } = node
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    isDragging,
+  } = useDraggable({
+    id: `node-${instanceId}`,
+    data: { kind: 'NODE', instanceId, sortOrder, branchGroup: null } as ActiveDrag,
+  })
+
+  const { isOver, setNodeRef: setDropRef } = useDroppable({
+    id: `on-spine-${sortOrder}`,
+  })
+
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setDragRef(el)
+      setDropRef(el)
+    },
+    [setDragRef, setDropRef],
+  )
+
+  const showBranchHighlight = isOver && isDraggingModule
+
   return (
-    <div className="group/card relative ml-8 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#00C471] hover:shadow-xl">
+    <div
+      ref={setRef}
+      {...attributes}
+      {...listeners}
+      className={[
+        'group/card relative ml-8 w-full cursor-grab rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 active:cursor-grabbing',
+        isDragging
+          ? 'scale-[0.98] border-dashed border-blue-300 opacity-30'
+          : showBranchHighlight
+            ? '-translate-y-0.5 border-amber-400 bg-amber-50 shadow-[0_4px_16px_rgba(245,158,11,0.2)]'
+            : 'border-gray-200 hover:-translate-y-1 hover:border-[#00C471] hover:shadow-xl',
+      ].join(' ')}
+    >
+      {/* 분기 드롭 힌트 오버레이 */}
+      {showBranchHighlight && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl">
+          <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-black text-white shadow-lg">
+            <i className="fas fa-code-branch mr-1" />여기에 분기 추가
+          </span>
+        </div>
+      )}
+
       <div className="absolute -left-2 top-7 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-gray-200 bg-white transition-colors duration-300 group-hover/card:border-[#00C471]" />
 
+      {/* 우측 액션 버튼 */}
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 opacity-0 transition-all group-hover/card:opacity-100">
         <button
           type="button"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onBranch(sortOrder) }}
           title="이 위치에 분기 추가"
           className={[
@@ -659,6 +1166,7 @@ function SpineCard({
         </button>
         <button
           type="button"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onRemove(instanceId) }}
           className="text-gray-300 transition hover:text-red-500"
         >
@@ -691,7 +1199,7 @@ function SpineCard({
 }
 
 // ────────────────────────────────────────────
-// 분기 카드 컴포넌트
+// DraggableBranchCard
 // ────────────────────────────────────────────
 
 const BRANCH_COLORS: Record<string, { border: string; badge: string }> = {
@@ -699,24 +1207,70 @@ const BRANCH_COLORS: Record<string, { border: string; badge: string }> = {
   B: { border: 'border-purple-300 hover:border-purple-400', badge: 'bg-purple-100 text-purple-600' },
 }
 
-function BranchCard({
+function DraggableBranchCard({
   node,
   label,
   onRemove,
+  isDraggingBranchSibling,
 }: {
   node: BuilderNode
   label: 'A' | 'B'
   onRemove: (id: string) => void
+  isDraggingBranchSibling: boolean
 }) {
-  const { module, instanceId } = node
+  const { module, instanceId, sortOrder, branchGroup } = node
   const colors = BRANCH_COLORS[label]
+
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
+    id: `node-${instanceId}`,
+    data: { kind: 'NODE', instanceId, sortOrder, branchGroup } as ActiveDrag,
+  })
+
+  const { isOver: isSwapOver, setNodeRef: setSwapRef } = useDroppable({
+    id: `branch-swap-${instanceId}`,
+    disabled: !isDraggingBranchSibling,
+  })
+
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setDragRef(el)
+      setSwapRef(el)
+    },
+    [setDragRef, setSwapRef],
+  )
+
+  const showSwapHighlight = isSwapOver && isDraggingBranchSibling
+
   return (
-    <div className={`group/card relative cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${colors.border}`}>
+    <div
+      ref={setRef}
+      {...attributes}
+      {...listeners}
+      className={[
+        `group/card relative cursor-grab rounded-2xl border bg-white p-4 shadow-sm transition-all duration-200 active:cursor-grabbing ${colors.border}`,
+        isDragging
+          ? 'scale-[0.98] border-dashed opacity-30'
+          : showSwapHighlight
+            ? '-translate-y-0.5 border-amber-400 bg-amber-50 shadow-lg'
+            : 'hover:-translate-y-1 hover:shadow-lg',
+      ].join(' ')}
+    >
+      {/* 스왑 하이라이트 오버레이 */}
+      {showSwapHighlight && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl">
+          <span className="rounded-full bg-amber-500 px-3 py-1 text-[11px] font-black text-white shadow-lg">
+            <i className="fas fa-exchange-alt mr-1" />여기로 이동
+          </span>
+        </div>
+      )}
+
       <span className={`absolute -top-2.5 left-4 rounded-full px-2 py-0.5 text-[10px] font-black ${colors.badge}`}>
         {label}
       </span>
+
       <button
         type="button"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onRemove(instanceId) }}
         className="absolute right-3 top-3 z-10 text-gray-300 opacity-0 transition-all group-hover/card:opacity-100 hover:text-red-500"
       >

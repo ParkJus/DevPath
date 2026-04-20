@@ -8,11 +8,11 @@
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css" />
     <link rel="stylesheet" href="/vendor/fontawesome/css/devpath-compat.css" />
     <style>
-      @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-variable.css');
+      @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
       body {
-        font-family: 'SUIT Variable', sans-serif;
-        letter-spacing: -0.015em;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+        letter-spacing: 0;
       }
 
       ::-webkit-scrollbar {
@@ -689,5 +689,108 @@
         </div>
       </div>
     </main>
+
+    <div id="addNodeModal" class="devpath-modal-overlay" aria-hidden="true">
+      <div class="devpath-modal-container devpath-modal-container-lg" role="dialog" aria-modal="true" aria-labelledby="addNodeModalTitle">
+        <form id="addNodeForm" class="devpath-modal-form" novalidate>
+          <div class="devpath-modal-header">
+            <h3 id="addNodeModalTitle" class="devpath-modal-title">마스터 로드맵 노드 추가</h3>
+            <p id="addNodeModalDescription" class="devpath-modal-description">공식 로드맵에 연결할 노드 정보를 입력하세요.</p>
+          </div>
+
+          <div class="devpath-modal-body">
+            <div class="devpath-modal-grid">
+              <div class="devpath-input-group">
+                <label for="roadmapIdInput" class="devpath-input-label">로드맵 ID</label>
+                <input
+                  type="number"
+                  id="roadmapIdInput"
+                  class="devpath-modal-input"
+                  placeholder="예: 1"
+                  min="0"
+                  list="roadmapIdOptions"
+                  autocomplete="off"
+                />
+                <datalist id="roadmapIdOptions"></datalist>
+              </div>
+
+              <div class="devpath-input-group">
+                <label for="nodeTypeInput" class="devpath-input-label">노드 유형</label>
+                <select id="nodeTypeInput" class="devpath-modal-input">
+                  <option value="CONCEPT">개념</option>
+                  <option value="PRACTICE">실습</option>
+                  <option value="PROJECT">프로젝트</option>
+                  <option value="REVIEW">복습</option>
+                  <option value="EXAM">평가</option>
+                  <option value="QUIZ">퀴즈</option>
+                  <option value="ASSIGNMENT">과제</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="devpath-input-group">
+              <label for="nodeTitleInput" class="devpath-input-label">노드 제목</label>
+              <input
+                type="text"
+                id="nodeTitleInput"
+                class="devpath-modal-input"
+                placeholder="예: JavaScript 기초"
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="devpath-input-group">
+              <label for="nodeContentInput" class="devpath-input-label">노드 설명</label>
+              <textarea
+                id="nodeContentInput"
+                class="devpath-modal-input devpath-modal-textarea"
+                placeholder="비워두면 설명 없음으로 저장됩니다."
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="devpath-modal-grid">
+              <div class="devpath-input-group">
+                <label for="sortOrderInput" class="devpath-input-label">정렬 순서</label>
+                <input
+                  type="number"
+                  id="sortOrderInput"
+                  class="devpath-modal-input"
+                  min="0"
+                  placeholder="예: 1"
+                />
+              </div>
+
+              <div class="devpath-input-group">
+                <label for="branchGroupInput" class="devpath-input-label">분기 그룹</label>
+                <input
+                  type="number"
+                  id="branchGroupInput"
+                  class="devpath-modal-input"
+                  min="0"
+                  placeholder="기본 흐름이면 비워두세요"
+                />
+              </div>
+            </div>
+
+            <div class="devpath-input-group devpath-input-group-last">
+              <label for="subTopicsInput" class="devpath-input-label">서브토픽</label>
+              <input
+                type="text"
+                id="subTopicsInput"
+                class="devpath-modal-input"
+                placeholder="쉼표로 구분해서 입력"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="devpath-modal-footer">
+            <button id="cancelAddNodeBtn" class="devpath-btn devpath-btn-cancel" type="button">취소</button>
+            <button id="confirmAddNodeBtn" class="devpath-btn devpath-btn-confirm" type="submit">추가하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

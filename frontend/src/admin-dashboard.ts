@@ -72,6 +72,16 @@ type NodeHubEntry = {
   linkedRoadmapId: number
 }
 
+type RoadmapNodePayload = {
+  roadmapId: number
+  title: string
+  content: string | null
+  nodeType: string
+  sortOrder: number
+  subTopics: string | null
+  branchGroup: number | null
+}
+
 const NODE_HUB_UNLINKED_FILTER = '__UNLINKED__'
 
 declare global {
@@ -153,6 +163,10 @@ let roadmapHubCatalog: AdminRoadmapHubCatalog = { sections: [], officialRoadmaps
 let roadmapHubLoading = false
 let roadmapHubSaving = false
 let roadmapHubError: string | null = null
+let roadmapNodeModalResolver: ((payload: RoadmapNodePayload | null) => void) | null = null
+let roadmapNodeModalEditingNode: AdminRoadmapNode | null = null
+let roadmapNodeModalInitialized = false
+let roadmapNodeModalReturnFocus: HTMLElement | null = null
 
 const filterState: DashboardFilterState = {
   tagQuery: '',
@@ -360,85 +374,268 @@ function parseNodeIdList(value: string | null) {
   return nodeIds
 }
 
-function buildRoadmapOptionGuide() {
-  return officialRoadmapOptions
-    .map((roadmap) => `#${roadmap.roadmapId} ${roadmap.title}`)
-    .join('\n')
+function getDefaultNodeSortOrder(roadmapId: number, node?: AdminRoadmapNode) {
+  if (node?.sortOrder !== null && node?.sortOrder !== undefined) {
+    return node.sortOrder
+  }
+
+  return Math.max(
+    0,
+    ...nodeItems
+      .filter((item) => item.roadmapId === roadmapId)
+      .map((item) => item.sortOrder ?? 0),
+  ) + 1
 }
 
-function buildNodePayloadFromPrompt(node?: AdminRoadmapNode) {
-  if (!node && officialRoadmapOptions.length === 0) {
-    window.alert('선택 가능한 공식 로드맵이 없습니다.')
+function getRoadmapNodeModalElements() {
+  return {
+    modal: getElement<HTMLDivElement>('addNodeModal'),
+    form: getElement<HTMLFormElement>('addNodeForm'),
+    title: getElement<HTMLHeadingElement>('addNodeModalTitle'),
+    description: getElement<HTMLParagraphElement>('addNodeModalDescription'),
+    roadmapIdInput: getElement<HTMLInputElement>('roadmapIdInput'),
+    roadmapIdOptions: getElement<HTMLDataListElement>('roadmapIdOptions'),
+    nodeTypeInput: getElement<HTMLSelectElement>('nodeTypeInput'),
+    nodeTitleInput: getElement<HTMLInputElement>('nodeTitleInput'),
+    nodeContentInput: getElement<HTMLTextAreaElement>('nodeContentInput'),
+    sortOrderInput: getElement<HTMLInputElement>('sortOrderInput'),
+    branchGroupInput: getElement<HTMLInputElement>('branchGroupInput'),
+    subTopicsInput: getElement<HTMLInputElement>('subTopicsInput'),
+    cancelButton: getElement<HTMLButtonElement>('cancelAddNodeBtn'),
+    confirmButton: getElement<HTMLButtonElement>('confirmAddNodeBtn'),
+  }
+}
+
+function populateRoadmapIdOptions() {
+  const { roadmapIdOptions } = getRoadmapNodeModalElements()
+  roadmapIdOptions.innerHTML = officialRoadmapOptions
+    .map((roadmap) => `<option value="${roadmap.roadmapId}" label="${escapeHtml(roadmap.title)}"></option>`)
+    .join('')
+}
+
+function setRoadmapNodeModalOpen(open: boolean) {
+  const { modal } = getRoadmapNodeModalElements()
+  modal.classList.toggle('active', open)
+  modal.setAttribute('aria-hidden', open ? 'false' : 'true')
+  document.body.classList.toggle('devpath-modal-open', open)
+}
+
+function closeRoadmapNodeModal() {
+  setRoadmapNodeModalOpen(false)
+  roadmapNodeModalEditingNode = null
+
+  const returnFocus = roadmapNodeModalReturnFocus
+  roadmapNodeModalReturnFocus = null
+  returnFocus?.focus()
+}
+
+function resolveRoadmapNodeModal(payload: RoadmapNodePayload | null) {
+  if (!roadmapNodeModalResolver) {
+    closeRoadmapNodeModal()
+    return
+  }
+
+  const resolve = roadmapNodeModalResolver
+  roadmapNodeModalResolver = null
+  closeRoadmapNodeModal()
+  resolve(payload)
+}
+
+function readRoadmapNodeModalPayload() {
+  const {
+    roadmapIdInput,
+    nodeTypeInput,
+    nodeTitleInput,
+    nodeContentInput,
+    sortOrderInput,
+    branchGroupInput,
+    subTopicsInput,
+  } = getRoadmapNodeModalElements()
+
+  if (!roadmapIdInput.value.trim()) {
+    window.alert('로드맵 ID를 입력하세요.')
+    roadmapIdInput.focus()
     return null
   }
 
-  const roadmapId = node
-    ? node.roadmapId
-    : parseRequiredNumber(
-        window.prompt(`노드를 추가할 로드맵 ID를 입력하세요.\n${buildRoadmapOptionGuide()}`, officialRoadmapOptions[0]?.roadmapId.toString() ?? ''),
-        '로드맵 ID는 0 이상의 숫자로 입력하세요.',
-      )
-
+  const roadmapId = parseRequiredNumber(roadmapIdInput.value, '로드맵 ID는 0 이상의 숫자로 입력하세요.')
   if (roadmapId === null) {
+    roadmapIdInput.focus()
     return null
   }
 
-  const title = window.prompt('노드 제목을 입력하세요.', node?.title ?? '')
-  if (!title?.trim()) {
+  const knownRoadmap = officialRoadmapOptions.some((roadmap) => roadmap.roadmapId === roadmapId)
+  if (!roadmapNodeModalEditingNode && officialRoadmapOptions.length > 0 && !knownRoadmap) {
+    window.alert('선택 가능한 공식 로드맵 ID를 입력하세요.')
+    roadmapIdInput.focus()
     return null
   }
 
-  const content = window.prompt('노드 설명을 입력하세요. 비워두면 설명 없음으로 저장됩니다.', node?.content ?? '')
-  if (content === null) {
+  const title = nodeTitleInput.value.trim()
+  if (!title) {
+    window.alert('노드 제목을 입력하세요.')
+    nodeTitleInput.focus()
     return null
   }
 
-  const nodeType = window.prompt('노드 유형을 입력하세요. 예: CONCEPT, PRACTICE, PROJECT, REVIEW, EXAM, QUIZ, ASSIGNMENT', node?.nodeType ?? 'CONCEPT')
-  if (!nodeType?.trim()) {
+  const nodeType = nodeTypeInput.value.trim().toUpperCase()
+  if (!nodeType) {
+    window.alert('노드 유형을 선택하세요.')
+    nodeTypeInput.focus()
     return null
   }
 
-  const defaultSortOrder = node?.sortOrder?.toString()
-    ?? String(
-      Math.max(
-        0,
-        ...nodeItems
-          .filter((item) => item.roadmapId === roadmapId)
-          .map((item) => item.sortOrder ?? 0),
-      ) + 1,
-    )
-  const sortOrder = parseRequiredNumber(
-    window.prompt('정렬 순서를 입력하세요. 숫자가 작을수록 먼저 표시됩니다.', defaultSortOrder),
-    '정렬 순서는 0 이상의 숫자로 입력하세요.',
-  )
+  if (!sortOrderInput.value.trim()) {
+    window.alert('정렬 순서를 입력하세요.')
+    sortOrderInput.focus()
+    return null
+  }
 
+  const sortOrder = parseRequiredNumber(sortOrderInput.value, '정렬 순서는 0 이상의 숫자로 입력하세요.')
   if (sortOrder === null) {
+    sortOrderInput.focus()
     return null
   }
 
-  const subTopics = window.prompt('서브토픽을 쉼표로 구분해서 입력하세요. 비워두면 없음으로 저장됩니다.', node?.subTopics ?? '')
-  if (subTopics === null) {
-    return null
-  }
-
-  const branchGroup = parseOptionalNumber(
-    window.prompt('분기 그룹 번호를 입력하세요. 기본 흐름이면 비워두세요.', node?.branchGroup?.toString() ?? ''),
-    '분기 그룹은 0 이상의 숫자로 입력하세요.',
-  )
-
+  const branchGroup = parseOptionalNumber(branchGroupInput.value, '분기 그룹은 0 이상의 숫자로 입력하세요.')
   if (branchGroup === null) {
+    branchGroupInput.focus()
     return null
   }
 
   return {
     roadmapId,
-    title: title.trim(),
-    content: normalizeOptionalString(content),
-    nodeType: nodeType.trim().toUpperCase(),
+    title,
+    content: normalizeOptionalString(nodeContentInput.value),
+    nodeType,
     sortOrder,
-    subTopics: normalizeOptionalString(subTopics),
+    subTopics: normalizeOptionalString(subTopicsInput.value),
     branchGroup: branchGroup ?? null,
   }
+}
+
+function initRoadmapNodeModal() {
+  if (roadmapNodeModalInitialized) {
+    return
+  }
+
+  const {
+    modal,
+    form,
+    roadmapIdInput,
+    sortOrderInput,
+    cancelButton,
+  } = getRoadmapNodeModalElements()
+
+  const refreshSortOrder = () => {
+    if (roadmapNodeModalEditingNode) {
+      return
+    }
+
+    const roadmapId = Number(roadmapIdInput.value)
+    if (Number.isInteger(roadmapId) && roadmapId >= 0) {
+      sortOrderInput.value = String(getDefaultNodeSortOrder(roadmapId))
+    }
+  }
+
+  roadmapIdInput.addEventListener('input', refreshSortOrder)
+  roadmapIdInput.addEventListener('change', refreshSortOrder)
+
+  cancelButton.addEventListener('click', () => {
+    resolveRoadmapNodeModal(null)
+  })
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      resolveRoadmapNodeModal(null)
+    }
+  })
+
+  document.addEventListener('keydown', (event) => {
+    const currentModal = document.getElementById('addNodeModal')
+    if (event.key === 'Escape' && currentModal?.classList.contains('active')) {
+      resolveRoadmapNodeModal(null)
+    }
+  })
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const payload = readRoadmapNodeModalPayload()
+    if (payload) {
+      resolveRoadmapNodeModal(payload)
+    }
+  })
+
+  roadmapNodeModalInitialized = true
+}
+
+function openRoadmapNodeModal(node?: AdminRoadmapNode) {
+  if (!node && officialRoadmapOptions.length === 0) {
+    window.alert('선택 가능한 공식 로드맵이 없습니다.')
+    return Promise.resolve(null)
+  }
+
+  if (roadmapNodeModalResolver) {
+    resolveRoadmapNodeModal(null)
+  }
+
+  initRoadmapNodeModal()
+  populateRoadmapIdOptions()
+
+  const {
+    modal,
+    form,
+    title,
+    description,
+    roadmapIdInput,
+    nodeTypeInput,
+    nodeTitleInput,
+    nodeContentInput,
+    sortOrderInput,
+    branchGroupInput,
+    subTopicsInput,
+    confirmButton,
+  } = getRoadmapNodeModalElements()
+
+  const roadmapId = node?.roadmapId ?? officialRoadmapOptions[0]?.roadmapId ?? 0
+  roadmapNodeModalEditingNode = node ?? null
+
+  form.reset()
+  title.textContent = node ? '마스터 로드맵 노드 수정' : '마스터 로드맵 노드 추가'
+  description.textContent = node
+    ? '노드 정보를 수정한 뒤 저장하세요.'
+    : '공식 로드맵에 연결할 노드 정보를 입력하세요.'
+  confirmButton.textContent = node ? '수정하기' : '추가하기'
+
+  roadmapIdInput.value = String(roadmapId)
+  roadmapIdInput.disabled = Boolean(node)
+  roadmapIdInput.classList.toggle('devpath-modal-input-disabled', Boolean(node))
+  nodeTypeInput.value = node?.nodeType?.toUpperCase() || 'CONCEPT'
+  nodeTitleInput.value = node?.title ?? ''
+  nodeContentInput.value = node?.content ?? ''
+  sortOrderInput.value = String(getDefaultNodeSortOrder(roadmapId, node))
+  branchGroupInput.value = node?.branchGroup?.toString() ?? ''
+  subTopicsInput.value = node?.subTopics ?? ''
+
+  return new Promise<RoadmapNodePayload | null>((resolve) => {
+    roadmapNodeModalResolver = resolve
+    roadmapNodeModalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setRoadmapNodeModalOpen(true)
+
+    window.setTimeout(() => {
+      if (!modal.classList.contains('active')) {
+        return
+      }
+
+      if (node) {
+        nodeTitleInput.focus()
+        return
+      }
+
+      roadmapIdInput.focus()
+      roadmapIdInput.select()
+    }, 80)
+  })
 }
 
 function buildNodeHubItemKey(sectionKey: string, item: RoadmapHubItem) {
@@ -2406,7 +2603,7 @@ function installGlobalActions() {
 
   window.createRoadmapNode = async () => {
     await runAdminAction(async () => {
-      const payload = buildNodePayloadFromPrompt()
+      const payload = await openRoadmapNodeModal()
       if (!payload) {
         return
       }
@@ -2424,7 +2621,7 @@ function installGlobalActions() {
         return
       }
 
-      const payload = buildNodePayloadFromPrompt(node)
+      const payload = await openRoadmapNodeModal(node)
       if (!payload) {
         return
       }

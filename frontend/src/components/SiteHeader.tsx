@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { AuthSession } from '../types/auth'
 import AccountUserMenu from './AccountUserMenu'
 
@@ -12,19 +12,19 @@ const headerLinks = [
 
 // Edit only this object when you want pixel-level header tuning.
 export const siteHeaderTuning = {
-  maxWidthPx: 1600,
+  maxWidthPx: null,
   horizontalPaddingPx: 32,
   containerGapPx: 32,
   sideWidthPx: 240,
   brandSlotOffsetXPx: -54,
-  navBaseXPx: 17.5,
+  navBaseXPx: -20,
   navGapPx: 40,
   instructorGapPx: 40,
   instructorLinkGapPx: 24,
   headerGroup: { x: 0, y: 0 },
   brandGroup: { x: 15, y: 0 },
-  navGroup: { x: -2.5, y: 0 },
-  userGroup: { x: -12.5, y: 0 },
+  navGroup: { x: 0, y: 0 },
+  userGroup: { x: 0, y: 0 },
 } as const
 
 function getMoveStyle(offset: { x: number; y: number }): CSSProperties {
@@ -39,6 +39,9 @@ type SiteHeaderProps = {
   onLogout?: () => Promise<void> | void
   onLoginClick?: () => void
   offsetTopPx?: number
+  userGroupOffsetOverride?: { x: number; y: number }
+  startOverlay?: ReactNode
+  endOverlay?: ReactNode
 }
 
 export default function SiteHeader({
@@ -47,13 +50,16 @@ export default function SiteHeader({
   onLogout,
   onLoginClick,
   offsetTopPx = 0,
+  userGroupOffsetOverride,
+  startOverlay,
+  endOverlay,
 }: SiteHeaderProps) {
   const showInstructorDashboard = session?.role === 'ROLE_INSTRUCTOR'
   const instructorHeaderLinks = showInstructorDashboard
     ? [{ href: 'instructor-dashboard.html', label: '\uAC15\uC0AC \uB300\uC2DC\uBCF4\uB4DC' }]
     : []
   const containerStyle: CSSProperties = {
-    maxWidth: `${siteHeaderTuning.maxWidthPx}px`,
+    maxWidth: siteHeaderTuning.maxWidthPx == null ? 'none' : `${siteHeaderTuning.maxWidthPx}px`,
     paddingLeft: `clamp(16px, 3vw, ${siteHeaderTuning.horizontalPaddingPx}px)`,
     paddingRight: `clamp(16px, 3vw, ${siteHeaderTuning.horizontalPaddingPx}px)`,
     gap: `clamp(12px, 2vw, ${siteHeaderTuning.containerGapPx}px)`,
@@ -71,7 +77,7 @@ export default function SiteHeader({
     marginLeft: `${siteHeaderTuning.instructorGapPx}px`,
     gap: `${siteHeaderTuning.instructorLinkGapPx}px`,
   }
-  const userStyle = getMoveStyle(siteHeaderTuning.userGroup)
+  const userStyle = getMoveStyle(userGroupOffsetOverride ?? siteHeaderTuning.userGroup)
   const railStyle: CSSProperties = { top: `${offsetTopPx}px` }
   const headerStyle: CSSProperties = { top: `${offsetTopPx}px` }
 
@@ -156,6 +162,18 @@ export default function SiteHeader({
             </div>
           </div>
         </div>
+
+        {startOverlay ? (
+          <div className="absolute inset-0 pointer-events-none">
+            {startOverlay}
+          </div>
+        ) : null}
+
+        {endOverlay ? (
+          <div className="absolute inset-0 pointer-events-none">
+            {endOverlay}
+          </div>
+        ) : null}
       </nav>
     </>
   )

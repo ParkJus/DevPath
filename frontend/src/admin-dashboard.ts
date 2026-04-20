@@ -114,6 +114,8 @@ declare global {
     resolveReport: (reportId: number) => Promise<void>
     createCatalogCategory: () => void
     saveCourseCatalogMenu: () => Promise<void>
+    setAllCatalogCategoriesCollapsed: (collapsed: boolean) => void
+    toggleCatalogCategoryCollapsed: (categoryIndex: number) => void
     moveCatalogCategory: (categoryIndex: number, direction: number) => void
     deleteCatalogCategory: (categoryIndex: number) => void
     updateCatalogCategoryField: (categoryIndex: number, field: string, value: string) => void
@@ -132,6 +134,8 @@ declare global {
     removeCatalogGroupItem: (categoryIndex: number, groupIndex: number, itemIndex: number) => void
     createRoadmapHubSection: () => void
     saveRoadmapHubCatalog: () => Promise<void>
+    setAllRoadmapHubSectionsCollapsed: (collapsed: boolean) => void
+    toggleRoadmapHubSectionCollapsed: (sectionIndex: number) => void
     moveRoadmapHubSection: (sectionIndex: number, direction: number) => void
     deleteRoadmapHubSection: (sectionIndex: number) => void
     updateRoadmapHubSectionField: (sectionIndex: number, field: string, value: string) => void
@@ -175,10 +179,12 @@ let courseCatalogMenu: CourseCatalogMenu = { categories: [] }
 let courseCatalogMenuLoading = false
 let courseCatalogMenuSaving = false
 let courseCatalogMenuError: string | null = null
+let collapsedCatalogCategoryKeys = new Set<string>()
 let roadmapHubCatalog: AdminRoadmapHubCatalog = { sections: [], officialRoadmaps: [] }
 let roadmapHubLoading = false
 let roadmapHubSaving = false
 let roadmapHubError: string | null = null
+let collapsedRoadmapHubSectionKeys = new Set<string>()
 let roadmapNodeModalResolver: ((payload: RoadmapNodePayload | null) => void) | null = null
 let roadmapNodeModalEditingNode: AdminRoadmapNode | null = null
 let roadmapNodeModalInitialized = false
@@ -1583,6 +1589,62 @@ function moveArrayItem<T>(items: T[], index: number, direction: number) {
   items.splice(nextIndex, 0, movedItem)
 }
 
+function getCatalogCategoryCollapseKey(category: CourseCatalogCategory, categoryIndex: number) {
+  return String(category.categoryKey ?? '').trim() || `category-index-${categoryIndex}`
+}
+
+function getRoadmapHubSectionCollapseKey(section: RoadmapHubSection, sectionIndex: number) {
+  return String(section.sectionKey ?? '').trim() || `roadmap-hub-section-index-${sectionIndex}`
+}
+
+function buildCollapsedKeySet<T>(items: T[], getKey: (item: T, index: number) => string) {
+  return new Set(items.map((item, index) => getKey(item, index)))
+}
+
+function setAllCatalogCategoriesCollapsed(collapsed: boolean) {
+  collapsedCatalogCategoryKeys = collapsed
+    ? buildCollapsedKeySet(courseCatalogMenu.categories, getCatalogCategoryCollapseKey)
+    : new Set<string>()
+  renderCourseCatalogMenuEditor()
+}
+
+function toggleCatalogCategoryCollapsed(categoryIndex: number) {
+  const category = courseCatalogMenu.categories[categoryIndex]
+  if (!category) {
+    return
+  }
+
+  const categoryKey = getCatalogCategoryCollapseKey(category, categoryIndex)
+  if (collapsedCatalogCategoryKeys.has(categoryKey)) {
+    collapsedCatalogCategoryKeys.delete(categoryKey)
+  } else {
+    collapsedCatalogCategoryKeys.add(categoryKey)
+  }
+  renderCourseCatalogMenuEditor()
+}
+
+function setAllRoadmapHubSectionsCollapsed(collapsed: boolean) {
+  collapsedRoadmapHubSectionKeys = collapsed
+    ? buildCollapsedKeySet(roadmapHubCatalog.sections, getRoadmapHubSectionCollapseKey)
+    : new Set<string>()
+  renderRoadmapHubEditor()
+}
+
+function toggleRoadmapHubSectionCollapsed(sectionIndex: number) {
+  const section = roadmapHubCatalog.sections[sectionIndex]
+  if (!section) {
+    return
+  }
+
+  const sectionKey = getRoadmapHubSectionCollapseKey(section, sectionIndex)
+  if (collapsedRoadmapHubSectionKeys.has(sectionKey)) {
+    collapsedRoadmapHubSectionKeys.delete(sectionKey)
+  } else {
+    collapsedRoadmapHubSectionKeys.add(sectionKey)
+  }
+  renderRoadmapHubEditor()
+}
+
 function updateCatalogMenu(mutator: (menu: CourseCatalogMenu) => void) {
   const nextMenu = cloneCourseCatalogMenu(courseCatalogMenu)
   mutator(nextMenu)
@@ -1661,70 +1723,58 @@ function renderCourseCatalogMenuEditor() {
 }
 
 function renderCatalogCategoryCard(category: CourseCatalogCategory, categoryIndex: number) {
-  const groupsHtml = category.groups.length
-    ? category.groups.map((group, groupIndex) => renderCatalogGroupCard(categoryIndex, group, groupIndex)).join('')
-    : `
-      <div class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-400">
-        등록된 그룹이 없습니다.
-      </div>
-    `
+  const categoryKey = getCatalogCategoryCollapseKey(category, categoryIndex)
+  const collapsed = collapsedCatalogCategoryKeys.has(categoryKey)
+  const filterItemCount = category.groups.reduce((sum, group) => sum + group.items.length, 0)
+  const summaryBadgesHtml = `
+    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">메가메뉴 ${formatNumber(category.megaMenuItems.length)}개</span>
+    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">그룹 ${formatNumber(category.groups.length)}개</span>
+    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">필터 ${formatNumber(filterItemCount)}개</span>
+  `
 
-  const megaMenuHtml = category.megaMenuItems.length
-    ? category.megaMenuItems
-        .map(
-          (item, itemIndex) => `
-            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <input
-                value="${escapeHtml(item.label)}"
-                oninput="updateCatalogMegaMenuItemLabel(${categoryIndex}, ${itemIndex}, this.value)"
-                type="text"
-                class="flex-1 bg-transparent text-sm text-slate-700 outline-none"
-                placeholder="메가메뉴 라벨"
-              />
-              <div class="flex items-center gap-1 text-slate-400">
-                <button onclick="moveCatalogMegaMenuItem(${categoryIndex}, ${itemIndex}, -1)" class="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" type="button">
-                  <i class="fas fa-arrow-up text-xs"></i>
-                </button>
-                <button onclick="moveCatalogMegaMenuItem(${categoryIndex}, ${itemIndex}, 1)" class="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" type="button">
-                  <i class="fas fa-arrow-down text-xs"></i>
-                </button>
-                <button onclick="removeCatalogMegaMenuItem(${categoryIndex}, ${itemIndex})" class="rounded p-1 transition hover:bg-rose-50 hover:text-rose-600" type="button">
-                  <i class="fas fa-trash text-xs"></i>
-                </button>
-              </div>
-            </div>`,
-        )
-        .join('')
-    : `
-      <div class="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400">
-        등록된 메가메뉴 항목이 없습니다.
-      </div>
-    `
-
-  return `
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="flex flex-col gap-4 border-b border-slate-100 pb-5 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600">카테고리 ${categoryIndex + 1}</span>
-            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${category.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${category.active ? '활성' : '비활성'}</span>
-          </div>
-          <h3 class="mt-3 text-lg font-bold text-slate-900">${escapeHtml(category.label || '새 카테고리')}</h3>
-          <p class="mt-1 text-xs text-slate-500">key: ${escapeHtml(category.categoryKey || '-')}</p>
+  let categoryBodyHtml = ''
+  if (!collapsed) {
+    const groupsHtml = category.groups.length
+      ? category.groups.map((group, groupIndex) => renderCatalogGroupCard(categoryIndex, group, groupIndex)).join('')
+      : `
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-400">
+          등록된 그룹이 없습니다.
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="moveCatalogCategory(${categoryIndex}, -1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
-            <i class="fas fa-arrow-up mr-1"></i> 위로
-          </button>
-          <button onclick="moveCatalogCategory(${categoryIndex}, 1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
-            <i class="fas fa-arrow-down mr-1"></i> 아래로
-          </button>
-          <button onclick="deleteCatalogCategory(${categoryIndex})" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100" type="button">
-            <i class="fas fa-trash mr-1"></i> 삭제
-          </button>
-        </div>
-      </div>
+      `
 
+    const megaMenuHtml = category.megaMenuItems.length
+      ? category.megaMenuItems
+          .map(
+            (item, itemIndex) => `
+              <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <input
+                  value="${escapeHtml(item.label)}"
+                  oninput="updateCatalogMegaMenuItemLabel(${categoryIndex}, ${itemIndex}, this.value)"
+                  type="text"
+                  class="flex-1 bg-transparent text-sm text-slate-700 outline-none"
+                  placeholder="메가메뉴 라벨"
+                />
+                <div class="flex items-center gap-1 text-slate-400">
+                  <button onclick="moveCatalogMegaMenuItem(${categoryIndex}, ${itemIndex}, -1)" class="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" type="button">
+                    <i class="fas fa-arrow-up text-xs"></i>
+                  </button>
+                  <button onclick="moveCatalogMegaMenuItem(${categoryIndex}, ${itemIndex}, 1)" class="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" type="button">
+                    <i class="fas fa-arrow-down text-xs"></i>
+                  </button>
+                  <button onclick="removeCatalogMegaMenuItem(${categoryIndex}, ${itemIndex})" class="rounded p-1 transition hover:bg-rose-50 hover:text-rose-600" type="button">
+                    <i class="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>`,
+          )
+          .join('')
+      : `
+        <div class="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400">
+          등록된 메가메뉴 항목이 없습니다.
+        </div>
+      `
+
+    categoryBodyHtml = `
       <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <label class="block">
           <span class="mb-1 block text-[11px] font-bold text-slate-500">key</span>
@@ -1798,6 +1848,37 @@ function renderCatalogCategoryCard(category: CourseCatalogCategory, categoryInde
           <div class="space-y-4">${groupsHtml}</div>
         </div>
       </div>
+    `
+  }
+
+  return `
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-col gap-4 ${collapsed ? '' : 'border-b border-slate-100 pb-5'} xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600">카테고리 ${categoryIndex + 1}</span>
+            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${category.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${category.active ? '활성' : '비활성'}</span>
+            ${summaryBadgesHtml}
+          </div>
+          <h3 class="mt-3 text-lg font-bold text-slate-900">${escapeHtml(category.label || '새 카테고리')}</h3>
+          <p class="mt-1 text-xs text-slate-500">key: ${escapeHtml(category.categoryKey || '-')}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="toggleCatalogCategoryCollapsed(${categoryIndex})" aria-expanded="${!collapsed}" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100" type="button">
+            <i class="fas ${collapsed ? 'fa-chevron-down' : 'fa-chevron-up'} mr-1"></i> ${collapsed ? '펼치기' : '접기'}
+          </button>
+          <button onclick="moveCatalogCategory(${categoryIndex}, -1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
+            <i class="fas fa-arrow-up mr-1"></i> 위로
+          </button>
+          <button onclick="moveCatalogCategory(${categoryIndex}, 1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
+            <i class="fas fa-arrow-down mr-1"></i> 아래로
+          </button>
+          <button onclick="deleteCatalogCategory(${categoryIndex})" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100" type="button">
+            <i class="fas fa-trash mr-1"></i> 삭제
+          </button>
+        </div>
+      </div>
+      ${categoryBodyHtml}
     </section>
   `
 }
@@ -1914,6 +1995,7 @@ async function fetchCourseCatalogMenu() {
   try {
     const response = await adminApi.getCourseCatalogMenu()
     courseCatalogMenu = reindexCourseCatalogMenu(response)
+    collapsedCatalogCategoryKeys = buildCollapsedKeySet(courseCatalogMenu.categories, getCatalogCategoryCollapseKey)
   } catch (error) {
     courseCatalogMenuError = error instanceof Error ? error.message : '강의 메뉴를 불러오지 못했습니다.'
   } finally {
@@ -2286,43 +2368,23 @@ function renderRoadmapHubSectionCard(
   visibleItems = section.items.map((item, itemIndex) => ({ item, itemIndex })),
   filtered = false,
 ) {
+  const sectionKey = getRoadmapHubSectionCollapseKey(section, sectionIndex)
+  const collapsed = collapsedRoadmapHubSectionKeys.has(sectionKey)
   const emptyItemsMessage = filtered ? '필터 조건에 맞는 항목이 없습니다.' : '등록된 항목이 없습니다.'
   const itemCountText = filtered
     ? `표시 ${formatNumber(visibleItems.length)}개 / 전체 ${formatNumber(section.items.length)}개`
     : `항목 ${formatNumber(section.items.length)}개`
-  const itemsHtml = visibleItems.length
-    ? visibleItems.map(({ item, itemIndex }) => renderRoadmapHubItemRow(sectionIndex, item, itemIndex)).join('')
-    : `
-      <div class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-400">
-        ${escapeHtml(emptyItemsMessage)}
-      </div>
-    `
-
-  return `
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="flex flex-col gap-4 border-b border-slate-100 pb-5 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600">섹션 ${sectionIndex + 1}</span>
-            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${section.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${section.active ? '활성' : '비활성'}</span>
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">${escapeHtml(itemCountText)}</span>
-          </div>
-          <h3 class="mt-3 text-lg font-bold text-slate-900">${escapeHtml(section.title || '새 로드맵 섹션')}</h3>
-          <p class="mt-1 text-xs text-slate-500">key: ${escapeHtml(section.sectionKey || '-')}</p>
+  let sectionBodyHtml = ''
+  if (!collapsed) {
+    const itemsHtml = visibleItems.length
+      ? visibleItems.map(({ item, itemIndex }) => renderRoadmapHubItemRow(sectionIndex, item, itemIndex)).join('')
+      : `
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-400">
+          ${escapeHtml(emptyItemsMessage)}
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="moveRoadmapHubSection(${sectionIndex}, -1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
-            <i class="fas fa-arrow-up mr-1"></i> 위로
-          </button>
-          <button onclick="moveRoadmapHubSection(${sectionIndex}, 1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
-            <i class="fas fa-arrow-down mr-1"></i> 아래로
-          </button>
-          <button onclick="deleteRoadmapHubSection(${sectionIndex})" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100" type="button">
-            <i class="fas fa-trash mr-1"></i> 삭제
-          </button>
-        </div>
-      </div>
+      `
 
+    sectionBodyHtml = `
       <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label class="block">
           <span class="mb-1 block text-[11px] font-bold text-slate-500">섹션 key</span>
@@ -2385,6 +2447,38 @@ function renderRoadmapHubSectionCard(
         </div>
         <div class="space-y-3">${itemsHtml}</div>
       </div>
+    `
+  }
+
+  return `
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-col gap-4 ${collapsed ? '' : 'border-b border-slate-100 pb-5'} xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600">섹션 ${sectionIndex + 1}</span>
+            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold ${section.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${section.active ? '활성' : '비활성'}</span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">${escapeHtml(section.layoutType)}</span>
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">${escapeHtml(itemCountText)}</span>
+          </div>
+          <h3 class="mt-3 text-lg font-bold text-slate-900">${escapeHtml(section.title || '새 로드맵 섹션')}</h3>
+          <p class="mt-1 text-xs text-slate-500">key: ${escapeHtml(section.sectionKey || '-')}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="toggleRoadmapHubSectionCollapsed(${sectionIndex})" aria-expanded="${!collapsed}" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100" type="button">
+            <i class="fas ${collapsed ? 'fa-chevron-down' : 'fa-chevron-up'} mr-1"></i> ${collapsed ? '펼치기' : '접기'}
+          </button>
+          <button onclick="moveRoadmapHubSection(${sectionIndex}, -1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
+            <i class="fas fa-arrow-up mr-1"></i> 위로
+          </button>
+          <button onclick="moveRoadmapHubSection(${sectionIndex}, 1)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700" type="button">
+            <i class="fas fa-arrow-down mr-1"></i> 아래로
+          </button>
+          <button onclick="deleteRoadmapHubSection(${sectionIndex})" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-100" type="button">
+            <i class="fas fa-trash mr-1"></i> 삭제
+          </button>
+        </div>
+      </div>
+      ${sectionBodyHtml}
     </section>
   `
 }
@@ -2488,6 +2582,7 @@ async function fetchRoadmapHubCatalog() {
       ...response,
       sections: reindexRoadmapHubSections(response.sections),
     }
+    collapsedRoadmapHubSectionKeys = buildCollapsedKeySet(roadmapHubCatalog.sections, getRoadmapHubSectionCollapseKey)
   } catch (error) {
     roadmapHubError = error instanceof Error ? error.message : '로드맵 허브 구성을 불러오지 못했습니다.'
   } finally {
@@ -3017,6 +3112,14 @@ function installGlobalActions() {
     await saveCourseCatalogMenu()
   }
 
+  window.setAllCatalogCategoriesCollapsed = (collapsed: boolean) => {
+    setAllCatalogCategoriesCollapsed(collapsed)
+  }
+
+  window.toggleCatalogCategoryCollapsed = (categoryIndex: number) => {
+    toggleCatalogCategoryCollapsed(categoryIndex)
+  }
+
   window.moveCatalogCategory = (categoryIndex: number, direction: number) => {
     updateCatalogMenu((menu) => {
       moveArrayItem(menu.categories, categoryIndex, direction)
@@ -3186,6 +3289,14 @@ function installGlobalActions() {
 
   window.saveRoadmapHubCatalog = async () => {
     await saveRoadmapHubCatalog()
+  }
+
+  window.setAllRoadmapHubSectionsCollapsed = (collapsed: boolean) => {
+    setAllRoadmapHubSectionsCollapsed(collapsed)
+  }
+
+  window.toggleRoadmapHubSectionCollapsed = (sectionIndex: number) => {
+    toggleRoadmapHubSectionCollapsed(sectionIndex)
   }
 
   window.moveRoadmapHubSection = (sectionIndex: number, direction: number) => {

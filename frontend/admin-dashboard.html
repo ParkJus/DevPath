@@ -560,6 +560,20 @@
               <div class="flex flex-wrap items-center gap-2">
                 <div id="catalogMenuSummary" class="text-xs font-medium text-slate-500">카테고리 0개</div>
                 <button
+                  onclick="setAllCatalogCategoriesCollapsed(true)"
+                  class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                  type="button"
+                >
+                  <i class="fas fa-compress-alt mr-1"></i> 전체 접기
+                </button>
+                <button
+                  onclick="setAllCatalogCategoriesCollapsed(false)"
+                  class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                  type="button"
+                >
+                  <i class="fas fa-expand-alt mr-1"></i> 전체 펼치기
+                </button>
+                <button
                   onclick="createCatalogCategory()"
                   class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
                   type="button"
@@ -592,6 +606,20 @@
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <div id="roadmapHubSummary" class="text-xs font-medium text-slate-500">섹션 0개 · 항목 0개</div>
+                <button
+                  onclick="setAllRoadmapHubSectionsCollapsed(true)"
+                  class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                  type="button"
+                >
+                  <i class="fas fa-compress-alt mr-1"></i> 전체 접기
+                </button>
+                <button
+                  onclick="setAllRoadmapHubSectionsCollapsed(false)"
+                  class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                  type="button"
+                >
+                  <i class="fas fa-expand-alt mr-1"></i> 전체 펼치기
+                </button>
                 <button
                   onclick="createRoadmapHubSection()"
                   class="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"

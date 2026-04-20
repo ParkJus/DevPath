@@ -8,6 +8,7 @@ import type {
   AdminDashboardOverview,
   AdminDashboardSummaryMetric,
   AdminModerationReport,
+  AdminOfficialRoadmap,
   AdminOfficialRoadmapOption,
   AdminPendingCourse,
   AdminRoadmapNode,
@@ -30,10 +31,19 @@ import './index.css'
 Chart.register(...registerables)
 
 // 관리자 화면에서 사용하는 탭 키를 고정한다.
-type AdminTabKey = 'dashboard' | 'tags' | 'roadmaps' | 'catalog-menu' | 'roadmap-hub' | 'users' | 'reports'
+type AdminTabKey =
+  | 'dashboard'
+  | 'tags'
+  | 'official-roadmaps'
+  | 'roadmaps'
+  | 'catalog-menu'
+  | 'roadmap-hub'
+  | 'users'
+  | 'reports'
 
 type DashboardFilterState = {
   tagQuery: string
+  officialRoadmapQuery: string
   nodeQuery: string
   nodeHubSectionKey: string
   nodeHubItemKey: string
@@ -90,6 +100,8 @@ declare global {
     logout: () => Promise<void>
     createTag: () => Promise<void>
     mergeTag: (tagId: number) => Promise<void>
+    editOfficialRoadmap: (roadmapId: number) => void
+    deleteOfficialRoadmap: (roadmapId: number) => Promise<void>
     createRoadmapNode: () => Promise<void>
     editRoadmapNode: (nodeId: number) => Promise<void>
     updateNodeTags: (nodeId: number) => Promise<void>
@@ -135,6 +147,7 @@ declare global {
 const TAB_META: Record<AdminTabKey, { title: string; description: string }> = {
   dashboard: { title: '플랫폼 실시간 현황', description: 'DevPath 관리자 운영 지표 요약' },
   tags: { title: '기술 태그 데이터베이스', description: '공식 태그를 조회하고 병합합니다.' },
+  'official-roadmaps': { title: '공식 로드맵 관리', description: '노드가 연결될 공식 로드맵을 생성, 수정, 삭제합니다.' },
   roadmaps: { title: '마스터 로드맵 노드', description: '공식 로드맵 노드 생성, 수정, 선수 조건과 완료 기준을 관리합니다.' },
   'catalog-menu': { title: '강의 목록 메뉴 관리', description: 'lecture-list 상단 카테고리와 필터 구성을 수정합니다.' },
   'roadmap-hub': { title: '로드맵 허브 관리', description: 'roadmap-hub 섹션과 연결 로드맵 구성을 수정합니다.' },
@@ -150,6 +163,9 @@ let categoryChart: Chart | null = null
 let roadmapNodeMap = new Map<number, AdminRoadmapNode>()
 let reportMap = new Map<number, AdminModerationReport>()
 let tagItems: AdminTag[] = []
+let officialRoadmapItems: AdminOfficialRoadmap[] = []
+let officialRoadmapEditingId: number | null = null
+let officialRoadmapSaving = false
 let nodeItems: AdminRoadmapNode[] = []
 let officialRoadmapOptions: AdminOfficialRoadmapOption[] = []
 let nodeHubCatalog: AdminRoadmapHubCatalog = { sections: [], officialRoadmaps: [] }
@@ -170,6 +186,7 @@ let roadmapNodeModalReturnFocus: HTMLElement | null = null
 
 const filterState: DashboardFilterState = {
   tagQuery: '',
+  officialRoadmapQuery: '',
   nodeQuery: '',
   nodeHubSectionKey: '',
   nodeHubItemKey: '',
@@ -1057,6 +1074,134 @@ async function fetchTags() {
   } catch (error) {
     tbody.innerHTML = buildErrorRow(5, error instanceof Error ? error.message : '태그를 불러오지 못했습니다.')
     updateFilterSummary('tagFilterSummary', 0, 0)
+  }
+}
+
+function syncOfficialRoadmapFormState() {
+  const saveButton = getElement<HTMLButtonElement>('officialRoadmapSaveButton')
+  const cancelButton = getElement<HTMLButtonElement>('officialRoadmapCancelEdit')
+  const isEditing = officialRoadmapEditingId !== null
+
+  saveButton.disabled = officialRoadmapSaving
+  saveButton.classList.toggle('opacity-70', officialRoadmapSaving)
+  saveButton.classList.toggle('cursor-not-allowed', officialRoadmapSaving)
+  saveButton.innerHTML = officialRoadmapSaving
+    ? '<i class="fas fa-circle-notch fa-spin mr-1"></i> 저장 중'
+    : isEditing
+      ? '<i class="fas fa-save mr-1"></i> 변경 저장'
+      : '<i class="fas fa-plus mr-1"></i> 로드맵 생성'
+  cancelButton.classList.toggle('hidden', !isEditing)
+}
+
+function resetOfficialRoadmapForm() {
+  officialRoadmapEditingId = null
+  getElement<HTMLInputElement>('officialRoadmapTitleInput').value = ''
+  getElement<HTMLTextAreaElement>('officialRoadmapDescriptionInput').value = ''
+  syncOfficialRoadmapFormState()
+}
+
+function setOfficialRoadmapForm(roadmap: AdminOfficialRoadmap) {
+  officialRoadmapEditingId = roadmap.roadmapId
+  const titleInput = getElement<HTMLInputElement>('officialRoadmapTitleInput')
+  titleInput.value = roadmap.title
+  getElement<HTMLTextAreaElement>('officialRoadmapDescriptionInput').value = roadmap.description ?? ''
+  syncOfficialRoadmapFormState()
+  titleInput.focus()
+}
+
+function getOfficialRoadmapFormPayload() {
+  const titleInput = getElement<HTMLInputElement>('officialRoadmapTitleInput')
+  const descriptionInput = getElement<HTMLTextAreaElement>('officialRoadmapDescriptionInput')
+  const title = titleInput.value.trim()
+
+  if (!title) {
+    window.alert('로드맵 제목을 입력하세요.')
+    titleInput.focus()
+    return null
+  }
+
+  return {
+    title,
+    description: normalizeOptionalString(descriptionInput.value),
+  }
+}
+
+function renderOfficialRoadmapRows(roadmaps: AdminOfficialRoadmap[]) {
+  const tbody = getElement('officialRoadmapTableBody')
+  tbody.innerHTML = roadmaps.length
+    ? roadmaps
+        .map(
+          (roadmap) => `
+            <tr class="border-b border-slate-100 transition-colors hover:bg-slate-50/70">
+              <td class="px-6 py-3 font-mono text-xs text-slate-400">#${roadmap.roadmapId}</td>
+              <td class="px-6 py-3">
+                <div class="truncate font-bold text-slate-800">${escapeHtml(roadmap.title)}</div>
+                <div class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">${escapeHtml(roadmap.description || '설명 없음')}</div>
+              </td>
+              <td class="px-6 py-3 text-xs whitespace-nowrap text-slate-500">${escapeHtml(formatDateTime(roadmap.createdAt))}</td>
+              <td class="px-6 py-3"><span class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-600">공식</span></td>
+              <td class="px-6 py-3 text-right">
+                <div class="flex flex-nowrap justify-end gap-1">
+                  <button onclick="editOfficialRoadmap(${roadmap.roadmapId})" class="whitespace-nowrap rounded border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50" type="button">수정</button>
+                  <button onclick="deleteOfficialRoadmap(${roadmap.roadmapId})" class="whitespace-nowrap rounded bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-100 hover:text-rose-800" type="button">삭제</button>
+                </div>
+              </td>
+            </tr>`,
+        )
+        .join('')
+    : buildEmptyRow(5, '조건에 맞는 공식 로드맵이 없습니다.')
+}
+
+function applyOfficialRoadmapFilters() {
+  const keyword = normalizeText(filterState.officialRoadmapQuery)
+  const filteredRoadmaps = officialRoadmapItems.filter((roadmap) => (
+    matchesKeyword(keyword, [roadmap.roadmapId, roadmap.title, roadmap.description])
+  ))
+
+  renderOfficialRoadmapRows(filteredRoadmaps)
+  updateFilterSummary('officialRoadmapSummary', officialRoadmapItems.length, filteredRoadmaps.length)
+}
+
+async function fetchOfficialRoadmaps() {
+  const tbody = getElement('officialRoadmapTableBody')
+  tbody.innerHTML = buildLoadingRow(5)
+
+  try {
+    officialRoadmapItems = await adminApi.getOfficialRoadmaps()
+    officialRoadmapOptions = officialRoadmapItems.map((roadmap) => ({
+      roadmapId: roadmap.roadmapId,
+      title: roadmap.title,
+    }))
+    applyOfficialRoadmapFilters()
+  } catch (error) {
+    tbody.innerHTML = buildErrorRow(5, error instanceof Error ? error.message : '공식 로드맵을 불러오지 못했습니다.')
+    updateFilterSummary('officialRoadmapSummary', 0, 0)
+  }
+}
+
+async function submitOfficialRoadmapForm() {
+  const payload = getOfficialRoadmapFormPayload()
+  if (!payload) {
+    return
+  }
+
+  officialRoadmapSaving = true
+  syncOfficialRoadmapFormState()
+
+  try {
+    if (officialRoadmapEditingId === null) {
+      await adminApi.createOfficialRoadmap(payload)
+      window.alert('공식 로드맵을 생성했습니다.')
+    } else {
+      await adminApi.updateOfficialRoadmap(officialRoadmapEditingId, payload)
+      window.alert('공식 로드맵을 수정했습니다.')
+    }
+
+    resetOfficialRoadmapForm()
+    await fetchOfficialRoadmaps()
+  } finally {
+    officialRoadmapSaving = false
+    syncOfficialRoadmapFormState()
   }
 }
 
@@ -2389,6 +2534,9 @@ async function refreshActiveTab() {
     case 'tags':
       await fetchTags()
       break
+    case 'official-roadmaps':
+      await fetchOfficialRoadmaps()
+      break
     case 'roadmaps':
       await fetchNodes()
       break
@@ -2455,6 +2603,24 @@ function initFilters() {
   tagFilterInput.addEventListener('input', () => {
     filterState.tagQuery = tagFilterInput.value
     applyTagFilters()
+  })
+
+  const officialRoadmapFilterInput = getElement<HTMLInputElement>('officialRoadmapFilterInput')
+  officialRoadmapFilterInput.addEventListener('input', () => {
+    filterState.officialRoadmapQuery = officialRoadmapFilterInput.value
+    applyOfficialRoadmapFilters()
+  })
+
+  const officialRoadmapForm = getElement<HTMLFormElement>('officialRoadmapForm')
+  officialRoadmapForm.addEventListener('submit', (event) => {
+    event.preventDefault()
+    void runAdminAction(async () => {
+      await submitOfficialRoadmapForm()
+    })
+  })
+
+  getElement<HTMLButtonElement>('officialRoadmapCancelEdit').addEventListener('click', () => {
+    resetOfficialRoadmapForm()
   })
 
   const nodeFilterInput = getElement<HTMLInputElement>('nodeFilterInput')
@@ -2630,6 +2796,39 @@ function installGlobalActions() {
 
       await adminApi.mergeTags([tagId], parsedTargetId)
       await fetchTags()
+    })
+  }
+
+  window.editOfficialRoadmap = (roadmapId: number) => {
+    const roadmap = officialRoadmapItems.find((item) => item.roadmapId === roadmapId)
+    if (!roadmap) {
+      window.alert('수정할 공식 로드맵을 찾지 못했습니다.')
+      return
+    }
+
+    setOfficialRoadmapForm(roadmap)
+  }
+
+  window.deleteOfficialRoadmap = async (roadmapId: number) => {
+    await runAdminAction(async () => {
+      const roadmap = officialRoadmapItems.find((item) => item.roadmapId === roadmapId)
+      if (!roadmap) {
+        window.alert('삭제할 공식 로드맵을 찾지 못했습니다.')
+        return
+      }
+
+      if (!window.confirm(`'${roadmap.title}' 공식 로드맵을 삭제하시겠습니까?\n연결된 노드는 관리자 목록에서 함께 제외됩니다.`)) {
+        return
+      }
+
+      await adminApi.deleteOfficialRoadmap(roadmapId)
+
+      if (officialRoadmapEditingId === roadmapId) {
+        resetOfficialRoadmapForm()
+      }
+
+      await fetchOfficialRoadmaps()
+      window.alert('공식 로드맵을 삭제했습니다.')
     })
   }
 

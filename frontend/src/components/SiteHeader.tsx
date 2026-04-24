@@ -38,6 +38,7 @@ type SiteHeaderProps = {
   profileImage?: string | null
   onLogout?: () => Promise<void> | void
   onLoginClick?: () => void
+  activeNavHref?: string | null
   offsetTopPx?: number
   userGroupOffsetOverride?: { x: number; y: number }
   startOverlay?: ReactNode
@@ -49,6 +50,7 @@ export default function SiteHeader({
   profileImage,
   onLogout,
   onLoginClick,
+  activeNavHref = null,
   offsetTopPx = 0,
   userGroupOffsetOverride,
   startOverlay,
@@ -80,6 +82,8 @@ export default function SiteHeader({
   const userStyle = getMoveStyle(userGroupOffsetOverride ?? siteHeaderTuning.userGroup)
   const railStyle: CSSProperties = { top: `${offsetTopPx}px` }
   const headerStyle: CSSProperties = { top: `${offsetTopPx}px` }
+  const defaultNavLinkClassName = 'site-header-nav-link'
+  const activeNavLinkClassName = 'site-header-nav-link site-header-nav-link--active'
 
   return (
     <>
@@ -112,7 +116,11 @@ export default function SiteHeader({
           <div className="hidden flex-1 items-center justify-center text-sm font-bold text-gray-500 md:flex">
             <div className="relative inline-flex items-center" style={navStyle}>
               {headerLinks.map((item) => (
-                <a key={item.href} href={item.href} className="inline-block whitespace-nowrap transition hover:text-brand">
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={activeNavHref === item.href ? activeNavLinkClassName : defaultNavLinkClassName}
+                >
                   {item.label}
                 </a>
               ))}
@@ -123,7 +131,11 @@ export default function SiteHeader({
                   style={instructorStyle}
                 >
                   {instructorHeaderLinks.map((item) => (
-                    <a key={item.href} href={item.href} className="inline-block transition hover:text-brand">
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      className={activeNavHref === item.href ? activeNavLinkClassName : defaultNavLinkClassName}
+                    >
                       {item.label}
                     </a>
                   ))}

@@ -253,6 +253,7 @@ function SurveyPage() {
         profileImage={profileImage}
         onLogout={handleLogout}
         onLoginClick={handleLoginClick}
+        activeNavHref="roadmap-hub.html"
         startOverlay={
           <a
             href="home.html"

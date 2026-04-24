@@ -374,6 +374,7 @@ function RoadmapHubPage() {
         profileImage={profileImage}
         onLogout={handleLogout}
         onLoginClick={() => openAuthModal('login')}
+        activeNavHref="roadmap-hub.html"
       />
 
       <main className="app-main flex-1">

@@ -1728,6 +1728,7 @@ export default function RoadmapDetailPage() {
         profileImage={profileImage}
         onLogout={handleLogout}
         onLoginClick={() => openAuthModal('login')}
+        activeNavHref="roadmap-hub.html"
         startOverlay={(
           <div className="roadmap-header-list-shell">
             <div className="roadmap-header-list-shell__inner">

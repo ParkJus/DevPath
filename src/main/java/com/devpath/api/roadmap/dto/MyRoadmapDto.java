@@ -3,6 +3,7 @@ package com.devpath.api.roadmap.dto;
 import com.devpath.domain.learning.entity.clearance.NodeClearance;
 import com.devpath.domain.roadmap.entity.CustomRoadmap;
 import com.devpath.domain.roadmap.entity.CustomRoadmapNode;
+import com.devpath.domain.roadmap.entity.Roadmap;
 import com.devpath.domain.roadmap.entity.DisplayNodeStatus;
 import com.devpath.domain.roadmap.entity.NodeStatus;
 import com.devpath.domain.roadmap.entity.RoadmapNodeResource;
@@ -65,7 +66,7 @@ public class MyRoadmapDto {
     public static Item from(CustomRoadmap entity) {
       return Item.builder()
           .customRoadmapId(entity.getId())
-          .originalRoadmapId(entity.getOriginalRoadmap().getRoadmapId())
+          .originalRoadmapId(entity.getOriginalRoadmap() != null ? entity.getOriginalRoadmap().getRoadmapId() : null)
           .title(entity.getTitle())
           .createdAt(entity.getCreatedAt())
           .build();
@@ -98,6 +99,10 @@ public class MyRoadmapDto {
     @Schema(description = "생성 시각")
     private LocalDateTime createdAt;
 
+    @Schema(description = "빌더에서 직접 만든 로드맵 여부")
+    @JsonProperty("isBuilderOrigin")
+    private boolean isBuilderOrigin;
+
     @Schema(description = "내 로드맵 노드 목록")
     private List<NodeItem> nodes;
 
@@ -110,6 +115,7 @@ public class MyRoadmapDto {
         String infoContent,
         Integer progressRate,
         LocalDateTime createdAt,
+        boolean isBuilderOrigin,
         List<NodeItem> nodes) {
       this.customRoadmapId = customRoadmapId;
       this.originalRoadmapId = originalRoadmapId;
@@ -118,6 +124,7 @@ public class MyRoadmapDto {
       this.infoContent = infoContent;
       this.progressRate = progressRate;
       this.createdAt = createdAt;
+      this.isBuilderOrigin = isBuilderOrigin;
       this.nodes = nodes;
     }
 
@@ -127,16 +134,19 @@ public class MyRoadmapDto {
         List<CustomRoadmapNode> nodes,
         Map<Long, List<Long>> prerequisiteIdsByNodeId,
         Map<Long, NodeStatus> statusByNodeId,
+        Map<Long, NodeClearance> clearanceByNodeId) {
+      Roadmap orig = customRoadmap.getOriginalRoadmap();
         Map<Long, NodeClearance> clearanceByNodeId,
         Map<Long, List<RoadmapNodeResource>> resourcesByNodeId) {
       return DetailResponse.builder()
           .customRoadmapId(customRoadmap.getId())
-          .originalRoadmapId(customRoadmap.getOriginalRoadmap().getRoadmapId())
+          .originalRoadmapId(orig != null ? orig.getRoadmapId() : null)
           .title(customRoadmap.getTitle())
-          .infoTitle(customRoadmap.getOriginalRoadmap().getInfoTitle())
-          .infoContent(customRoadmap.getOriginalRoadmap().getInfoContent())
-          .progressRate(progressRate)
+          .infoTitle(orig != null ? orig.getInfoTitle() : null)
+          .infoContent(orig != null ? orig.getInfoContent() : null)
+          .progressRate(customRoadmap.getProgressRate())
           .createdAt(customRoadmap.getCreatedAt())
+          .isBuilderOrigin(customRoadmap.isBuilderOrigin())
           .nodes(
               nodes.stream()
                   .map(
@@ -145,6 +155,9 @@ public class MyRoadmapDto {
                               node,
                               prerequisiteIdsByNodeId.getOrDefault(node.getId(), List.of()),
                               statusByNodeId,
+                              node.getOriginalNode() != null
+                                  ? clearanceByNodeId.get(node.getOriginalNode().getNodeId())
+                                  : null))
                               clearanceByNodeId.get(node.getOriginalNode().getNodeId()),
                               resourcesByNodeId.getOrDefault(
                                   node.getOriginalNode().getNodeId(), List.of())))
@@ -241,12 +254,32 @@ public class MyRoadmapDto {
         CustomRoadmapNode node,
         List<Long> prerequisiteCustomNodeIds,
         Map<Long, NodeStatus> statusByNodeId,
-        NodeClearance clearance,
-        List<RoadmapNodeResource> resources) {
-      String raw = node.getOriginalNode().getSubTopics();
-      List<String> chips = (raw != null && !raw.isBlank())
-          ? Arrays.stream(raw.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList()
-          : List.of();
+        NodeClearance clearance, List<RoadmapNodeResource> resources)
+
+      boolean isBuilderOrigin = node.getOriginalNode() == null;
+
+      String title;
+      List<String> chips;
+      Integer branchGroup;
+      String content;
+      Long originalNodeId;
+
+      if (isBuilderOrigin) {
+        title = node.getBuilderModule().getTitle();
+        chips = node.getBuilderModule().getTopics() != null ? node.getBuilderModule().getTopics() : List.of();
+        branchGroup = node.getBuilderBranchGroup();
+        content = null;
+        originalNodeId = null;
+      } else {
+        title = node.getOriginalNode().getTitle();
+        String raw = node.getOriginalNode().getSubTopics();
+        chips = (raw != null && !raw.isBlank())
+            ? Arrays.stream(raw.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList()
+            : List.of();
+        branchGroup = node.getOriginalNode().getBranchGroup();
+        content = node.getOriginalNode().getContent();
+        originalNodeId = node.getOriginalNode().getNodeId();
+      }
 
       DisplayNodeStatus displayStatus;
       if (node.getStatus() == NodeStatus.COMPLETED) {
@@ -267,14 +300,14 @@ public class MyRoadmapDto {
 
       return NodeItem.builder()
           .customNodeId(node.getId())
-          .originalNodeId(node.getOriginalNode().getNodeId())
-          .title(node.getOriginalNode().getTitle())
+          .originalNodeId(originalNodeId)
+          .title(title)
           .sortOrder(node.getCustomSortOrder())
           .status(displayStatus)
           .prerequisiteCustomNodeIds(prerequisiteCustomNodeIds)
-          .content(node.getOriginalNode().getContent())
+          .content(content)
           .subTopics(chips)
-          .branchGroup(node.getOriginalNode().getBranchGroup())
+          .branchGroup(branchGroup)
           .isBranch(node.isBranch())
           .branchFromNodeId(node.getBranchFromNodeId())
           .branchType(node.getBranchType())

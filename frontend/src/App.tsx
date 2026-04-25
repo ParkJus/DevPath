@@ -329,7 +329,7 @@ function App() {
             </span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-500 md:text-xl">
-            막막한 독학은 그만. 맞춤 진단부터 로드맵 추천, 실전 프로젝트,
+            막막한 독학은 그만. 로드맵 추천, 실전 프로젝트,
             <br />
             그리고 취업 매칭까지 하나의 플랫폼에서 해결하세요.
           </p>

@@ -62,10 +62,12 @@ public class CustomRoadmapQueryService {
         .collect(Collectors.toMap(CustomRoadmapNode::getId, CustomRoadmapNode::getStatus));
 
     Map<Long, NodeClearance> clearanceByNodeId =
-        nodeClearanceRepository.findAllByUserIdAndNodeRoadmapRoadmapIdOrderByNodeSortOrderAscNodeNodeIdAsc(
-                userId, customRoadmap.getOriginalRoadmap().getRoadmapId())
-            .stream()
-            .collect(Collectors.toMap(c -> c.getNode().getNodeId(), c -> c));
+        customRoadmap.getOriginalRoadmap() != null
+            ? nodeClearanceRepository.findAllByUserIdAndNodeRoadmapRoadmapIdOrderByNodeSortOrderAscNodeNodeIdAsc(
+                    userId, customRoadmap.getOriginalRoadmap().getRoadmapId())
+                .stream()
+                .collect(Collectors.toMap(c -> c.getNode().getNodeId(), c -> c))
+            : Map.of();
 
     List<Long> originalNodeIds =
         customNodes.stream().map(node -> node.getOriginalNode().getNodeId()).toList();

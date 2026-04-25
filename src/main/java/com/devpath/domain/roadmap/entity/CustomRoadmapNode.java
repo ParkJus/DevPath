@@ -1,5 +1,6 @@
 package com.devpath.domain.roadmap.entity;
 
+import com.devpath.domain.builder.entity.BuilderModule;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -27,10 +28,19 @@ public class CustomRoadmapNode {
   @JoinColumn(name = "custom_roadmap_id", nullable = false)
   private CustomRoadmap customRoadmap;
 
-  // 복사의 원본이 된 마스터 로드맵 노드
+  // 복사의 원본이 된 마스터 로드맵 노드 (빌더 기원 노드는 null)
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "original_node_id", nullable = false)
+  @JoinColumn(name = "original_node_id", nullable = true)
   private RoadmapNode originalNode;
+
+  // 빌더 기원 노드 전용 모듈 참조 (originalNode가 null일 때 사용)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "builder_module_id")
+  private BuilderModule builderModule;
+
+  // 빌더 기원 노드 전용 분기 그룹 (null=척추, 1=왼쪽, 2=오른쪽)
+  @Column(name = "builder_branch_group")
+  private Integer builderBranchGroup;
 
   // 문자열(VARCHAR)로 DB에 저장하도록 지정
   @Enumerated(EnumType.STRING)
@@ -70,6 +80,17 @@ public class CustomRoadmapNode {
     this.isBranch = isBranch;
     this.branchFromNodeId = branchFromNodeId;
     this.branchType = branchType;
+  }
+
+  @Builder(builderMethodName = "builderNodeBuilder", builderClassName = "BuilderNodeBuilder")
+  public CustomRoadmapNode(CustomRoadmap customRoadmap, BuilderModule builderModule,
+      Integer customSortOrder, Integer builderBranchGroup) {
+    this.customRoadmap = customRoadmap;
+    this.builderModule = builderModule;
+    this.originalNode = null;
+    this.status = NodeStatus.NOT_STARTED;
+    this.customSortOrder = customSortOrder;
+    this.builderBranchGroup = builderBranchGroup;
   }
 
   // 커스텀 순서 변경 비즈니스 메서드 (노드 삽입 시 기존 노드 밀기에 사용)

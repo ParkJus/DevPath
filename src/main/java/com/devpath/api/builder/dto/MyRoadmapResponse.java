@@ -15,19 +15,25 @@ import lombok.Getter;
 public class MyRoadmapResponse {
 
   private Long myRoadmapId;
+  private Long customRoadmapId;
   private String title;
   private LocalDateTime createdAt;
   private List<MyRoadmapModuleDto> modules;
 
-  public static MyRoadmapResponse from(MyRoadmap myRoadmap) {
+  public static MyRoadmapResponse from(MyRoadmap myRoadmap, Long customRoadmapId) {
     return MyRoadmapResponse.builder()
         .myRoadmapId(myRoadmap.getMyRoadmapId())
+        .customRoadmapId(customRoadmapId)
         .title(myRoadmap.getTitle())
         .createdAt(myRoadmap.getCreatedAt())
         .modules(myRoadmap.getModules().stream()
             .map(MyRoadmapModuleDto::from)
             .toList())
         .build();
+  }
+
+  public static MyRoadmapResponse from(MyRoadmap myRoadmap) {
+    return from(myRoadmap, null);
   }
 
   @Getter

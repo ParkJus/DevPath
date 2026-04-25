@@ -62,36 +62,39 @@ public class NodeClearanceCommandService {
             throw new CustomException(ErrorCode.NODE_LOCKED);
         }
 
-        // 필수 태그가 충족되는지 확인한다.
-        Long originalNodeId = customNode.getOriginalNode().getNodeId();
-        List<String> requiredTags = nodeRequiredTagRepository.findTagNamesByNodeId(originalNodeId);
-        if (!requiredTags.isEmpty()) {
-            List<String> userTags = userTechStackRepository.findTagNamesByUserId(userId);
-            boolean allSatisfied = userTags.containsAll(requiredTags);
-            if (!allSatisfied) {
-                throw new CustomException(ErrorCode.INSUFFICIENT_TAGS);
+        // 필수 태그 확인 (템플릿 기반 노드만)
+        if (customNode.getOriginalNode() != null) {
+            Long originalNodeId = customNode.getOriginalNode().getNodeId();
+            List<String> requiredTags = nodeRequiredTagRepository.findTagNamesByNodeId(originalNodeId);
+            if (!requiredTags.isEmpty()) {
+                List<String> userTags = userTechStackRepository.findTagNamesByUserId(userId);
+                if (!userTags.containsAll(requiredTags)) {
+                    throw new CustomException(ErrorCode.INSUFFICIENT_TAGS);
+                }
             }
         }
 
         // 노드를 완료 처리한다.
         customNode.completeLearning();
 
-        // NodeClearance 레코드를 생성 또는 갱신한다.
-        NodeClearance clearance = nodeClearanceRepository
-                .findByUserIdAndNodeNodeId(userId, originalNodeId)
-                .orElseGet(() -> NodeClearance.builder().user(user).node(customNode.getOriginalNode()).build());
-
-        clearance.recalculate(
-                ClearanceStatus.CLEARED,
-                BigDecimal.ONE,
-                true,
-                0,
-                true,
-                true,
-                true,
-                true
-        );
-        nodeClearanceRepository.save(clearance);
+        // NodeClearance 레코드 생성 (템플릿 기반 노드만)
+        if (customNode.getOriginalNode() != null) {
+            Long originalNodeId = customNode.getOriginalNode().getNodeId();
+            NodeClearance clearance = nodeClearanceRepository
+                    .findByUserIdAndNodeNodeId(userId, originalNodeId)
+                    .orElseGet(() -> NodeClearance.builder().user(user).node(customNode.getOriginalNode()).build());
+            clearance.recalculate(
+                    ClearanceStatus.CLEARED,
+                    BigDecimal.ONE,
+                    true,
+                    0,
+                    true,
+                    true,
+                    true,
+                    true
+            );
+            nodeClearanceRepository.save(clearance);
+        }
 
         // 진행률을 재계산한다.
         List<CustomRoadmapNode> allNodes = customRoadmapNodeRepository.findAllByCustomRoadmap(customRoadmap);

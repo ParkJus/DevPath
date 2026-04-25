@@ -10,6 +10,10 @@ import com.devpath.domain.builder.entity.MyRoadmap;
 import com.devpath.domain.builder.entity.MyRoadmapModule;
 import com.devpath.domain.builder.repository.BuilderModuleRepository;
 import com.devpath.domain.builder.repository.MyRoadmapRepository;
+import com.devpath.domain.roadmap.entity.CustomRoadmap;
+import com.devpath.domain.roadmap.entity.CustomRoadmapNode;
+import com.devpath.domain.roadmap.repository.CustomRoadmapNodeRepository;
+import com.devpath.domain.roadmap.repository.CustomRoadmapRepository;
 import com.devpath.domain.user.entity.User;
 import com.devpath.domain.user.repository.UserRepository;
 import java.util.List;
@@ -26,6 +30,8 @@ public class MyRoadmapService {
   private final MyRoadmapRepository myRoadmapRepository;
   private final BuilderModuleRepository builderModuleRepository;
   private final UserRepository userRepository;
+  private final CustomRoadmapRepository customRoadmapRepository;
+  private final CustomRoadmapNodeRepository customRoadmapNodeRepository;
 
   @Transactional
   public MyRoadmapResponse save(Long userId, MyRoadmapSaveRequest request) {
@@ -65,7 +71,25 @@ public class MyRoadmapService {
     });
 
     myRoadmapRepository.save(myRoadmap);
-    return MyRoadmapResponse.from(myRoadmap);
+
+    // 빌더 기원 CustomRoadmap 생성 → roadmap.html에서 동일하게 접근 가능
+    CustomRoadmap customRoadmap = CustomRoadmap.builderOriginBuilder()
+        .user(user)
+        .title(request.getTitle())
+        .build();
+    customRoadmapRepository.save(customRoadmap);
+
+    request.getModules().forEach(item -> {
+      CustomRoadmapNode node = CustomRoadmapNode.builderNodeBuilder()
+          .customRoadmap(customRoadmap)
+          .builderModule(moduleMap.get(item.getBuilderModuleId()))
+          .customSortOrder(item.getSortOrder())
+          .builderBranchGroup(item.getBranchGroup())
+          .build();
+      customRoadmapNodeRepository.save(node);
+    });
+
+    return MyRoadmapResponse.from(myRoadmap, customRoadmap.getId());
   }
 
   @Transactional(readOnly = true)

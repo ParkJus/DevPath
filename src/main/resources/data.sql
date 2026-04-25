@@ -9337,8 +9337,8 @@ SELECT r.roadmap_id, '메시지 큐 & MSA',
 FROM roadmaps r WHERE r.title = 'Backend Master Roadmap';
 
 -- learner@devpath.com 커스텀 로드맵 재생성
-INSERT INTO custom_roadmaps (user_id, original_roadmap_id, title, progress_rate, created_at, updated_at)
-SELECT u.user_id, r.roadmap_id, r.title, 0,
+INSERT INTO custom_roadmaps (user_id, original_roadmap_id, title, progress_rate, is_builder_origin, created_at, updated_at)
+SELECT u.user_id, r.roadmap_id, r.title, 0, false,
        TIMESTAMP '2026-03-28 10:00:00', TIMESTAMP '2026-03-28 10:00:00'
 FROM users u
 JOIN roadmaps r ON r.title = 'Backend Master Roadmap'

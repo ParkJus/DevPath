@@ -83,7 +83,8 @@ function MyRoadmapBuilderPage() {
   const [roadmapTitle, setRoadmapTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [savedCustomRoadmapId, setSavedCustomRoadmapId] = useState<number | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -283,9 +284,12 @@ function MyRoadmapBuilderPage() {
     setSaveError(null)
 
     try {
-      const res = await fetch(`/api/builder/roadmaps?userId=${session.userId}`, {
+      const res = await fetch(`/api/builder/roadmaps`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken ?? ''}`,
+        },
         body: JSON.stringify({
           title: roadmapTitle.trim(),
           modules: nodes.map((n) => ({
@@ -301,18 +305,20 @@ function MyRoadmapBuilderPage() {
         throw new Error((errData as { message?: string }).message ?? `저장 실패 (${res.status})`)
       }
 
+      const data = await res.json()
+      const customRoadmapId = (data.data as { customRoadmapId?: number }).customRoadmapId ?? null
+      setSavedCustomRoadmapId(customRoadmapId)
       setSaveModalOpen(false)
       setNodes([])
       setBranchTarget(null)
       setRoadmapTitle('')
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      setShowSuccessModal(true)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.')
     } finally {
       setSaving(false)
     }
-  }, [session?.userId, roadmapTitle, nodes])
+  }, [session?.accessToken, roadmapTitle, nodes])
 
   // ── 드래그 핸들러 ──
   function handleDragStart(event: DragStartEvent) {
@@ -440,11 +446,34 @@ function MyRoadmapBuilderPage() {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#0F172A]">
 
-      {/* 저장 성공 토스트 */}
-      {saveSuccess && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white shadow-xl">
-          <i className="fas fa-check-circle mr-2 text-[#00C471]" />
-          로드맵이 저장되었습니다!
+      {/* 저장 성공 모달 */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <i className="fas fa-check text-2xl text-[#00C471]" />
+            </div>
+            <h2 className="mb-1 text-xl font-extrabold text-gray-900">저장 완료!</h2>
+            <p className="mb-6 text-sm text-gray-500">나만의 로드맵이 성공적으로 저장되었습니다.</p>
+            <div className="flex flex-col gap-3">
+              {savedCustomRoadmapId != null && (
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = `roadmap.html?id=${savedCustomRoadmapId}` }}
+                  className="w-full rounded-lg bg-[#00C471] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-green-600"
+                >
+                  <i className="fas fa-map mr-2" />나의 학습 로드맵으로 이동
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+              >
+                계속 편집하기
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

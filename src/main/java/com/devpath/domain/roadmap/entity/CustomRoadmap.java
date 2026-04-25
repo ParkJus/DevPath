@@ -36,10 +36,13 @@ public class CustomRoadmap {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  // 복사의 원본이 된 마스터 로드맵
+  // 복사의 원본이 된 마스터 로드맵 (빌더 기원 로드맵은 null)
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "original_roadmap_id", nullable = false)
+  @JoinColumn(name = "original_roadmap_id", nullable = true)
   private Roadmap originalRoadmap;
+
+  @Column(name = "is_builder_origin", nullable = false)
+  private boolean isBuilderOrigin = false;
 
   @Column(nullable = false, length = 200)
   private String title;
@@ -61,6 +64,15 @@ public class CustomRoadmap {
     this.originalRoadmap = originalRoadmap;
     this.title = title;
     this.progressRate = 0; // 처음 복사했을 땐 진척도 0%
+  }
+
+  @Builder(builderMethodName = "builderOriginBuilder", builderClassName = "BuilderOriginBuilder")
+  public CustomRoadmap(User user, String title) {
+    this.user = user;
+    this.originalRoadmap = null;
+    this.title = title;
+    this.progressRate = 0;
+    this.isBuilderOrigin = true;
   }
 
   // 진척도 업데이트 비즈니스 메서드 (무분별한 Setter 금지)

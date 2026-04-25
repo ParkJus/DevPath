@@ -1,5 +1,6 @@
 package com.devpath.api.builder.controller;
 
+import static com.devpath.common.security.AuthenticationUtils.requireUserId;
 import com.devpath.api.builder.dto.BuilderModuleDto;
 import com.devpath.api.builder.dto.MyRoadmapResponse;
 import com.devpath.api.builder.dto.MyRoadmapSaveRequest;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,36 +42,36 @@ public class BuilderController {
     return ResponseEntity.ok(ApiResponse.ok(builderModuleService.getModulesByCategory(category)));
   }
 
-  @Operation(summary = "나만의 로드맵 저장", description = "빌더에서 구성한 로드맵을 저장합니다. (JWT 적용 전 userId 임시 파라미터)")
+  @Operation(summary = "나만의 로드맵 저장", description = "빌더에서 구성한 로드맵을 저장합니다.")
   @PostMapping("/roadmaps")
   public ResponseEntity<ApiResponse<MyRoadmapResponse>> saveRoadmap(
-      @Parameter(description = "유저 ID (JWT 적용 전 임시)", example = "1") @RequestParam Long userId,
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
       @Valid @RequestBody MyRoadmapSaveRequest request) {
     return ResponseEntity.ok(
-        ApiResponse.success("나만의 로드맵이 저장되었습니다.", myRoadmapService.save(userId, request)));
+        ApiResponse.success("나만의 로드맵이 저장되었습니다.", myRoadmapService.save(requireUserId(userId), request)));
   }
 
-  @Operation(summary = "나만의 로드맵 목록 조회", description = "사용자의 나만의 로드맵 목록을 최신순으로 조회합니다. (JWT 적용 전 userId 임시 파라미터)")
+  @Operation(summary = "나만의 로드맵 목록 조회", description = "사용자의 나만의 로드맵 목록을 최신순으로 조회합니다.")
   @GetMapping("/roadmaps")
   public ResponseEntity<ApiResponse<List<MyRoadmapSummary>>> getRoadmaps(
-      @Parameter(description = "유저 ID (JWT 적용 전 임시)", example = "1") @RequestParam Long userId) {
-    return ResponseEntity.ok(ApiResponse.ok(myRoadmapService.findAll(userId)));
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
+    return ResponseEntity.ok(ApiResponse.ok(myRoadmapService.findAll(requireUserId(userId))));
   }
 
-  @Operation(summary = "나만의 로드맵 상세 조회", description = "나만의 로드맵 상세(모듈 포함)를 조회합니다. (JWT 적용 전 userId 임시 파라미터)")
+  @Operation(summary = "나만의 로드맵 상세 조회", description = "나만의 로드맵 상세(모듈 포함)를 조회합니다.")
   @GetMapping("/roadmaps/{id}")
   public ResponseEntity<ApiResponse<MyRoadmapResponse>> getRoadmap(
-      @Parameter(description = "유저 ID (JWT 적용 전 임시)", example = "1") @RequestParam Long userId,
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
       @Parameter(description = "나만의 로드맵 ID", example = "1") @PathVariable Long id) {
-    return ResponseEntity.ok(ApiResponse.ok(myRoadmapService.findById(userId, id)));
+    return ResponseEntity.ok(ApiResponse.ok(myRoadmapService.findById(requireUserId(userId), id)));
   }
 
-  @Operation(summary = "나만의 로드맵 삭제", description = "나만의 로드맵을 삭제합니다. 모듈도 함께 삭제됩니다. (JWT 적용 전 userId 임시 파라미터)")
+  @Operation(summary = "나만의 로드맵 삭제", description = "나만의 로드맵을 삭제합니다. 모듈도 함께 삭제됩니다.")
   @DeleteMapping("/roadmaps/{id}")
   public ResponseEntity<ApiResponse<Void>> deleteRoadmap(
-      @Parameter(description = "유저 ID (JWT 적용 전 임시)", example = "1") @RequestParam Long userId,
+      @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
       @Parameter(description = "나만의 로드맵 ID", example = "1") @PathVariable Long id) {
-    myRoadmapService.delete(userId, id);
+    myRoadmapService.delete(requireUserId(userId), id);
     return ResponseEntity.ok(ApiResponse.ok());
   }
 }

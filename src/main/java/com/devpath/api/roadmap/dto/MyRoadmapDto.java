@@ -130,6 +130,7 @@ public class MyRoadmapDto {
 
     public static DetailResponse from(
         CustomRoadmap customRoadmap,
+        Integer progressRate,
         List<CustomRoadmapNode> nodes,
         Map<Long, List<Long>> prerequisiteIdsByNodeId,
         Map<Long, NodeStatus> statusByNodeId,

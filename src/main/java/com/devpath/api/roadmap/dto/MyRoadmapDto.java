@@ -150,7 +150,8 @@ public class MyRoadmapDto {
         Map<Long, List<Long>> prerequisiteIdsByNodeId,
         Map<Long, NodeStatus> statusByNodeId,
         Map<Long, NodeClearance> clearanceByNodeId,
-        Map<Long, List<RoadmapNodeResource>> resourcesByNodeId) {
+        Map<Long, List<RoadmapNodeResource>> resourcesByNodeId,
+        Map<Long, List<String>> requiredTagsByNodeId) {
       Roadmap orig = customRoadmap.getOriginalRoadmap();
       return DetailResponse.builder()
           .customRoadmapId(customRoadmap.getId())
@@ -174,6 +175,9 @@ public class MyRoadmapDto {
                                   : null,
                               node.getOriginalNode() != null
                                   ? resourcesByNodeId.getOrDefault(node.getOriginalNode().getNodeId(), List.of())
+                                  : List.of(),
+                              node.getOriginalNode() != null
+                                  ? requiredTagsByNodeId.getOrDefault(node.getOriginalNode().getNodeId(), List.of())
                                   : List.of()))
                   .toList())
           .build();
@@ -227,6 +231,9 @@ public class MyRoadmapDto {
     @Schema(description = "필수 태그 충족 여부")
     private boolean requiredTagsSatisfied;
 
+    @Schema(description = "필수 태그 이름 목록 (강좌 목록 필터용)")
+    private List<String> requiredTags;
+
     @Schema(description = "노드 추천 무료 자료 목록")
     private List<NodeResourceItem> resources;
 
@@ -246,6 +253,7 @@ public class MyRoadmapDto {
         String branchType,
         Double lessonCompletionRate,
         boolean requiredTagsSatisfied,
+        List<String> requiredTags,
         List<NodeResourceItem> resources) {
       this.customNodeId = customNodeId;
       this.originalNodeId = originalNodeId;
@@ -261,6 +269,7 @@ public class MyRoadmapDto {
       this.branchType = branchType;
       this.lessonCompletionRate = lessonCompletionRate;
       this.requiredTagsSatisfied = requiredTagsSatisfied;
+      this.requiredTags = requiredTags;
       this.resources = resources;
     }
 
@@ -268,7 +277,9 @@ public class MyRoadmapDto {
         CustomRoadmapNode node,
         List<Long> prerequisiteCustomNodeIds,
         Map<Long, NodeStatus> statusByNodeId,
-        NodeClearance clearance, List<RoadmapNodeResource> resources) {
+        NodeClearance clearance,
+        List<RoadmapNodeResource> resources,
+        List<String> requiredTags) {
 
       boolean isBuilderOrigin = node.getOriginalNode() == null;
 
@@ -310,7 +321,9 @@ public class MyRoadmapDto {
 
       double lessonRate = clearance != null && clearance.getLessonCompletionRate() != null
           ? clearance.getLessonCompletionRate().doubleValue() : 0.0;
-      boolean tagsSatisfied = clearance != null && Boolean.TRUE.equals(clearance.getRequiredTagsSatisfied());
+      boolean tagsSatisfied = isBuilderOrigin
+          || requiredTags.isEmpty()
+          || (clearance != null && Boolean.TRUE.equals(clearance.getRequiredTagsSatisfied()));
 
       return NodeItem.builder()
           .customNodeId(node.getId())
@@ -327,6 +340,7 @@ public class MyRoadmapDto {
           .branchType(node.getBranchType())
           .lessonCompletionRate(lessonRate)
           .requiredTagsSatisfied(tagsSatisfied)
+          .requiredTags(requiredTags)
           .resources(resources.stream().map(NodeResourceItem::from).toList())
           .build();
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { dashboardApi, enrollmentApi, learningHistoryApi, notificationApi, proofCardApi, roadmapApi } from '../../lib/api'
+import RoadmapMiniMap from '../components/RoadmapMiniMap'
 import { LearnerContentRow, LearnerPageShell, MyMenuSidebar } from '../template'
 import type { AuthSession } from '../../types/auth'
 import type {
@@ -13,7 +14,7 @@ import type {
   NotificationItem,
   ProofCardGalleryItem,
 } from '../../types/learner'
-import type { MyRoadmapSummary, RoadmapDetail, RoadmapNodeItem } from '../../types/roadmap'
+import type { MyRoadmapSummary, RoadmapDetail } from '../../types/roadmap'
 
 type DashboardState = {
   summary: DashboardSummary
@@ -90,16 +91,6 @@ function buildWeeklyBars(heatmap: HeatmapEntry[]) {
       active: activity >= 1,
     }
   })
-}
-
-function buildSidebarNodes(nodes: RoadmapNodeItem[]) {
-  const sorted = [...nodes]
-    .filter((node) => node.branchGroup == null)
-    .sort((left, right) => left.sortOrder - right.sortOrder)
-
-  const currentIndex = sorted.findIndex((node) => node.status === 'IN_PROGRESS')
-  const start = currentIndex >= 0 ? Math.max(0, currentIndex - 2) : 0
-  return sorted.slice(start, start + 5)
 }
 
 function getRoadmapActivityTimestamp(roadmapSummary: MyRoadmapSummary) {
@@ -279,7 +270,6 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
   const roadmapProgress = state.roadmap
     ? clampProgress(state.roadmap.progressRate)
     : clampProgress(recentEnrollment?.progressPercentage)
-  const sidebarNodes = state.roadmap ? buildSidebarNodes(state.roadmap.nodes) : []
   const growthItems = state.growthRecommendation?.recommendations ?? []
 
   return (
@@ -714,98 +704,30 @@ export default function DashboardPage({ session }: { session: AuthSession }) {
           </div>
         </section>
 
-        <aside className="hidden w-80 shrink-0 xl:block">
-          <div className="sticky-roadmap rounded-2xl border border-gray-200 bg-white p-6 shadow-sm" style={{ top: '96px' }}>
-            <div className="mb-6 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 font-bold text-gray-900">
-                <i className="fas fa-map text-brand" /> 나의 학습 로드맵
-              </h3>
-              {state.roadmap ? (
-                <span className="max-w-[120px] truncate rounded bg-gray-100 px-2 py-1 text-[10px] text-gray-500">
-                  {state.roadmap.title}
-                </span>
-              ) : null}
+        <aside className="hidden w-100 shrink-0 xl:block">
+          <div className="sticky-roadmap rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" style={{ top: '96px' }}>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50">
+                <i className="fas fa-map text-sm text-emerald-600" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900">나의 학습 로드맵</h3>
             </div>
 
-            <div className="roadmap-container relative pb-2">
-              <div className="roadmap-line" />
-              <div className="roadmap-progress" style={{ height: `${roadmapProgress}%` }} />
-
-              {sidebarNodes.length > 0 ? (
-                <>
-                  {sidebarNodes.map((node) => {
-                    if (node.status === 'COMPLETED') {
-                      return (
-                        <div key={node.customNodeId} className="roadmap-item">
-                          <div className="step-icon completed">
-                            <i className="fas fa-check text-xs" />
-                          </div>
-                          <div className="pt-1.5">
-                            <h4 className="text-sm font-bold text-gray-400 line-through">{node.title}</h4>
-                          </div>
-                        </div>
-                      )
-                    }
-
-                    if (node.status === 'IN_PROGRESS') {
-                      const progress = clampProgress((node.lessonCompletionRate ?? 0) * 100)
-
-                      return (
-                        <div key={node.customNodeId} className="roadmap-item">
-                          <div className="step-icon current">
-                            <div className="h-2.5 w-2.5 rounded-full bg-brand animate-pulse" />
-                          </div>
-                          <div className="relative -mt-1 rounded-lg border border-green-200 bg-green-50 p-2 shadow-sm">
-                            <h4 className="mb-1 text-sm font-bold text-gray-900">{node.title}</h4>
-                            <div className="h-1.5 w-full rounded-full border border-green-100 bg-white">
-                              <div className="h-1.5 rounded-full bg-brand" style={{ width: `${progress}%` }} />
-                            </div>
-                            <p className="mt-1 text-right text-[10px] text-gray-500">{progress}% 완료</p>
-                          </div>
-                        </div>
-                      )
-                    }
-
-                    return (
-                      <div key={node.customNodeId} className="roadmap-item">
-                        <div className="step-icon waiting">
-                          <i className="fas fa-lock text-[10px]" />
-                        </div>
-                        <div className="pt-1.5">
-                          <h4 className="text-sm font-bold text-gray-400">{node.title}</h4>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  <div className="roadmap-item mt-6">
-                    <div className="step-icon border-2 border-yellow-400 bg-yellow-100 text-yellow-600 shadow-sm">
-                      <i className="fas fa-flag text-xs" />
-                    </div>
-                    <div className="pt-1.5">
-                      <h4 className="text-sm font-bold text-gray-900">로드맵 완주</h4>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <i className="fas fa-map mb-3 text-3xl text-gray-200" />
-                  <p className="text-xs text-gray-400">
-                    연결된 로드맵이 없거나
-                    <br />
-                    아직 불러올 데이터가 없습니다.
-                  </p>
-                </div>
-              )}
-            </div>
+            <RoadmapMiniMap
+              roadmap={state.roadmap}
+              roadmapSummary={state.roadmapSummary}
+              progressPercent={roadmapProgress}
+            />
 
             <button
-              className="mt-6 w-full rounded-xl bg-gray-900 py-3 text-sm font-bold text-white transition hover:bg-black"
+              className="mt-4 w-full rounded-xl bg-gray-900 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800 active:scale-[0.98]"
               onClick={() => {
-                window.location.href = 'roadmap-hub.html'
+                window.location.href = state.roadmap
+                  ? `roadmap.html?id=${state.roadmap.customRoadmapId}`
+                  : 'roadmap-hub.html'
               }}
             >
-              로드맵 전체 보기
+              {state.roadmap ? '이어서 학습하기 →' : '로드맵 허브 둘러보기'}
             </button>
           </div>
         </aside>

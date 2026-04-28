@@ -174,6 +174,21 @@ function lessonKindToApiType(kind: LessonKind) {
   }
 }
 
+function getFallbackLessonTitle(kind: LessonKind) {
+  switch (kind) {
+    case 'quiz':
+      return '새 퀴즈'
+    case 'assignment':
+      return '새 과제'
+    default:
+      return ''
+  }
+}
+
+function getPreparedLessonTitle(lesson: Pick<EditorLesson, 'title' | 'kind'>) {
+  return lesson.title.trim() || getFallbackLessonTitle(lesson.kind)
+}
+
 function apiTypeToLessonKind(value: string | null | undefined): LessonKind {
   switch (value) {
     case 'READING':
@@ -295,7 +310,7 @@ function prepareSections(sections: EditorSection[]) {
         .map<PreparedLesson>((lesson) => ({
           localId: lesson.localId,
           lessonId: lesson.lessonId,
-          title: lesson.title.trim() || (lesson.kind === 'quiz' ? '새 퀴즈' : lesson.kind === 'assignment' ? '새 과제' : ''),
+          title: getPreparedLessonTitle(lesson),
           kind: lesson.kind,
           description: lesson.description.trim() || null,
           videoUrl: lesson.videoUrl.trim() || null,
@@ -777,6 +792,35 @@ export default function CourseEditorPage() {
     window.open(previewUrl.toString(), '_blank', 'noopener,noreferrer')
   }
 
+  async function openLessonEditor(lesson: EditorLesson) {
+    setSaving(true)
+    setActionError(null)
+    setSaveToast({ message: '변경사항 저장 중입니다...', persistent: true })
+
+    try {
+      const { courseId: activeCourseId, lessonIdByLocalId } = await persistCourse()
+      const activeLessonId = lessonIdByLocalId[lesson.localId] ?? lesson.lessonId
+
+      if (!activeLessonId) {
+        throw new Error('레슨 저장 정보를 확인하지 못했습니다.')
+      }
+
+      const editorHref = buildLessonEditorHref(lesson.kind === 'quiz' ? 'quiz' : 'assignment', {
+        lessonId: activeLessonId,
+        lessonTitle: getPreparedLessonTitle(lesson),
+        courseId: activeCourseId,
+      })
+
+      setSaveToast({ message: '저장되었습니다.', persistent: false })
+      window.location.assign(editorHref)
+    } catch (nextError) {
+      setSaveToast(null)
+      setActionError(nextError instanceof Error ? nextError.message : '강의를 저장하지 못했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function promptThumbnailUrl() {
     const nextValue = window.prompt('썸네일 이미지 URL을 입력해 주세요.', thumbnailUrl)
     if (nextValue !== null) {
@@ -1137,38 +1181,11 @@ export default function CourseEditorPage() {
                                   promptLessonVideo(section.localId, lesson.localId, lesson.videoUrl)
                                   return
                                 }
-                                const editorCourseId = getCourseIdFromUrl()
-                                let activeLessonId = lesson.lessonId
 
-                                if (!activeLessonId) {
-                                  setSaving(true)
-                                  setActionError(null)
-                                  try {
-                                    const { lessonIdByLocalId } = await persistCourse()
-                                    activeLessonId = lessonIdByLocalId[lesson.localId]
-                                  } catch (err) {
-                                    setActionError(err instanceof Error ? err.message : '강의를 저장하지 못했습니다.')
-                                    setSaving(false)
-                                    return
-                                  }
-                                  setSaving(false)
-                                }
-
-                                if (!activeLessonId) {
-                                  return
-                                }
-
-                                const editorHref = buildLessonEditorHref(
-                                  lesson.kind === 'quiz' ? 'quiz' : 'assignment',
-                                  {
-                                    lessonId: activeLessonId,
-                                    lessonTitle: lesson.title,
-                                    courseId: editorCourseId,
-                                  },
-                                )
-                                window.location.assign(editorHref)
+                                await openLessonEditor(lesson)
                               }}
-                              className={`rounded px-3 py-1.5 text-xs font-bold transition ${meta.buttonTone}`}
+                              disabled={saving}
+                              className={`rounded px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${meta.buttonTone}`}
                             >
                               {meta.buttonLabel}
                             </button>
@@ -1331,4 +1348,3 @@ export default function CourseEditorPage() {
     </div>
   )
 }
-

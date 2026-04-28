@@ -86,6 +86,10 @@ type CompletionProofCardState = {
   verifiedSkills: string[]
 }
 
+type PersistCompletionOptions = {
+  showCourseCompletion?: boolean
+}
+
 type CelebrationParticle = {
   id: number
   left: number
@@ -108,7 +112,7 @@ type PipVideoElement = HTMLVideoElement & {
 
 const COURSE_LOAD_TIMEOUT_MS = 4000
 const LESSON_LOAD_TIMEOUT_MS = 2500
-const QNA_LOAD_TIMEOUT_MS = 2500
+const QNA_LOAD_TIMEOUT_MS = 6000
 const ASSIGNMENT_LOADING_MESSAGES = [
   '코드 및 스크립트 검사 중...',
   '제출된 파일을 실행하고 있습니다...',
@@ -188,6 +192,13 @@ function isQuestionAnswered(question: Pick<QnaQuestionSummary, 'qnaStatus' | 'ad
   return question.qnaStatus === 'ANSWERED' || Boolean(question.adoptedAnswerId) || question.answerCount > 0
 }
 
+function isOwnQnaQuestion(
+  question: Pick<QnaQuestionSummary, 'authorId'> | null | undefined,
+  userId: number | null | undefined,
+) {
+  return Boolean(userId && question?.authorId === userId)
+}
+
 function hasLessonAssignment(item: LearningLesson | null | undefined): item is LearningLesson & { assignment: LearningLessonAssignment } {
   return Boolean(item?.assignment?.assignmentId)
 }
@@ -229,6 +240,10 @@ function isQuizLesson(item: LearningLesson | null | undefined): item is Learning
   return item.lessonType?.toUpperCase() === 'READING' && /퀴즈|quiz/i.test(item.title)
 }
 
+function isLessonProgressCompleted(item: LearningLessonProgress | null | undefined) {
+  return Boolean(item?.isCompleted) || (item?.progressPercent ?? 0) >= 100
+}
+
 function buildSubmissionFiles(files: File[]) {
   return files.map((file) => {
     const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? '' : ''
@@ -246,6 +261,52 @@ function resolveAssignmentResultScore(
   precheck: AssignmentPrecheckResponse,
 ) {
   return submission.totalScore ?? precheck.qualityScore ?? null
+}
+
+function clampPercent(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function resolveAssignmentMaxScore(assignment: LearningLessonAssignment | null | undefined) {
+  return assignment?.totalScore && assignment.totalScore > 0 ? assignment.totalScore : 100
+}
+
+function normalizeScorePercent(score: number | null | undefined, maxScore: number | null | undefined) {
+  if (score === null || score === undefined) return null
+  const numericScore = Number(score)
+  if (!Number.isFinite(numericScore)) return null
+  const numericMaxScore = maxScore && maxScore > 0 ? Number(maxScore) : 100
+  if (!Number.isFinite(numericMaxScore) || numericMaxScore <= 0) return clampPercent(numericScore)
+  if (numericMaxScore !== 100 && numericScore <= numericMaxScore) {
+    return clampPercent((numericScore / numericMaxScore) * 100)
+  }
+  return clampPercent(numericScore)
+}
+
+function resolveAssignmentResultScorePercent(
+  assignment: LearningLessonAssignment | null | undefined,
+  submission: AssignmentSubmissionResponse,
+  precheck: AssignmentPrecheckResponse,
+) {
+  if (submission.totalScore !== null && submission.totalScore !== undefined) {
+    return normalizeScorePercent(submission.totalScore, resolveAssignmentMaxScore(assignment))
+  }
+  if (submission.qualityScore !== null && submission.qualityScore !== undefined) {
+    return normalizeScorePercent(submission.qualityScore, 100)
+  }
+  return normalizeScorePercent(precheck.qualityScore, 100)
+}
+
+function resolveAssignmentHistoryScorePercent(
+  assignment: LearningLessonAssignment,
+  history: SubmissionHistoryItem | null | undefined,
+) {
+  if (!history) return null
+  if (history.totalScore !== null && history.totalScore !== undefined) {
+    return normalizeScorePercent(history.totalScore, resolveAssignmentMaxScore(assignment))
+  }
+  return normalizeScorePercent(history.qualityScore, 100)
 }
 
 function resolveAssignmentResultPassed(
@@ -343,12 +404,17 @@ function formatShortDate(value: string | null | undefined) {
   return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}`
 }
 
-function inferProofCardType(course: LearningCourseDetail, lesson: FlattenedLesson | null, assignment: LearningLessonAssignment) {
+function inferProofCardType(
+  course: LearningCourseDetail,
+  lesson: FlattenedLesson | null,
+  assignment: LearningLessonAssignment | null | undefined,
+) {
   const normalized = [
     course.title,
     course.subtitle ?? '',
     lesson?.sectionTitle ?? '',
-    assignment.title,
+    lesson?.title ?? '',
+    assignment?.title ?? '',
     ...course.tags.map((tag) => tag.tagName),
   ]
     .join(' ')
@@ -410,13 +476,18 @@ function getProofCardTheme(type: ProofCardType) {
   }
 }
 
-function buildCompletionSkills(course: LearningCourseDetail, lesson: FlattenedLesson | null, assignment: LearningLessonAssignment) {
+function buildCompletionSkills(
+  course: LearningCourseDetail,
+  lesson: FlattenedLesson | null,
+  assignment: LearningLessonAssignment | null | undefined,
+) {
   const unique = new Set<string>()
   const candidates = [
     ...course.tags.map((tag) => tag.tagName),
     ...course.objectives.map((objective) => objective.objectiveText),
     lesson?.sectionTitle ?? null,
-    assignment.title,
+    lesson?.title ?? null,
+    assignment?.title ?? null,
   ]
 
   candidates.forEach((item) => {
@@ -436,13 +507,13 @@ function buildCompletionSkills(course: LearningCourseDetail, lesson: FlattenedLe
 function buildCompletionProofCard(
   course: LearningCourseDetail,
   lesson: FlattenedLesson | null,
-  assignment: LearningLessonAssignment,
+  assignment: LearningLessonAssignment | null | undefined,
   score: number | null,
 ): CompletionProofCardState {
   const verifiedSkills = buildCompletionSkills(course, lesson, assignment)
   const description = course.description?.trim()
-    || assignment.description?.trim()
-    || `${lesson?.sectionTitle ?? course.title} 섹션의 핵심 역량을 검증했습니다.`
+    || assignment?.description?.trim()
+    || `${course.title} 전체 커리큘럼을 완료했습니다.`
 
   return {
     type: inferProofCardType(course, lesson, assignment),
@@ -451,8 +522,8 @@ function buildCompletionProofCard(
     sectionTitle: lesson?.sectionTitle ?? course.title,
     description,
     issuedAt: new Date().toISOString(),
-    score: Math.max(0, Math.min(100, Math.round(score ?? assignment.totalScore ?? 100))),
-    verifiedSkills: verifiedSkills.length ? verifiedSkills : ['핵심 개념 이해', '실습 과제 완료', '제출 검증 통과'],
+    score: clampPercent(score ?? 0),
+    verifiedSkills: verifiedSkills.length ? verifiedSkills : ['전체 커리큘럼 완료', '학습 진행률 100%', '핵심 역량 검증'],
   }
 }
 
@@ -672,10 +743,10 @@ export default function LearningPlayerApp() {
   const lastRenderedSecondRef = useRef(-1)
   const pendingVideoLoadRef = useRef(false)
   const completedPersistedLessonIdRef = useRef<number | null>(null)
+  const courseCompletionShownRef = useRef<number | null>(null)
+  const lessonProgressByIdRef = useRef<Record<number, LearningLessonProgress>>({})
 
   const lessons = useMemo(() => (course ? getFlattenedLessons(course) : []), [course])
-  const isLessonProgressCompleted = (item: LearningLessonProgress | null | undefined) =>
-    Boolean(item?.isCompleted) || (item?.progressPercent ?? 0) >= 100
   const lessonLockMap = useMemo(() => {
     const locks = new Map<number, { locked: boolean; prerequisiteLessonId: number | null; prerequisiteLessonTitle: string | null }>()
     if (!course) return locks
@@ -757,11 +828,25 @@ export default function LearningPlayerApp() {
   const assignmentResultLessonIndex = assignmentGradingResult
     ? lessons.findIndex((item) => item.lessonId === assignmentGradingResult.lessonId)
     : -1
-  const assignmentResultLesson = assignmentResultLessonIndex >= 0 ? lessons[assignmentResultLessonIndex] : null
   const assignmentResultNextLesson = assignmentResultLessonIndex >= 0 && assignmentResultLessonIndex < lessons.length - 1
     ? lessons[assignmentResultLessonIndex + 1]
     : null
-  const assignmentResultCompletesCourse = assignmentResultLessonIndex >= 0 && assignmentResultLessonIndex === lessons.length - 1
+  const assignmentResultProgressById = useMemo(() => {
+    if (!assignmentGradingResult) return lessonProgressById
+    const currentProgress = lessonProgressById[assignmentGradingResult.lessonId]
+      ?? createDefaultProgress(assignmentGradingResult.lessonId)
+    return {
+      ...lessonProgressById,
+      [assignmentGradingResult.lessonId]: {
+        ...currentProgress,
+        progressPercent: 100,
+        isCompleted: true,
+      },
+    }
+  }, [assignmentGradingResult, lessonProgressById])
+  const assignmentResultCompletesCourse = assignmentGradingResult
+    ? lessons.length > 0 && lessons.every((item) => isLessonProgressCompleted(assignmentResultProgressById[item.lessonId]))
+    : false
   const assignmentResultPrimaryActionLabel = assignmentResultCompletesCourse
     ? '학습 완료 및 증명 카드 발급'
     : assignmentResultNextLesson
@@ -792,6 +877,7 @@ export default function LearningPlayerApp() {
   )
   const visibleQuestions = useMemo(() => (
     qnaQuestions.filter((item) => {
+      if (!isOwnQnaQuestion(item, sessionUserId)) return false
       const answered = isQuestionAnswered(item)
       const statusMatched = qnaStatusFilter === 'ALL'
         || (qnaStatusFilter === 'ANSWERED' && answered)
@@ -801,7 +887,7 @@ export default function LearningPlayerApp() {
         .toLowerCase()
       return statusMatched && (!deferredQnaSearch || searchTarget.includes(deferredQnaSearch))
     })
-  ), [deferredQnaSearch, qnaDetails, qnaQuestions, qnaStatusFilter])
+  ), [deferredQnaSearch, qnaDetails, qnaQuestions, qnaStatusFilter, sessionUserId])
 
   const getPlaybackLimit = useCallback((video: HTMLVideoElement | null) => {
     // Math.floor 제거 — float 그대로 사용해야 영상 끝에서 강제 정지되지 않음
@@ -825,7 +911,75 @@ export default function LearningPlayerApp() {
     }
   }, [])
 
-  const persistCompletedLesson = useCallback((lessonId: number, totalSeconds: number) => {
+  const isCourseCompletedByProgress = useCallback((progressByLessonId: Record<number, LearningLessonProgress>) => (
+    lessons.length > 0 && lessons.every((item) => isLessonProgressCompleted(progressByLessonId[item.lessonId]))
+  ), [lessons])
+
+  const calculateCourseCompletionScore = useCallback((
+    progressByLessonId: Record<number, LearningLessonProgress>,
+    latestAssignmentResult?: AssignmentGradingResultState | null,
+  ) => {
+    const progressScores = lessons.map((item) => clampPercent(progressByLessonId[item.lessonId]?.progressPercent ?? 0))
+    const assignmentScores = new Map<number, number>()
+
+    lessons.forEach((item) => {
+      const assignment = resolveLessonAssignment(item)
+      if (!assignment || assignment.assignmentId <= 0) return
+
+      const historyScore = resolveAssignmentHistoryScorePercent(
+        assignment,
+        assignmentHistoryByAssignmentId[assignment.assignmentId],
+      )
+      if (historyScore !== null) {
+        assignmentScores.set(assignment.assignmentId, historyScore)
+      }
+    })
+
+    if (latestAssignmentResult) {
+      const latestScore = resolveAssignmentResultScorePercent(
+        latestAssignmentResult.assignment,
+        latestAssignmentResult.submission,
+        latestAssignmentResult.precheck,
+      )
+      if (latestScore !== null) {
+        assignmentScores.set(latestAssignmentResult.assignment.assignmentId, latestScore)
+      }
+    }
+
+    const progressAverage = progressScores.length
+      ? progressScores.reduce((sum, item) => sum + item, 0) / progressScores.length
+      : 0
+    const assignmentScoreValues = [...assignmentScores.values()]
+    if (!assignmentScoreValues.length) return clampPercent(progressAverage)
+
+    const assignmentAverage = assignmentScoreValues.reduce((sum, item) => sum + item, 0) / assignmentScoreValues.length
+    return clampPercent((progressAverage + assignmentAverage) / 2)
+  }, [assignmentHistoryByAssignmentId, lessons])
+
+  const openCourseCompletionOverlay = useCallback((
+    progressByLessonId: Record<number, LearningLessonProgress>,
+    latestAssignmentResult?: AssignmentGradingResultState | null,
+  ) => {
+    if (!course || !isCourseCompletedByProgress(progressByLessonId)) return
+    if (courseCompletionShownRef.current === course.courseId) return
+
+    courseCompletionShownRef.current = course.courseId
+    const finalLesson = lessons[lessons.length - 1] ?? null
+    const finalAssignment = latestAssignmentResult?.assignment ?? resolveLessonAssignment(finalLesson)
+    const score = calculateCourseCompletionScore(progressByLessonId, latestAssignmentResult)
+    const proofCard = buildCompletionProofCard(course, finalLesson, finalAssignment, score)
+
+    setCompletionProofCard(proofCard)
+    setCompletionCardFlipped(false)
+    setCompletionVisible(true)
+    setCompletionBurstKey((current) => current + 1)
+  }, [calculateCourseCompletionScore, course, isCourseCompletedByProgress, lessons])
+
+  const persistCompletedLesson = useCallback((
+    lessonId: number,
+    totalSeconds: number,
+    options: PersistCompletionOptions = {},
+  ) => {
     if (completedPersistedLessonIdRef.current === lessonId) return
     completedPersistedLessonIdRef.current = lessonId
 
@@ -841,10 +995,16 @@ export default function LearningPlayerApp() {
     }
 
     setProgress((current) => (current?.lessonId === lessonId ? mergeLessonProgress(lessonId, nextProgress, current) : current))
-    setLessonProgressById((current) => ({
-      ...current,
-      [lessonId]: mergeLessonProgress(lessonId, nextProgress, current[lessonId]),
-    }))
+    const mergedProgress = mergeLessonProgress(lessonId, nextProgress, lessonProgressByIdRef.current[lessonId])
+    const nextProgressById = {
+      ...lessonProgressByIdRef.current,
+      [lessonId]: mergedProgress,
+    }
+    lessonProgressByIdRef.current = nextProgressById
+    setLessonProgressById(nextProgressById)
+    if (options.showCourseCompletion !== false) {
+      openCourseCompletionOverlay(nextProgressById)
+    }
     writeJsonStorage(getProgressStorageKey(lessonId), nextProgress)
 
     void lessonSessionApi
@@ -852,16 +1012,35 @@ export default function LearningPlayerApp() {
       .then((savedProgress) => {
         const mergedSavedProgress = mergeLessonProgress(lessonId, savedProgress, nextProgress)
         setProgress((current) => (current?.lessonId === lessonId ? mergedSavedProgress : current))
-        setLessonProgressById((current) => ({
-          ...current,
-          [lessonId]: mergeLessonProgress(lessonId, mergedSavedProgress, current[lessonId]),
-        }))
+        const savedProgressById = {
+          ...lessonProgressByIdRef.current,
+          [lessonId]: mergeLessonProgress(
+            lessonId,
+            mergedSavedProgress,
+            lessonProgressByIdRef.current[lessonId],
+          ),
+        }
+        lessonProgressByIdRef.current = savedProgressById
+        setLessonProgressById(savedProgressById)
         writeJsonStorage(getProgressStorageKey(lessonId), mergedSavedProgress)
       })
       .catch(() => {
         completedPersistedLessonIdRef.current = null
       })
-  }, [mergeLessonProgress, playerConfig?.defaultPlaybackRate, playerConfig?.pipEnabled])
+  }, [
+    mergeLessonProgress,
+    openCourseCompletionOverlay,
+    playerConfig?.defaultPlaybackRate,
+    playerConfig?.pipEnabled,
+  ])
+
+  useEffect(() => {
+    lessonProgressByIdRef.current = lessonProgressById
+  }, [lessonProgressById])
+
+  useEffect(() => {
+    courseCompletionShownRef.current = null
+  }, [course?.courseId])
 
   useEffect(() => {
     const syncSession = () => setSession(readStoredAuthSession())
@@ -1028,19 +1207,21 @@ export default function LearningPlayerApp() {
     async function loadQna() {
       setLoadingQna(true)
       setQnaError(null)
+      setQnaQuestions([])
       setQnaDetails({})
       setOpenQuestionId(null)
       setQuestionForm(createQuestionFormState())
 
       const [questionsResult, templatesResult] = await Promise.allSettled([
-        requestWithTimeout(QNA_LOAD_TIMEOUT_MS, (signal) => qnaApi.getQuestions(courseId, signal)),
+        requestWithTimeout(QNA_LOAD_TIMEOUT_MS, (signal) => qnaApi.getMyQuestions(courseId, signal)),
         requestWithTimeout(QNA_LOAD_TIMEOUT_MS, (signal) => qnaApi.getTemplates(signal)),
       ])
 
       if (cancelled) return
 
-      if (questionsResult.status === 'fulfilled') setQnaQuestions(questionsResult.value)
-      else {
+      if (questionsResult.status === 'fulfilled') {
+        setQnaQuestions(questionsResult.value.filter((question) => isOwnQnaQuestion(question, sessionUserId)))
+      } else {
         setQnaQuestions([])
         setQnaError('Q&A 데이터를 불러오지 못했습니다.')
       }
@@ -1060,7 +1241,7 @@ export default function LearningPlayerApp() {
 
     void loadQna()
     return () => { cancelled = true }
-  }, [course?.courseId, session])
+  }, [course?.courseId, session, sessionUserId])
 
   useEffect(() => {
     if (!lesson || selectedLessonLocked || !isAssignmentLesson(lesson)) {
@@ -1076,7 +1257,7 @@ export default function LearningPlayerApp() {
     setAssignmentMessage(null)
     setAssignmentLoadingVisible(false)
     setAssignmentGradingResult(null)
-  }, [lesson?.lessonId, selectedLessonLocked])
+  }, [lesson, selectedLessonLocked])
 
   useEffect(() => {
     if (!assignmentLoadingVisible) {
@@ -1468,9 +1649,9 @@ export default function LearningPlayerApp() {
     setCurrentTime(Math.floor(bounded))
   }
 
-  function markLessonCompletedForNavigation(item: LearningLesson) {
+  function markLessonCompletedForNavigation(item: LearningLesson, options?: PersistCompletionOptions) {
     const totalSeconds = Math.max(1, duration || item.durationSeconds || 1)
-    persistCompletedLesson(item.lessonId, totalSeconds)
+    persistCompletedLesson(item.lessonId, totalSeconds, options)
   }
 
   function openAssignmentModal(item: LearningLesson) {
@@ -1499,17 +1680,7 @@ export default function LearningPlayerApp() {
       return
     }
 
-    const proofCard = buildCompletionProofCard(
-      course,
-      assignmentResultLesson,
-      assignmentGradingResult.assignment,
-      assignmentGradingScore,
-    )
-
-    setCompletionProofCard(proofCard)
-    setCompletionCardFlipped(false)
-    setCompletionVisible(true)
-    setCompletionBurstKey((current) => current + 1)
+    openCourseCompletionOverlay(assignmentResultProgressById, assignmentGradingResult)
     closeAssignmentGradingResult()
   }
 
@@ -1725,7 +1896,7 @@ export default function LearningPlayerApp() {
         precheck,
         submission,
       })
-      markLessonCompletedForNavigation(assignmentModalLesson)
+      markLessonCompletedForNavigation(assignmentModalLesson, { showCourseCompletion: false })
       closeAssignmentModal()
     } catch (error) {
       setAssignmentMessage(error instanceof Error ? error.message : '과제 제출에 실패했습니다.')
@@ -1851,7 +2022,18 @@ export default function LearningPlayerApp() {
   }
 
   async function handleSubmitQuestion() {
-    if (!course || !sessionUserId || !questionForm.templateType) return
+    if (!course) {
+      setQuestionMessage('강의 정보를 불러온 뒤 다시 시도해 주세요.')
+      return
+    }
+    if (!sessionUserId) {
+      setQuestionMessage('로그인이 필요합니다.')
+      return
+    }
+    if (!questionForm.templateType) {
+      setQuestionMessage('질문 템플릿을 불러온 뒤 다시 시도해 주세요.')
+      return
+    }
     const content = questionForm.content.trim()
     if (!content) {
       setQuestionMessage('질문 내용을 입력해 주세요.')
@@ -1881,8 +2063,8 @@ export default function LearningPlayerApp() {
         setActiveTab('qna')
         setOpenQuestionId(created.id)
       })
-    } catch {
-      setQuestionMessage('질문 등록에 실패했습니다.')
+    } catch (error) {
+      setQuestionMessage(error instanceof Error ? error.message : '질문 등록에 실패했습니다.')
     } finally {
       setQuestionBusy(false)
     }
@@ -2483,8 +2665,8 @@ export default function LearningPlayerApp() {
                 ) : (
                   <EmptyState
                     iconClassName="fas fa-comments"
-                    title="등록된 질문이 없습니다"
-                    description="이 강의에는 아직 Q&A가 없습니다. 첫 질문을 남겨 보세요."
+                    title="내가 등록한 질문이 없습니다"
+                    description="이 강의에서 궁금한 점을 강사에게 남겨 보세요."
                   />
                 )}
               </div>
@@ -3070,7 +3252,7 @@ export default function LearningPlayerApp() {
               </button>
             </div>
             <p className="completion-fade-enter-delay mt-6 text-xs text-gray-500">
-              획득한 증명 카드는 <strong>내 포트폴리오</strong> 메뉴에서 언제든지 확인할 수 있습니다.
+              이 완료 카드는 현재 강의 진행률과 제출된 과제 결과를 기준으로 생성됩니다.
             </p>
             <button
               type="button"

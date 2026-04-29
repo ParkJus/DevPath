@@ -404,6 +404,74 @@ function formatShortDate(value: string | null | undefined) {
   return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}`
 }
 
+const PROOF_CARD_TEXT_LIMITS = {
+  description: 112,
+  skill: 30,
+  titleTopic: 28,
+} as const
+
+function normalizeProofCardText(value: string | null | undefined) {
+  return value?.replace(/\s+/g, ' ').trim() ?? ''
+}
+
+function limitProofCardText(value: string | null | undefined, maxLength: number, fallback = '') {
+  const normalized = normalizeProofCardText(value) || normalizeProofCardText(fallback)
+  if (!normalized) return ''
+
+  const characters = Array.from(normalized)
+  if (characters.length <= maxLength) return normalized
+
+  return `${characters.slice(0, Math.max(0, maxLength - 3)).join('').trimEnd()}...`
+}
+
+function takeProofCardTitleBeforeDelimiter(value: string, delimiter: string) {
+  const delimiterIndex = value.indexOf(delimiter)
+  if (delimiterIndex < 0) return value
+
+  const prefix = normalizeProofCardText(value.slice(0, delimiterIndex))
+  return Array.from(prefix).length >= 2 ? prefix : value
+}
+
+function takeProofCardTitleBeforeColon(value: string) {
+  const colonIndex = value.includes(':') ? value.indexOf(':') : value.indexOf('：')
+  if (colonIndex < 0) return value
+
+  const prefix = normalizeProofCardText(value.slice(0, colonIndex))
+  const prefixLength = Array.from(prefix).length
+  return prefixLength >= 2 && prefixLength <= PROOF_CARD_TEXT_LIMITS.titleTopic ? prefix : value
+}
+
+function fitProofCardTitleWithoutEllipsis(value: string, maxLength: number) {
+  const normalized = normalizeProofCardText(value)
+  if (Array.from(normalized).length <= maxLength) return normalized
+
+  const fitted = normalized.split(' ').reduce((current, word) => {
+    const next = current ? `${current} ${word}` : word
+    return Array.from(next).length <= maxLength ? next : current
+  }, '')
+
+  if (fitted) return fitted
+  return Array.from(normalized).slice(0, maxLength).join('').trimEnd()
+}
+
+function buildConciseProofCardTitle(value: string | null | undefined, fallback = '학습 완료') {
+  let title = normalizeProofCardText(value)
+    .replace(/^\[[^\]]+\]\s*/, '')
+    .replace(/^로드맵\s*실전\s*:\s*/, '')
+    .replace(/^섹션\s*마무리\s*퀴즈\s*:\s*/, '')
+    .replace(/^실습\s*과제\s*:\s*/, '')
+    .replace(/\s*-\s*\d+\s*(QUIZ|ASSIGNMENT)\s*$/i, '')
+    .replace(/\s*(QUIZ|ASSIGNMENT)\s*$/i, '')
+
+  title = takeProofCardTitleBeforeDelimiter(title, '|')
+  title = takeProofCardTitleBeforeDelimiter(title, '｜')
+  title = takeProofCardTitleBeforeColon(title)
+  title = takeProofCardTitleBeforeDelimiter(title, ' - ')
+  title = normalizeProofCardText(title) || normalizeProofCardText(fallback)
+
+  return fitProofCardTitleWithoutEllipsis(title, PROOF_CARD_TEXT_LIMITS.titleTopic)
+}
+
 function inferProofCardType(
   course: LearningCourseDetail,
   lesson: FlattenedLesson | null,
@@ -491,14 +559,9 @@ function buildCompletionSkills(
   ]
 
   candidates.forEach((item) => {
-    const trimmed = item?.trim()
+    const trimmed = normalizeProofCardText(item)
     if (!trimmed) return
-    const normalized = trimmed.replace(/\s+/g, ' ')
-    if (normalized.length > 36) {
-      unique.add(`${normalized.slice(0, 33)}...`)
-      return
-    }
-    unique.add(normalized)
+    unique.add(limitProofCardText(trimmed, PROOF_CARD_TEXT_LIMITS.skill))
   })
 
   return Array.from(unique).slice(0, 4)
@@ -511,15 +574,19 @@ function buildCompletionProofCard(
   score: number | null,
 ): CompletionProofCardState {
   const verifiedSkills = buildCompletionSkills(course, lesson, assignment)
-  const description = course.description?.trim()
-    || assignment?.description?.trim()
-    || `${course.title} 전체 커리큘럼을 완료했습니다.`
+  const conciseCourseTitle = buildConciseProofCardTitle(course.title, 'DevPath Course')
+  const descriptionSource = normalizeProofCardText(course.description) || normalizeProofCardText(assignment?.description)
+  const description = limitProofCardText(
+    descriptionSource,
+    PROOF_CARD_TEXT_LIMITS.description,
+    `${course.title} 전체 커리큘럼을 완료했습니다.`,
+  )
 
   return {
     type: inferProofCardType(course, lesson, assignment),
-    title: course.title,
-    frontTitle: course.subtitle?.trim() || course.title,
-    sectionTitle: lesson?.sectionTitle ?? course.title,
+    title: conciseCourseTitle,
+    frontTitle: buildConciseProofCardTitle(course.subtitle, conciseCourseTitle),
+    sectionTitle: buildConciseProofCardTitle(lesson?.sectionTitle, conciseCourseTitle),
     description,
     issuedAt: new Date().toISOString(),
     score: clampPercent(score ?? 0),
@@ -3160,8 +3227,8 @@ export default function LearningPlayerApp() {
                 <i className="fas fa-crown" /> MODULE CLEARED
               </div>
               <h1 className="mb-3 text-4xl font-extrabold tracking-tight text-white md:text-5xl">수고하셨습니다!</h1>
-              <p className="text-lg text-gray-400">
-                <span className="font-bold text-white">"{completionProofCard.title}"</span> 강의를 성공적으로 완료했습니다.
+              <p className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400">
+                <span className="completion-proof-text font-bold text-white">"{completionProofCard.title}"</span> 강의를 성공적으로 완료했습니다.
               </p>
             </div>
 
@@ -3180,7 +3247,7 @@ export default function LearningPlayerApp() {
                       </div>
                       <i className={`${completionTheme.iconClassName} absolute bottom-[-10px] right-[-10px] text-8xl text-white/10`} />
                       <div className="relative z-10 text-left text-white">
-                        <h3 className="mb-1 text-2xl font-black tracking-tight">{completionProofCard.frontTitle}</h3>
+                        <h3 className="completion-proof-front-title mb-1 text-2xl font-black tracking-tight">{completionProofCard.frontTitle}</h3>
                         <p className="flex items-center gap-1 text-xs font-medium text-white/80">
                           <i className="fas fa-check-circle text-[#00C471]" /> DevPath Verified
                         </p>
@@ -3210,8 +3277,8 @@ export default function LearningPlayerApp() {
 
                   <div className="card-back flex flex-col bg-gray-900 p-6 text-left text-white">
                     <div className="mb-4 border-b border-gray-700 pb-4">
-                      <h3 className="text-lg font-bold text-white">{completionProofCard.title}</h3>
-                      <p className="mt-1 text-xs leading-relaxed text-gray-400">{completionProofCard.description}</p>
+                      <h3 className="completion-proof-back-title text-lg font-bold text-white">{completionProofCard.title}</h3>
+                      <p className="completion-proof-description mt-1 text-xs leading-relaxed text-gray-400">{completionProofCard.description}</p>
                     </div>
                     <div className="flex-1">
                       <p className={`mb-3 text-[10px] font-bold uppercase tracking-wider ${completionTheme.markerClassName}`}>
@@ -3221,14 +3288,14 @@ export default function LearningPlayerApp() {
                         {completionProofCard.verifiedSkills.map((item) => (
                           <li key={`${completionProofCard.title}-${item}`} className="flex items-start gap-2">
                             <i className="fas fa-check mt-0.5 text-[10px] text-[#00C471]" />
-                            <span>{item}</span>
+                            <span className="completion-proof-list-text">{item}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                     <div className="mt-5 border-t border-gray-700 pt-4">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">완료 섹션</div>
-                      <div className="mt-2 text-sm font-bold text-white">{completionProofCard.sectionTitle}</div>
+                      <div className="completion-proof-section-title mt-2 text-sm font-bold text-white">{completionProofCard.sectionTitle}</div>
                     </div>
                   </div>
                 </div>

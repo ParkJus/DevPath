@@ -12016,6 +12016,318 @@ WHERE NOT EXISTS (
       AND l.sort_order = ls.lesson_order
 );
 
+-- 로드맵 실전: Git & 버전 관리 강의는 OCR 실습 영상과 섹션 평가/과제를 고정 연결한다.
+UPDATE courses
+SET intro_video_url = '/samples/ocr-code-demo.mp4',
+    video_asset_key = NULL,
+    updated_at = TIMESTAMP '2026-04-30 09:00:00'
+WHERE title = '로드맵 실전: Git & 버전 관리'
+  AND (
+      COALESCE(intro_video_url, '') <> '/samples/ocr-code-demo.mp4'
+      OR video_asset_key IS NOT NULL
+  );
+
+UPDATE lessons l
+SET video_url = '/samples/ocr-code-demo.mp4',
+    video_asset_key = NULL,
+    video_provider = NULL
+FROM course_sections cs
+JOIN courses c ON c.course_id = cs.course_id
+WHERE l.section_id = cs.section_id
+  AND c.title = '로드맵 실전: Git & 버전 관리'
+  AND l.lesson_type = 'VIDEO'
+  AND (
+      COALESCE(l.video_url, '') <> '/samples/ocr-code-demo.mp4'
+      OR l.video_asset_key IS NOT NULL
+      OR l.video_provider IS NOT NULL
+  );
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order, sub_topics, branch_group)
+WITH git_activity_nodes(course_title, section_order, activity_kind, node_title, node_content, sort_order) AS (
+    VALUES
+        (
+            '로드맵 실전: Git & 버전 관리',
+            1,
+            'QUIZ',
+            '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ',
+            '커밋 단위, 브랜치 전략, Pull Request 리뷰 흐름을 확인하는 섹션 1 마무리 퀴즈입니다.',
+            1081
+        ),
+        (
+            '로드맵 실전: Git & 버전 관리',
+            2,
+            'ASSIGNMENT',
+            '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT',
+            'feature 브랜치 생성부터 커밋 메시지, PR 본문, 리뷰 체크리스트까지 Git 협업 흐름을 문서로 정리하는 과제입니다.',
+            1082
+        )
+)
+SELECT
+    r.roadmap_id,
+    gan.node_title,
+    gan.node_content,
+    gan.activity_kind,
+    gan.sort_order,
+    gan.course_title,
+    gan.section_order
+FROM git_activity_nodes gan
+JOIN roadmaps r ON r.title = 'DevPath 공개 강의 평가 데이터'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes rn
+    WHERE rn.title = gan.node_title
+);
+
+INSERT INTO course_node_mappings (course_id, node_id, created_at)
+SELECT c.course_id, rn.node_id, TIMESTAMP '2026-04-30 09:05:00'
+FROM courses c
+JOIN roadmap_nodes rn ON rn.sub_topics = c.title
+WHERE c.title = '로드맵 실전: Git & 버전 관리'
+  AND rn.title IN (
+      '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ',
+      '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT'
+  )
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_node_mappings cnm
+      WHERE cnm.course_id = c.course_id
+        AND cnm.node_id = rn.node_id
+  );
+
+INSERT INTO lessons (
+    section_id, title, description, lesson_type, video_url, video_asset_key, video_provider,
+    thumbnail_url, duration_seconds, is_preview, is_published, sort_order, quiz_node_id
+)
+SELECT
+    cs.section_id,
+    '섹션 마무리 퀴즈: Git 협업 흐름 점검',
+    '커밋 단위, 브랜치 전략, Pull Request 리뷰 목적을 확인하는 섹션 1 퀴즈입니다.',
+    'READING',
+    NULL,
+    NULL,
+    NULL,
+    c.thumbnail_url,
+    300,
+    FALSE,
+    TRUE,
+    3,
+    rn.node_id
+FROM courses c
+JOIN course_sections cs ON cs.course_id = c.course_id AND cs.sort_order = 1
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ'
+WHERE c.title = '로드맵 실전: Git & 버전 관리'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lessons l
+      WHERE l.section_id = cs.section_id
+        AND l.sort_order = 3
+        AND l.title = '섹션 마무리 퀴즈: Git 협업 흐름 점검'
+  );
+
+UPDATE lessons l
+SET quiz_node_id = rn.node_id
+FROM course_sections cs
+JOIN courses c ON c.course_id = cs.course_id
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ'
+WHERE l.section_id = cs.section_id
+  AND c.title = '로드맵 실전: Git & 버전 관리'
+  AND cs.sort_order = 1
+  AND l.sort_order = 3
+  AND l.title = '섹션 마무리 퀴즈: Git 협업 흐름 점검'
+  AND l.quiz_node_id IS NULL;
+
+INSERT INTO lessons (
+    section_id, title, description, lesson_type, video_url, video_asset_key, video_provider,
+    thumbnail_url, duration_seconds, is_preview, is_published, sort_order, assignment_node_id
+)
+SELECT
+    cs.section_id,
+    '실습 과제: Git 브랜치 전략과 PR 회고',
+    '기능 브랜치, 커밋 메시지, PR 본문, 리뷰 체크리스트를 하나의 협업 흐름으로 정리해 제출합니다.',
+    'CODING',
+    NULL,
+    NULL,
+    NULL,
+    c.thumbnail_url,
+    900,
+    FALSE,
+    TRUE,
+    3,
+    rn.node_id
+FROM courses c
+JOIN course_sections cs ON cs.course_id = c.course_id AND cs.sort_order = 2
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT'
+WHERE c.title = '로드맵 실전: Git & 버전 관리'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM lessons l
+      WHERE l.section_id = cs.section_id
+        AND l.sort_order = 3
+        AND l.title = '실습 과제: Git 브랜치 전략과 PR 회고'
+  );
+
+UPDATE lessons l
+SET assignment_node_id = rn.node_id
+FROM course_sections cs
+JOIN courses c ON c.course_id = cs.course_id
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT'
+WHERE l.section_id = cs.section_id
+  AND c.title = '로드맵 실전: Git & 버전 관리'
+  AND cs.sort_order = 2
+  AND l.sort_order = 3
+  AND l.title = '실습 과제: Git 브랜치 전략과 PR 회고'
+  AND l.assignment_node_id IS NULL;
+
+INSERT INTO quizzes (
+    node_id, title, description, quiz_type, total_score, pass_score,
+    time_limit_minutes, is_published, is_active, expose_answer,
+    expose_explanation, is_deleted, created_at, updated_at
+)
+SELECT
+    rn.node_id,
+    'Git 브랜치와 PR 흐름 점검 퀴즈',
+    '커밋 단위, 브랜치 전략, Pull Request 리뷰 흐름을 확인하는 섹션 1 마무리 퀴즈입니다.',
+    'MANUAL',
+    10,
+    7,
+    10,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    FALSE,
+    TIMESTAMP '2026-04-30 09:10:00',
+    TIMESTAMP '2026-04-30 09:10:00'
+FROM roadmap_nodes rn
+WHERE rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quizzes q
+      WHERE q.node_id = rn.node_id
+  );
+
+INSERT INTO quiz_questions (
+    quiz_id, question_type, question_text, explanation, points,
+    display_order, source_timestamp, is_deleted, created_at, updated_at
+)
+SELECT
+    q.quiz_id,
+    'MULTIPLE_CHOICE',
+    'Git 협업에서 Pull Request를 여는 가장 적절한 목적은 무엇인가요?',
+    'PR은 기능 브랜치의 변경 내용을 공유하고 리뷰와 자동 검증을 거쳐 안전하게 기본 브랜치에 병합하기 위한 절차입니다.',
+    10,
+    1,
+    NULL,
+    FALSE,
+    TIMESTAMP '2026-04-30 09:15:00',
+    TIMESTAMP '2026-04-30 09:15:00'
+FROM quizzes q
+JOIN roadmap_nodes rn ON rn.node_id = q.node_id
+WHERE rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM quiz_questions qq
+      WHERE qq.quiz_id = q.quiz_id
+        AND qq.display_order = 1
+  );
+
+INSERT INTO quiz_question_options (
+    question_id, option_text, is_correct, display_order,
+    is_deleted, created_at, updated_at
+)
+WITH git_quiz_option_seed(option_text, is_correct, display_order) AS (
+    VALUES
+        ('변경 내용을 리뷰하고 자동 검증을 통과한 뒤 병합하기 위해서', TRUE, 1),
+        ('로컬 커밋 기록을 모두 삭제하기 위해서', FALSE, 2),
+        ('원격 저장소 연결 없이 브랜치를 만들기 위해서', FALSE, 3),
+        ('충돌이 발생하지 않도록 Git 사용을 중단하기 위해서', FALSE, 4)
+)
+SELECT
+    qq.question_id,
+    seed.option_text,
+    seed.is_correct,
+    seed.display_order,
+    FALSE,
+    TIMESTAMP '2026-04-30 09:20:00',
+    TIMESTAMP '2026-04-30 09:20:00'
+FROM git_quiz_option_seed seed
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 1 QUIZ'
+JOIN quizzes q ON q.node_id = rn.node_id
+JOIN quiz_questions qq ON qq.quiz_id = q.quiz_id AND qq.display_order = 1
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM quiz_question_options qo
+    WHERE qo.question_id = qq.question_id
+      AND qo.display_order = seed.display_order
+);
+
+INSERT INTO assignments (
+    node_id, title, description, submission_type, due_at, allowed_file_formats,
+    readme_required, test_required, lint_required, submission_rule_description,
+    total_score, pass_score, is_published, is_active, allow_late_submission,
+    ai_review_enabled, allow_text_submission,
+    allow_file_submission, allow_url_submission, is_deleted, created_at, updated_at
+)
+SELECT
+    rn.node_id,
+    'Git 브랜치 전략과 PR 회고 과제',
+    '기능 개발 흐름을 가정해 feature 브랜치를 만들고 의미 있는 커밋 단위로 변경 이력을 구성한 뒤, PR 설명과 충돌 해결/리뷰 체크리스트를 README로 정리합니다. 실제 코드를 작성하지 않아도 브랜치명, 커밋 메시지, PR 본문 예시가 포함되어야 합니다.',
+    'MULTIPLE',
+    TIMESTAMP '2026-05-31 23:59:59',
+    'md,pdf,zip,github-url',
+    TRUE,
+    FALSE,
+    FALSE,
+    'GitHub 저장소 URL 또는 README 파일을 제출하세요. README에는 브랜치 전략, 커밋 메시지 3개 이상, PR 본문, 리뷰 체크리스트, 충돌 발생 시 해결 절차를 포함해야 합니다.',
+    100,
+    70,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    TRUE,
+    FALSE,
+    TIMESTAMP '2026-04-30 09:25:00',
+    TIMESTAMP '2026-04-30 09:25:00'
+FROM roadmap_nodes rn
+WHERE rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM assignments a
+      WHERE a.node_id = rn.node_id
+  );
+
+INSERT INTO assignment_rubrics (
+    assignment_id, criteria_name, criteria_description, max_points,
+    display_order, is_deleted, created_at, updated_at
+)
+WITH git_assignment_rubric_seed(criteria_name, criteria_description, max_points, display_order) AS (
+    VALUES
+        ('Git 작업 흐름 구성', 'feature 브랜치 생성, 의미 있는 커밋 단위, PR 생성 흐름이 실제 협업 흐름에 맞게 정리되었습니다.', 40, 1),
+        ('PR 설명과 리뷰 체크리스트', '변경 목적, 테스트/검증 방법, 리뷰어가 확인해야 할 항목을 PR 본문 형식으로 구체화했습니다.', 35, 2),
+        ('충돌 해결과 회고', '충돌이 발생했을 때의 해결 순서와 브랜치 전략을 적용하며 배운 점을 정리했습니다.', 25, 3)
+)
+SELECT
+    a.assignment_id,
+    seed.criteria_name,
+    seed.criteria_description,
+    seed.max_points,
+    seed.display_order,
+    FALSE,
+    TIMESTAMP '2026-04-30 09:30:00',
+    TIMESTAMP '2026-04-30 09:30:00'
+FROM git_assignment_rubric_seed seed
+JOIN roadmap_nodes rn ON rn.title = '[ROADMAP COURSE] 로드맵 실전: Git & 버전 관리 - 2 ASSIGNMENT'
+JOIN assignments a ON a.node_id = rn.node_id
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM assignment_rubrics ar
+    WHERE ar.assignment_id = a.assignment_id
+      AND ar.display_order = seed.display_order
+);
+
 INSERT INTO course_node_mappings (course_id, node_id, created_at)
 SELECT
     c.course_id,

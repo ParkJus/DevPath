@@ -13460,12 +13460,20 @@ WHERE NOT EXISTS (
     WHERE roadmap.title = seed.title
 );
 
+DELETE FROM roadmap_hub_items
+WHERE section_id IN (
+    SELECT id
+    FROM roadmap_hub_sections
+    WHERE section_key IN ('project-ideas', 'best-practices')
+);
+
+DELETE FROM roadmap_hub_sections
+WHERE section_key IN ('project-ideas', 'best-practices');
+
 WITH roadmap_hub_section_seed(section_key, title, description, layout_type, sort_order, is_active) AS (
     VALUES
-        ('role-based', '역할 기반 로드맵', '직무 중심 로드맵 허브 구성입니다.', 'CARD_GRID', 0, TRUE),
-        ('skill-based', '기술 기반 로드맵', '기술 중심 로드맵 허브 구성입니다.', 'CHIP_GRID', 1, TRUE),
-        ('project-ideas', '프로젝트 아이디어', '프로젝트 아이디어 섹션입니다.', 'LINK_LIST', 2, TRUE),
-        ('best-practices', '베스트 프랙티스', '실무 베스트 프랙티스 섹션입니다.', 'LINK_LIST', 3, TRUE)
+        ('role-based', '직무별 학습 로드맵', '직무별 학습 로드맵 허브 구성입니다.', 'CARD_GRID', 0, TRUE),
+        ('skill-based', '기술별 학습 로드맵', '기술별 학습 로드맵 허브 구성입니다.', 'CHIP_GRID', 1, TRUE)
 )
 INSERT INTO roadmap_hub_sections (section_key, title, description, layout_type, sort_order, is_active)
 SELECT seed.section_key, seed.title, seed.description, seed.layout_type, seed.sort_order, seed.is_active
@@ -13477,14 +13485,18 @@ WHERE NOT EXISTS (
 );
 
 UPDATE roadmap_hub_sections
-SET title = CASE section_key
-        WHEN 'role-based' THEN '역할 기반 로드맵'
-        WHEN 'skill-based' THEN '기술 기반 로드맵'
-        WHEN 'project-ideas' THEN '프로젝트 아이디어'
-        WHEN 'best-practices' THEN '베스트 프랙티스'
+SET
+    title = CASE section_key
+        WHEN 'role-based' THEN '직무별 학습 로드맵'
+        WHEN 'skill-based' THEN '기술별 학습 로드맵'
         ELSE title
+    END,
+    description = CASE section_key
+        WHEN 'role-based' THEN '직무별 학습 로드맵 허브 구성입니다.'
+        WHEN 'skill-based' THEN '기술별 학습 로드맵 허브 구성입니다.'
+        ELSE description
     END
-WHERE section_key IN ('role-based', 'skill-based', 'project-ideas', 'best-practices');
+WHERE section_key IN ('role-based', 'skill-based');
 
 WITH roadmap_hub_item_seed(
     section_key,
@@ -13523,67 +13535,59 @@ WITH roadmap_hub_item_seed(
         ('role-based', '엔지니어링 매니저', 'Engineering Manager', 'fas fa-users', 'Engineering Manager', FALSE, 23, TRUE),
         ('role-based', '데브렐', 'Developer Relations', 'fas fa-bullhorn', 'Developer Relations', FALSE, 24, TRUE),
         ('role-based', 'BI 분석가', 'BI Analyst', 'fas fa-chart-pie', 'BI Analyst', FALSE, 25, TRUE),
-        ('skill-based', 'SQL', NULL, NULL, 'SQL', FALSE, 0, TRUE),
-        ('skill-based', 'Computer Science', NULL, NULL, 'Computer Science', FALSE, 1, TRUE),
-        ('skill-based', 'React', NULL, NULL, 'React', FALSE, 2, TRUE),
-        ('skill-based', 'Vue', NULL, NULL, 'Vue', FALSE, 3, TRUE),
-        ('skill-based', 'Angular', NULL, NULL, 'Angular', FALSE, 4, TRUE),
-        ('skill-based', 'JavaScript', NULL, NULL, 'JavaScript', FALSE, 5, TRUE),
-        ('skill-based', 'TypeScript', NULL, NULL, 'TypeScript', FALSE, 6, TRUE),
-        ('skill-based', 'Node.js', NULL, NULL, 'Node.js', FALSE, 7, TRUE),
-        ('skill-based', 'Python', NULL, NULL, 'Python', FALSE, 8, TRUE),
-        ('skill-based', 'System Design', NULL, NULL, 'System Design', FALSE, 9, TRUE),
-        ('skill-based', 'Java', NULL, NULL, 'Java', FALSE, 10, TRUE),
-        ('skill-based', 'ASP.NET Core', NULL, NULL, 'ASP.NET Core', FALSE, 11, TRUE),
-        ('skill-based', 'API Design', NULL, NULL, 'API Design', FALSE, 12, TRUE),
-        ('skill-based', 'Spring Boot', NULL, NULL, 'Spring Boot', FALSE, 13, TRUE),
-        ('skill-based', 'Flutter', NULL, NULL, 'Flutter', FALSE, 14, TRUE),
-        ('skill-based', 'C++', NULL, NULL, 'C++', FALSE, 15, TRUE),
-        ('skill-based', 'Rust', NULL, NULL, 'Rust', FALSE, 16, TRUE),
-        ('skill-based', 'Go Roadmap', NULL, NULL, 'Go Roadmap', FALSE, 17, TRUE),
-        ('skill-based', 'Design and Architecture', NULL, NULL, 'Design and Architecture', FALSE, 18, TRUE),
-        ('skill-based', 'GraphQL', NULL, NULL, 'GraphQL', FALSE, 19, TRUE),
-        ('skill-based', 'React Native', NULL, NULL, 'React Native', FALSE, 20, TRUE),
-        ('skill-based', 'Design System', NULL, NULL, 'Design System', FALSE, 21, TRUE),
-        ('skill-based', 'Prompt Engineering', NULL, NULL, 'Prompt Engineering', FALSE, 22, TRUE),
-        ('skill-based', 'MongoDB', NULL, NULL, 'MongoDB', FALSE, 23, TRUE),
-        ('skill-based', 'Linux', NULL, NULL, 'Linux', FALSE, 24, TRUE),
-        ('skill-based', 'Kubernetes', NULL, NULL, 'Kubernetes', FALSE, 25, TRUE),
-        ('skill-based', 'Docker', NULL, NULL, 'Docker', FALSE, 26, TRUE),
-        ('skill-based', 'AWS', NULL, NULL, 'AWS', FALSE, 27, TRUE),
-        ('skill-based', 'Terraform', NULL, NULL, 'Terraform', FALSE, 28, TRUE),
-        ('skill-based', 'Data Structures & Algorithms', NULL, NULL, 'Data Structures & Algorithms', FALSE, 29, TRUE),
-        ('skill-based', 'Redis', NULL, NULL, 'Redis', FALSE, 30, TRUE),
-        ('skill-based', 'Git and GitHub', NULL, NULL, 'Git and GitHub', FALSE, 31, TRUE),
-        ('skill-based', 'PHP', NULL, NULL, 'PHP', FALSE, 32, TRUE),
-        ('skill-based', 'Cloudflare', NULL, NULL, 'Cloudflare', FALSE, 33, TRUE),
-        ('skill-based', 'AI Red Teaming', NULL, NULL, 'AI Red Teaming', FALSE, 34, TRUE),
-        ('skill-based', 'AI Agents', NULL, NULL, 'AI Agents', FALSE, 35, TRUE),
-        ('skill-based', 'Next.js', NULL, NULL, 'Next.js', FALSE, 36, TRUE),
-        ('skill-based', 'Code Review', NULL, NULL, 'Code Review', FALSE, 37, TRUE),
-        ('skill-based', 'Kotlin', NULL, NULL, 'Kotlin', FALSE, 38, TRUE),
-        ('skill-based', 'HTML', NULL, NULL, 'HTML', FALSE, 39, TRUE),
-        ('skill-based', 'CSS', NULL, NULL, 'CSS', FALSE, 40, TRUE),
-        ('skill-based', 'Swift & Swift UI', NULL, NULL, 'Swift & Swift UI', FALSE, 41, TRUE),
-        ('skill-based', 'Shell / Bash', NULL, NULL, 'Shell / Bash', FALSE, 42, TRUE),
-        ('skill-based', 'Laravel', NULL, NULL, 'Laravel', FALSE, 43, TRUE),
-        ('skill-based', 'Elasticsearch', NULL, NULL, 'Elasticsearch', FALSE, 44, TRUE),
-        ('skill-based', 'WordPress', NULL, NULL, 'WordPress', FALSE, 45, TRUE),
-        ('skill-based', 'Django', NULL, NULL, 'Django', FALSE, 46, TRUE),
-        ('skill-based', 'Ruby', NULL, NULL, 'Ruby', FALSE, 47, TRUE),
-        ('skill-based', 'Ruby on Rails', NULL, NULL, 'Ruby on Rails', FALSE, 48, TRUE),
-        ('skill-based', 'Claude Code', NULL, NULL, 'Claude Code', FALSE, 49, TRUE),
-        ('skill-based', 'Vibe Coding', NULL, NULL, 'Vibe Coding', FALSE, 50, TRUE),
-        ('skill-based', 'Scala', NULL, NULL, 'Scala', FALSE, 51, TRUE),
-        ('skill-based', 'OpenClaw', NULL, NULL, 'OpenClaw', FALSE, 52, TRUE),
-        ('project-ideas', 'Frontend', NULL, NULL, NULL, FALSE, 0, TRUE),
-        ('project-ideas', 'Backend', NULL, NULL, NULL, FALSE, 1, TRUE),
-        ('project-ideas', 'DevOps', NULL, NULL, NULL, FALSE, 2, TRUE),
-        ('best-practices', 'AWS', NULL, NULL, NULL, FALSE, 0, TRUE),
-        ('best-practices', 'API Security', NULL, NULL, NULL, FALSE, 1, TRUE),
-        ('best-practices', 'Backend Performance', NULL, NULL, NULL, FALSE, 2, TRUE),
-        ('best-practices', 'Frontend Performance', NULL, NULL, NULL, FALSE, 3, TRUE),
-        ('best-practices', 'Code Review', NULL, NULL, NULL, FALSE, 4, TRUE)
+        ('skill-based', 'SQL', NULL, 'fas fa-database', 'SQL', FALSE, 0, TRUE),
+        ('skill-based', 'Computer Science', NULL, 'fas fa-microchip', 'Computer Science', FALSE, 1, TRUE),
+        ('skill-based', 'React', NULL, 'fab fa-react', 'React', FALSE, 2, TRUE),
+        ('skill-based', 'Vue', NULL, 'fab fa-vuejs', 'Vue', FALSE, 3, TRUE),
+        ('skill-based', 'Angular', NULL, 'fab fa-angular', 'Angular', FALSE, 4, TRUE),
+        ('skill-based', 'JavaScript', NULL, 'fab fa-js', 'JavaScript', FALSE, 5, TRUE),
+        ('skill-based', 'TypeScript', NULL, 'fas fa-code', 'TypeScript', FALSE, 6, TRUE),
+        ('skill-based', 'Node.js', NULL, 'fab fa-node-js', 'Node.js', FALSE, 7, TRUE),
+        ('skill-based', 'Python', NULL, 'fab fa-python', 'Python', FALSE, 8, TRUE),
+        ('skill-based', 'System Design', NULL, 'fas fa-sitemap', 'System Design', FALSE, 9, TRUE),
+        ('skill-based', 'Java', NULL, 'fab fa-java', 'Java', FALSE, 10, TRUE),
+        ('skill-based', 'ASP.NET Core', NULL, 'fab fa-microsoft', 'ASP.NET Core', FALSE, 11, TRUE),
+        ('skill-based', 'API Design', NULL, 'fas fa-plug', 'API Design', FALSE, 12, TRUE),
+        ('skill-based', 'Spring Boot', NULL, 'fas fa-leaf', 'Spring Boot', FALSE, 13, TRUE),
+        ('skill-based', 'Flutter', NULL, 'fas fa-mobile-alt', 'Flutter', FALSE, 14, TRUE),
+        ('skill-based', 'C++', NULL, 'fas fa-code', 'C++', FALSE, 15, TRUE),
+        ('skill-based', 'Rust', NULL, 'fab fa-rust', 'Rust', FALSE, 16, TRUE),
+        ('skill-based', 'Go Roadmap', NULL, 'fas fa-code', 'Go Roadmap', FALSE, 17, TRUE),
+        ('skill-based', 'Design and Architecture', NULL, 'fas fa-drafting-compass', 'Design and Architecture', FALSE, 18, TRUE),
+        ('skill-based', 'GraphQL', NULL, 'fas fa-project-diagram', 'GraphQL', FALSE, 19, TRUE),
+        ('skill-based', 'React Native', NULL, 'fab fa-react', 'React Native', FALSE, 20, TRUE),
+        ('skill-based', 'Design System', NULL, 'fas fa-palette', 'Design System', FALSE, 21, TRUE),
+        ('skill-based', 'Prompt Engineering', NULL, 'fas fa-magic', 'Prompt Engineering', FALSE, 22, TRUE),
+        ('skill-based', 'MongoDB', NULL, 'fas fa-leaf', 'MongoDB', FALSE, 23, TRUE),
+        ('skill-based', 'Linux', NULL, 'fab fa-linux', 'Linux', FALSE, 24, TRUE),
+        ('skill-based', 'Kubernetes', NULL, 'fas fa-dharmachakra', 'Kubernetes', FALSE, 25, TRUE),
+        ('skill-based', 'Docker', NULL, 'fab fa-docker', 'Docker', FALSE, 26, TRUE),
+        ('skill-based', 'AWS', NULL, 'fab fa-aws', 'AWS', FALSE, 27, TRUE),
+        ('skill-based', 'Terraform', NULL, 'fas fa-cubes', 'Terraform', FALSE, 28, TRUE),
+        ('skill-based', 'Data Structures & Algorithms', NULL, 'fas fa-project-diagram', 'Data Structures & Algorithms', FALSE, 29, TRUE),
+        ('skill-based', 'Redis', NULL, 'fas fa-memory', 'Redis', FALSE, 30, TRUE),
+        ('skill-based', 'Git and GitHub', NULL, 'fab fa-github', 'Git and GitHub', FALSE, 31, TRUE),
+        ('skill-based', 'PHP', NULL, 'fab fa-php', 'PHP', FALSE, 32, TRUE),
+        ('skill-based', 'Cloudflare', NULL, 'fab fa-cloudflare', 'Cloudflare', FALSE, 33, TRUE),
+        ('skill-based', 'AI Red Teaming', NULL, 'fas fa-shield-alt', 'AI Red Teaming', FALSE, 34, TRUE),
+        ('skill-based', 'AI Agents', NULL, 'fas fa-robot', 'AI Agents', FALSE, 35, TRUE),
+        ('skill-based', 'Next.js', NULL, 'fas fa-code', 'Next.js', FALSE, 36, TRUE),
+        ('skill-based', 'Code Review', NULL, 'fas fa-code-branch', 'Code Review', FALSE, 37, TRUE),
+        ('skill-based', 'Kotlin', NULL, 'fas fa-code', 'Kotlin', FALSE, 38, TRUE),
+        ('skill-based', 'HTML', NULL, 'fab fa-html5', 'HTML', FALSE, 39, TRUE),
+        ('skill-based', 'CSS', NULL, 'fab fa-css3-alt', 'CSS', FALSE, 40, TRUE),
+        ('skill-based', 'Swift & Swift UI', NULL, 'fab fa-swift', 'Swift & Swift UI', FALSE, 41, TRUE),
+        ('skill-based', 'Shell / Bash', NULL, 'fas fa-terminal', 'Shell / Bash', FALSE, 42, TRUE),
+        ('skill-based', 'Laravel', NULL, 'fab fa-laravel', 'Laravel', FALSE, 43, TRUE),
+        ('skill-based', 'Elasticsearch', NULL, 'fas fa-search', 'Elasticsearch', FALSE, 44, TRUE),
+        ('skill-based', 'WordPress', NULL, 'fab fa-wordpress', 'WordPress', FALSE, 45, TRUE),
+        ('skill-based', 'Django', NULL, 'fab fa-python', 'Django', FALSE, 46, TRUE),
+        ('skill-based', 'Ruby', NULL, 'fas fa-gem', 'Ruby', FALSE, 47, TRUE),
+        ('skill-based', 'Ruby on Rails', NULL, 'fas fa-train', 'Ruby on Rails', FALSE, 48, TRUE),
+        ('skill-based', 'Claude Code', NULL, 'fas fa-terminal', 'Claude Code', FALSE, 49, TRUE),
+        ('skill-based', 'Vibe Coding', NULL, 'fas fa-star', 'Vibe Coding', FALSE, 50, TRUE),
+        ('skill-based', 'Scala', NULL, 'fas fa-layer-group', 'Scala', FALSE, 51, TRUE),
+        ('skill-based', 'OpenClaw', NULL, 'fas fa-code', 'OpenClaw', FALSE, 52, TRUE)
 )
 INSERT INTO roadmap_hub_items (
     section_id,
@@ -13620,6 +13624,163 @@ WHERE NOT EXISTS (
           OR (seed.subtitle IS NOT NULL AND item.subtitle = seed.subtitle)
       )
 );
+
+WITH roadmap_hub_skill_icon_seed(item_title, icon_class) AS (
+    VALUES
+        ('SQL', 'fas fa-database'),
+        ('Computer Science', 'fas fa-microchip'),
+        ('React', 'fab fa-react'),
+        ('Vue', 'fab fa-vuejs'),
+        ('Angular', 'fab fa-angular'),
+        ('JavaScript', 'fab fa-js'),
+        ('TypeScript', 'fas fa-code'),
+        ('Node.js', 'fab fa-node-js'),
+        ('Python', 'fab fa-python'),
+        ('System Design', 'fas fa-sitemap'),
+        ('Java', 'fab fa-java'),
+        ('ASP.NET Core', 'fab fa-microsoft'),
+        ('API Design', 'fas fa-plug'),
+        ('Spring Boot', 'fas fa-leaf'),
+        ('Flutter', 'fas fa-mobile-alt'),
+        ('C++', 'fas fa-code'),
+        ('Rust', 'fab fa-rust'),
+        ('Go Roadmap', 'fas fa-code'),
+        ('Design and Architecture', 'fas fa-drafting-compass'),
+        ('GraphQL', 'fas fa-project-diagram'),
+        ('React Native', 'fab fa-react'),
+        ('Design System', 'fas fa-palette'),
+        ('Prompt Engineering', 'fas fa-magic'),
+        ('MongoDB', 'fas fa-leaf'),
+        ('Linux', 'fab fa-linux'),
+        ('Kubernetes', 'fas fa-dharmachakra'),
+        ('Docker', 'fab fa-docker'),
+        ('AWS', 'fab fa-aws'),
+        ('Terraform', 'fas fa-cubes'),
+        ('Data Structures & Algorithms', 'fas fa-project-diagram'),
+        ('Redis', 'fas fa-memory'),
+        ('Git and GitHub', 'fab fa-github'),
+        ('PHP', 'fab fa-php'),
+        ('Cloudflare', 'fab fa-cloudflare'),
+        ('AI Red Teaming', 'fas fa-shield-alt'),
+        ('AI Agents', 'fas fa-robot'),
+        ('Next.js', 'fas fa-code'),
+        ('Code Review', 'fas fa-code-branch'),
+        ('Kotlin', 'fas fa-code'),
+        ('HTML', 'fab fa-html5'),
+        ('CSS', 'fab fa-css3-alt'),
+        ('Swift & Swift UI', 'fab fa-swift'),
+        ('Shell / Bash', 'fas fa-terminal'),
+        ('Laravel', 'fab fa-laravel'),
+        ('Elasticsearch', 'fas fa-search'),
+        ('WordPress', 'fab fa-wordpress'),
+        ('Django', 'fab fa-python'),
+        ('Ruby', 'fas fa-gem'),
+        ('Ruby on Rails', 'fas fa-train'),
+        ('Claude Code', 'fas fa-terminal'),
+        ('Vibe Coding', 'fas fa-star'),
+        ('Scala', 'fas fa-layer-group'),
+        ('OpenClaw', 'fas fa-code')
+)
+UPDATE roadmap_hub_items item
+SET icon_class = seed.icon_class
+FROM roadmap_hub_skill_icon_seed seed
+JOIN roadmap_hub_sections section_item
+    ON section_item.section_key = 'skill-based'
+WHERE item.section_id = section_item.id
+  AND item.title = seed.item_title;
+
+WITH roadmap_hub_item_color_seed(section_key, item_title, subtitle, icon_color) AS (
+    VALUES
+        ('role-based', NULL, 'Frontend', '#38BDF8'),
+        ('role-based', NULL, 'Backend', '#00C471'),
+        ('role-based', NULL, 'Full Stack', '#8B5CF6'),
+        ('role-based', NULL, 'DevOps', '#F59E0B'),
+        ('role-based', NULL, 'DevSecOps', '#EF4444'),
+        ('role-based', NULL, 'Data Analyst', '#06B6D4'),
+        ('role-based', NULL, 'AI Engineer', '#A855F7'),
+        ('role-based', NULL, 'AI and Data Scientist', '#6366F1'),
+        ('role-based', NULL, 'Data Engineer', '#0EA5E9'),
+        ('role-based', NULL, 'Android', '#3DDC84'),
+        ('role-based', NULL, 'Machine Learning', '#F97316'),
+        ('role-based', NULL, 'PostgreSQL', '#336791'),
+        ('role-based', NULL, 'iOS', '#111827'),
+        ('role-based', NULL, 'Blockchain', '#F7931A'),
+        ('role-based', NULL, 'QA', '#14B8A6'),
+        ('role-based', NULL, 'Software Architect', '#64748B'),
+        ('role-based', NULL, 'Cyber Security', '#DC2626'),
+        ('role-based', NULL, 'UX Design', '#EC4899'),
+        ('role-based', NULL, 'Technical Writer', '#475569'),
+        ('role-based', NULL, 'Game Developer', '#7C3AED'),
+        ('role-based', NULL, 'Server Side Game Developer', '#2563EB'),
+        ('role-based', NULL, 'MLOps', '#22C55E'),
+        ('role-based', NULL, 'Product Manager', '#F59E0B'),
+        ('role-based', NULL, 'Engineering Manager', '#0F766E'),
+        ('role-based', NULL, 'Developer Relations', '#EAB308'),
+        ('role-based', NULL, 'BI Analyst', '#0284C7'),
+        ('skill-based', 'SQL', NULL, '#336791'),
+        ('skill-based', 'Computer Science', NULL, '#64748B'),
+        ('skill-based', 'React', NULL, '#61DAFB'),
+        ('skill-based', 'Vue', NULL, '#42B883'),
+        ('skill-based', 'Angular', NULL, '#DD0031'),
+        ('skill-based', 'JavaScript', NULL, '#F7DF1E'),
+        ('skill-based', 'TypeScript', NULL, '#3178C6'),
+        ('skill-based', 'Node.js', NULL, '#339933'),
+        ('skill-based', 'Python', NULL, '#3776AB'),
+        ('skill-based', 'System Design', NULL, '#475569'),
+        ('skill-based', 'Java', NULL, '#F89820'),
+        ('skill-based', 'ASP.NET Core', NULL, '#512BD4'),
+        ('skill-based', 'API Design', NULL, '#F97316'),
+        ('skill-based', 'Spring Boot', NULL, '#6DB33F'),
+        ('skill-based', 'Flutter', NULL, '#02569B'),
+        ('skill-based', 'C++', NULL, '#00599C'),
+        ('skill-based', 'Rust', NULL, '#DEA584'),
+        ('skill-based', 'Go Roadmap', NULL, '#00ADD8'),
+        ('skill-based', 'Design and Architecture', NULL, '#8B5CF6'),
+        ('skill-based', 'GraphQL', NULL, '#E10098'),
+        ('skill-based', 'React Native', NULL, '#61DAFB'),
+        ('skill-based', 'Design System', NULL, '#EC4899'),
+        ('skill-based', 'Prompt Engineering', NULL, '#8B5CF6'),
+        ('skill-based', 'MongoDB', NULL, '#47A248'),
+        ('skill-based', 'Linux', NULL, '#FCC624'),
+        ('skill-based', 'Kubernetes', NULL, '#326CE5'),
+        ('skill-based', 'Docker', NULL, '#2496ED'),
+        ('skill-based', 'AWS', NULL, '#FF9900'),
+        ('skill-based', 'Terraform', NULL, '#7B42BC'),
+        ('skill-based', 'Data Structures & Algorithms', NULL, '#0EA5E9'),
+        ('skill-based', 'Redis', NULL, '#DC382D'),
+        ('skill-based', 'Git and GitHub', NULL, '#181717'),
+        ('skill-based', 'PHP', NULL, '#777BB4'),
+        ('skill-based', 'Cloudflare', NULL, '#F38020'),
+        ('skill-based', 'AI Red Teaming', NULL, '#EF4444'),
+        ('skill-based', 'AI Agents', NULL, '#9333EA'),
+        ('skill-based', 'Next.js', NULL, '#111827'),
+        ('skill-based', 'Code Review', NULL, '#10B981'),
+        ('skill-based', 'Kotlin', NULL, '#7F52FF'),
+        ('skill-based', 'HTML', NULL, '#E34F26'),
+        ('skill-based', 'CSS', NULL, '#1572B6'),
+        ('skill-based', 'Swift & Swift UI', NULL, '#FA7343'),
+        ('skill-based', 'Shell / Bash', NULL, '#4EAA25'),
+        ('skill-based', 'Laravel', NULL, '#FF2D20'),
+        ('skill-based', 'Elasticsearch', NULL, '#005571'),
+        ('skill-based', 'WordPress', NULL, '#21759B'),
+        ('skill-based', 'Django', NULL, '#092E20'),
+        ('skill-based', 'Ruby', NULL, '#CC342D'),
+        ('skill-based', 'Ruby on Rails', NULL, '#CC0000'),
+        ('skill-based', 'Claude Code', NULL, '#D97757'),
+        ('skill-based', 'Vibe Coding', NULL, '#F59E0B'),
+        ('skill-based', 'Scala', NULL, '#DC322F'),
+        ('skill-based', 'OpenClaw', NULL, '#0F172A')
+)
+UPDATE roadmap_hub_items item
+SET icon_color = seed.icon_color
+FROM roadmap_hub_item_color_seed seed
+JOIN roadmap_hub_sections section_item
+    ON section_item.section_key = seed.section_key
+WHERE item.section_id = section_item.id
+  AND (
+      (seed.item_title IS NOT NULL AND item.title = seed.item_title)
+      OR (seed.subtitle IS NOT NULL AND item.subtitle = seed.subtitle)
+  );
 
 UPDATE roadmap_hub_items item
 SET

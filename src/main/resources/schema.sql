@@ -159,6 +159,9 @@ CREATE INDEX IF NOT EXISTS idx_supplement_recommendations_user_node_created_at
 ALTER TABLE user_profiles
     ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;
 
+ALTER TABLE roadmap_hub_items
+    ADD COLUMN IF NOT EXISTS icon_color VARCHAR(32);
+
 -- Legacy local PostgreSQL rows can exist without these newer columns.
 UPDATE lesson_progress
 SET is_pip_enabled = COALESCE(is_pip_enabled, FALSE)

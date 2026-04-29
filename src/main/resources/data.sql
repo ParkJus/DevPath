@@ -13535,3 +13535,478 @@ SET
 FROM roadmap_hub_sections section_item
 WHERE item.section_id = section_item.id
   AND section_item.section_key = 'role-based';
+
+-- ============================================================
+-- Roadmap Hub 공식 로드맵 상세 데이터 보강
+-- - Backend Master Roadmap은 위쪽의 전용 상세 seed를 유지한다.
+-- - 허브에 연결된 나머지 공식 로드맵은 공통 구조로 소개/노드/분기/선수조건/태그를 생성한다.
+-- ============================================================
+UPDATE roadmaps r
+SET
+    description = target.display_name || ' 학습 흐름을 기초, 실무 구현, 심화 분기, 포트폴리오까지 이어 주는 DevPath 공식 로드맵입니다.',
+    info_title = target.display_name || ' 로드맵이란 무엇인가요?',
+    info_content =
+        '<div class="p-6 text-sm text-gray-700 leading-relaxed space-y-6">' ||
+        '<div><p class="mb-2"><span class="font-bold text-gray-900">' || target.display_name || '</span> 로드맵은 ' ||
+        CASE
+            WHEN target.roadmap_kind = '직무' THEN '해당 직무에서 실제로 맡게 되는 책임, 협업 방식, 산출물 품질 기준을 단계적으로 익히도록 구성했습니다.'
+            ELSE '해당 기술을 왜 쓰는지부터 실무 적용, 운영, 성능 개선까지 이어지는 학습 순서를 잡아 줍니다.'
+        END ||
+        '</p><p>기초 개념만 나열하지 않고 작은 실습, 품질 기준, 운영 관점, 포트폴리오 정리까지 한 번에 연결되도록 설계했습니다.</p></div>' ||
+        '<div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">' ||
+        '<strong class="block text-[#00C471] mb-2"><i class="fas fa-check-circle mr-1"></i> 이 로드맵에서 익히는 것</strong>' ||
+        '<ul class="list-disc pl-5 space-y-1 text-gray-600">' ||
+        '<li><strong>핵심 개념:</strong> ' || target.display_name || ' 분야에서 반복해서 등장하는 용어와 판단 기준</li>' ||
+        '<li><strong>실무 흐름:</strong> 요구사항을 작은 단위로 쪼개고 구현, 검증, 문서화하는 방법</li>' ||
+        '<li><strong>심화 분기:</strong> 성능, 운영, 아키텍처, 협업 중 목표에 맞춰 깊게 파고드는 선택 경로</li>' ||
+        '<li><strong>포트폴리오:</strong> 학습 결과를 프로젝트와 설명 가능한 근거로 정리하는 방식</li>' ||
+        '</ul></div></div>'
+FROM (
+    SELECT
+        r.roadmap_id,
+        r.title AS roadmap_title,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name,
+        CASE
+            WHEN MAX(CASE WHEN section_item.section_key = 'role-based' THEN 1 ELSE 0 END) = 1 THEN '직무'
+            ELSE '기술'
+        END AS roadmap_kind
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+) target
+WHERE r.roadmap_id = target.roadmap_id;
+
+INSERT INTO roadmap_nodes (roadmap_id, title, content, node_type, sort_order, sub_topics, branch_group)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        r.title AS roadmap_title,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name,
+        CASE
+            WHEN MAX(CASE WHEN section_item.section_key = 'role-based' THEN 1 ELSE 0 END) = 1 THEN '직무'
+            ELSE '기술'
+        END AS roadmap_kind
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+node_seed(sort_order, branch_group, node_type, title_suffix, stage_label) AS (
+    VALUES
+        (1, CAST(NULL AS INTEGER), 'CONCEPT', '개요와 역할 이해', 'FOUNDATION'),
+        (2, CAST(NULL AS INTEGER), 'CONCEPT', '핵심 개념과 용어', 'FOUNDATION'),
+        (3, CAST(NULL AS INTEGER), 'CONCEPT', '기본 도구와 작업 환경', 'FOUNDATION'),
+        (4, CAST(NULL AS INTEGER), 'PRACTICE', '작은 실습으로 흐름 잡기', 'PRACTICE'),
+        (5, CAST(NULL AS INTEGER), 'PRACTICE', '데이터와 상태 설계', 'PRACTICE'),
+        (6, CAST(NULL AS INTEGER), 'PRACTICE', '테스트와 품질 기준', 'PRACTICE'),
+        (7, CAST(NULL AS INTEGER), 'CONCEPT', '협업과 문서화', 'PRACTICE'),
+        (8, 1, 'PRACTICE', '성능 심화 분기', 'ADVANCED'),
+        (9, 1, 'PRACTICE', '운영 자동화 분기', 'ADVANCED'),
+        (8, 2, 'CONCEPT', '아키텍처 심화 분기', 'ADVANCED'),
+        (9, 2, 'PRACTICE', '보안과 안정성 분기', 'ADVANCED'),
+        (10, CAST(NULL AS INTEGER), 'PROJECT', '실전 프로젝트 설계', 'ADVANCED'),
+        (11, CAST(NULL AS INTEGER), 'PROJECT', '포트폴리오와 면접 정리', 'ADVANCED')
+)
+SELECT
+    target.roadmap_id,
+    target.display_name || ' ' || seed.title_suffix,
+    CASE seed.sort_order
+        WHEN 1 THEN target.display_name || ' 분야가 해결하는 문제, 필요한 책임 범위, 학습 후 만들 수 있어야 하는 산출물을 먼저 잡습니다. 시작 지점에서 전체 그림을 알아야 이후 도구와 구현을 목적에 맞게 선택할 수 있습니다.'
+        WHEN 2 THEN target.display_name || ' 학습에서 반복해서 등장하는 핵심 용어와 개념을 정리합니다. 개념을 단어 암기가 아니라 실제 의사결정 기준으로 연결하는 것이 목표입니다.'
+        WHEN 3 THEN target.display_name || ' 작업에 필요한 기본 도구, 실행 환경, 파일 구조, 협업 규칙을 세팅합니다. 실습 환경을 안정적으로 만들면 이후 프로젝트를 빠르게 반복할 수 있습니다.'
+        WHEN 4 THEN target.display_name || '의 가장 작은 기능을 직접 만들어 보며 입력, 처리, 결과 확인까지 이어지는 기본 흐름을 경험합니다. 작은 성공 단위를 통해 실무 감각을 만듭니다.'
+        WHEN 5 THEN target.display_name || '에서 다루는 데이터, 상태, 이벤트, 산출물의 흐름을 모델링합니다. 어떤 정보를 어디에 두고 어떻게 변경할지 정해야 유지보수 가능한 결과물을 만들 수 있습니다.'
+        WHEN 6 THEN target.display_name || ' 결과물이 기대대로 동작하는지 검증하는 기준을 세웁니다. 테스트, 리뷰, 접근성, 성능, 오류 처리 중 해당 분야에 맞는 품질 체크를 반복합니다.'
+        WHEN 7 THEN target.display_name || ' 작업을 팀 안에서 공유할 수 있도록 문서, 이슈, 리뷰, 의사결정 기록을 정리합니다. 혼자 만든 결과를 협업 가능한 형태로 바꾸는 단계입니다.'
+        WHEN 8 THEN CASE
+            WHEN seed.branch_group = 1 THEN target.display_name || ' 결과물을 더 빠르고 효율적으로 만들기 위한 성능 측정, 병목 분석, 최적화 우선순위를 다룹니다.'
+            ELSE target.display_name || ' 전체 구조를 넓게 보고 모듈 경계, 책임 분리, 확장 전략을 선택하는 아키텍처 관점을 다룹니다.'
+        END
+        WHEN 9 THEN CASE
+            WHEN seed.branch_group = 1 THEN target.display_name || ' 작업을 반복 가능하게 운영하기 위한 자동화, 모니터링, 배포 또는 릴리스 흐름을 설계합니다.'
+            ELSE target.display_name || ' 결과물을 안전하게 유지하기 위한 보안 기본기, 예외 상황, 장애 대응, 안정성 기준을 정리합니다.'
+        END
+        WHEN 10 THEN target.display_name || ' 학습 내용을 하나의 실전 프로젝트로 묶습니다. 요구사항, 설계, 구현, 검증, 회고가 모두 드러나는 작은 완성물을 목표로 합니다.'
+        ELSE target.display_name || ' 프로젝트를 설명 가능한 포트폴리오로 정리합니다. 문제 정의, 선택한 기술, 트레이드오프, 개선 지점을 말할 수 있어야 합니다.'
+    END,
+    seed.node_type,
+    seed.sort_order,
+    CASE seed.stage_label
+        WHEN 'FOUNDATION' THEN target.display_name || ' 기본기: 분야의 목적과 핵심 용어,' || target.display_name || ' 환경: 도구 설치와 작업 흐름,' || target.display_name || ' 판단 기준: 무엇을 먼저 배워야 하는지'
+        WHEN 'PRACTICE' THEN target.display_name || ' 실습: 작은 기능 만들기,' || target.display_name || ' 품질: 테스트와 리뷰,' || target.display_name || ' 협업: 문서와 변경 이력'
+        ELSE target.display_name || ' 심화: 성능 운영 아키텍처 보안,' || target.display_name || ' 프로젝트: 요구사항부터 회고까지,' || target.display_name || ' 포트폴리오: 설명 가능한 결과물'
+    END,
+    seed.branch_group
+FROM target_roadmaps target
+CROSS JOIN node_seed seed
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM roadmap_nodes existing
+    WHERE existing.roadmap_id = target.roadmap_id
+      AND existing.title = target.display_name || ' ' || seed.title_suffix
+);
+
+INSERT INTO prerequisites (node_id, pre_node_id)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+edge_seed(child_sort_order, child_branch_group, pre_sort_order, pre_branch_group) AS (
+    VALUES
+        (2, CAST(NULL AS INTEGER), 1, CAST(NULL AS INTEGER)),
+        (3, CAST(NULL AS INTEGER), 2, CAST(NULL AS INTEGER)),
+        (4, CAST(NULL AS INTEGER), 3, CAST(NULL AS INTEGER)),
+        (5, CAST(NULL AS INTEGER), 4, CAST(NULL AS INTEGER)),
+        (6, CAST(NULL AS INTEGER), 5, CAST(NULL AS INTEGER)),
+        (7, CAST(NULL AS INTEGER), 6, CAST(NULL AS INTEGER)),
+        (8, 1, 7, CAST(NULL AS INTEGER)),
+        (9, 1, 8, 1),
+        (8, 2, 7, CAST(NULL AS INTEGER)),
+        (9, 2, 8, 2),
+        (10, CAST(NULL AS INTEGER), 7, CAST(NULL AS INTEGER)),
+        (11, CAST(NULL AS INTEGER), 10, CAST(NULL AS INTEGER))
+)
+SELECT
+    child.node_id,
+    pre_node.node_id
+FROM target_roadmaps target
+JOIN edge_seed edge_item ON 1 = 1
+JOIN roadmap_nodes child
+    ON child.roadmap_id = target.roadmap_id
+   AND child.sort_order = edge_item.child_sort_order
+   AND (
+       child.branch_group = edge_item.child_branch_group
+       OR (child.branch_group IS NULL AND edge_item.child_branch_group IS NULL)
+   )
+JOIN roadmap_nodes pre_node
+    ON pre_node.roadmap_id = target.roadmap_id
+   AND pre_node.sort_order = edge_item.pre_sort_order
+   AND (
+       pre_node.branch_group = edge_item.pre_branch_group
+       OR (pre_node.branch_group IS NULL AND edge_item.pre_branch_group IS NULL)
+   )
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM prerequisites existing
+    WHERE existing.node_id = child.node_id
+      AND existing.pre_node_id = pre_node.node_id
+);
+
+INSERT INTO tags (name, category, is_official, is_deleted)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name,
+        CASE
+            WHEN MAX(CASE WHEN section_item.section_key = 'role-based' THEN 1 ELSE 0 END) = 1 THEN 'Role Roadmap'
+            ELSE 'Skill Roadmap'
+        END AS tag_category
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+generated_tags AS (
+    SELECT display_name || ' Fundamentals' AS tag_name, tag_category AS category FROM target_roadmaps
+    UNION ALL
+    SELECT display_name || ' Practice' AS tag_name, tag_category AS category FROM target_roadmaps
+    UNION ALL
+    SELECT display_name || ' Advanced' AS tag_name, tag_category AS category FROM target_roadmaps
+)
+SELECT generated_tags.tag_name, generated_tags.category, TRUE, FALSE
+FROM generated_tags
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM tags existing
+    WHERE existing.name = generated_tags.tag_name
+);
+
+INSERT INTO node_required_tags (node_id, tag_id)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+node_stage AS (
+    SELECT
+        target.roadmap_id,
+        rn.node_id,
+        target.display_name ||
+            CASE
+                WHEN rn.branch_group IS NULL AND rn.sort_order <= 3 THEN ' Fundamentals'
+                WHEN rn.branch_group IS NULL AND rn.sort_order <= 7 THEN ' Practice'
+                ELSE ' Advanced'
+            END AS tag_name
+    FROM target_roadmaps target
+    JOIN roadmap_nodes rn ON rn.roadmap_id = target.roadmap_id
+)
+SELECT node_stage.node_id, tag_item.tag_id
+FROM node_stage
+JOIN tags tag_item ON tag_item.name = node_stage.tag_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM node_required_tags existing
+    WHERE existing.node_id = node_stage.node_id
+      AND existing.tag_id = tag_item.tag_id
+);
+
+-- 각 로드맵 노드별 상세 필수 태그 보강
+-- 노드마다 로드맵명, 단계, 노드 목적, 핵심 역량 태그가 함께 붙도록 구성한다.
+INSERT INTO tags (name, category, is_official, is_deleted)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name,
+        CASE
+            WHEN MAX(CASE WHEN section_item.section_key = 'role-based' THEN 1 ELSE 0 END) = 1 THEN 'Role Roadmap'
+            ELSE 'Skill Roadmap'
+        END AS tag_category
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+detail_tag_seed(sort_order, branch_group, detail_suffix) AS (
+    VALUES
+        (1, CAST(NULL AS INTEGER), '개요'),
+        (2, CAST(NULL AS INTEGER), '핵심 개념'),
+        (3, CAST(NULL AS INTEGER), '작업 환경'),
+        (4, CAST(NULL AS INTEGER), '기초 실습'),
+        (5, CAST(NULL AS INTEGER), '데이터 설계'),
+        (6, CAST(NULL AS INTEGER), '테스트'),
+        (7, CAST(NULL AS INTEGER), '협업 문서화'),
+        (8, 1, '성능 최적화'),
+        (9, 1, '운영 자동화'),
+        (8, 2, '아키텍처 설계'),
+        (9, 2, '보안 안정성'),
+        (10, CAST(NULL AS INTEGER), '실전 프로젝트'),
+        (11, CAST(NULL AS INTEGER), '포트폴리오')
+),
+core_tag_seed(sort_order, branch_group, core_tag) AS (
+    VALUES
+        (1, CAST(NULL AS INTEGER), '로드맵 이해'),
+        (1, CAST(NULL AS INTEGER), '역할 정의'),
+        (1, CAST(NULL AS INTEGER), '학습 목표'),
+        (2, CAST(NULL AS INTEGER), '핵심 용어'),
+        (2, CAST(NULL AS INTEGER), '개념 모델링'),
+        (2, CAST(NULL AS INTEGER), '기초 원리'),
+        (3, CAST(NULL AS INTEGER), '개발 환경'),
+        (3, CAST(NULL AS INTEGER), '도구 설정'),
+        (3, CAST(NULL AS INTEGER), '워크플로우'),
+        (4, CAST(NULL AS INTEGER), '기초 실습'),
+        (4, CAST(NULL AS INTEGER), '기능 구현'),
+        (4, CAST(NULL AS INTEGER), '피드백 루프'),
+        (5, CAST(NULL AS INTEGER), '데이터 모델링'),
+        (5, CAST(NULL AS INTEGER), '상태 관리'),
+        (5, CAST(NULL AS INTEGER), '요구사항 분석'),
+        (6, CAST(NULL AS INTEGER), '테스트'),
+        (6, CAST(NULL AS INTEGER), '품질 관리'),
+        (6, CAST(NULL AS INTEGER), '오류 처리'),
+        (7, CAST(NULL AS INTEGER), '문서화'),
+        (7, CAST(NULL AS INTEGER), '코드 리뷰'),
+        (7, CAST(NULL AS INTEGER), '협업'),
+        (8, 1, '성능 측정'),
+        (8, 1, '병목 분석'),
+        (8, 1, '최적화'),
+        (9, 1, '자동화'),
+        (9, 1, '모니터링'),
+        (9, 1, '배포'),
+        (8, 2, '아키텍처'),
+        (8, 2, '모듈화'),
+        (8, 2, '확장성'),
+        (9, 2, '보안'),
+        (9, 2, '안정성'),
+        (9, 2, '장애 대응'),
+        (10, CAST(NULL AS INTEGER), '프로젝트 설계'),
+        (10, CAST(NULL AS INTEGER), 'MVP'),
+        (10, CAST(NULL AS INTEGER), '실전 구현'),
+        (11, CAST(NULL AS INTEGER), '포트폴리오'),
+        (11, CAST(NULL AS INTEGER), '면접 준비'),
+        (11, CAST(NULL AS INTEGER), '기술 설명')
+),
+generated_tags AS (
+    SELECT display_name AS tag_name, tag_category AS category
+    FROM target_roadmaps
+    UNION ALL
+    SELECT display_name || ' ' || detail_seed.detail_suffix AS tag_name, tag_category AS category
+    FROM target_roadmaps
+    CROSS JOIN detail_tag_seed detail_seed
+    UNION ALL
+    SELECT core_seed.core_tag AS tag_name, 'Roadmap Node' AS category
+    FROM core_tag_seed core_seed
+)
+SELECT generated_tags.tag_name, MIN(generated_tags.category), TRUE, FALSE
+FROM generated_tags
+LEFT JOIN tags existing ON existing.name = generated_tags.tag_name
+WHERE existing.tag_id IS NULL
+GROUP BY generated_tags.tag_name;
+
+INSERT INTO node_required_tags (node_id, tag_id)
+WITH target_roadmaps AS (
+    SELECT
+        r.roadmap_id,
+        COALESCE(MAX(item.subtitle), r.title) AS display_name
+    FROM roadmap_hub_items item
+    JOIN roadmap_hub_sections section_item ON section_item.id = item.section_id
+    JOIN roadmaps r ON r.roadmap_id = item.linked_roadmap_id
+    WHERE item.linked_roadmap_id IS NOT NULL
+      AND item.is_active = TRUE
+      AND section_item.is_active = TRUE
+      AND r.is_official = TRUE
+      AND r.is_deleted = FALSE
+      AND r.title <> 'Backend Master Roadmap'
+    GROUP BY r.roadmap_id, r.title
+),
+detail_tag_seed(sort_order, branch_group, detail_suffix) AS (
+    VALUES
+        (1, CAST(NULL AS INTEGER), '개요'),
+        (2, CAST(NULL AS INTEGER), '핵심 개념'),
+        (3, CAST(NULL AS INTEGER), '작업 환경'),
+        (4, CAST(NULL AS INTEGER), '기초 실습'),
+        (5, CAST(NULL AS INTEGER), '데이터 설계'),
+        (6, CAST(NULL AS INTEGER), '테스트'),
+        (7, CAST(NULL AS INTEGER), '협업 문서화'),
+        (8, 1, '성능 최적화'),
+        (9, 1, '운영 자동화'),
+        (8, 2, '아키텍처 설계'),
+        (9, 2, '보안 안정성'),
+        (10, CAST(NULL AS INTEGER), '실전 프로젝트'),
+        (11, CAST(NULL AS INTEGER), '포트폴리오')
+),
+core_tag_seed(sort_order, branch_group, core_tag) AS (
+    VALUES
+        (1, CAST(NULL AS INTEGER), '로드맵 이해'),
+        (1, CAST(NULL AS INTEGER), '역할 정의'),
+        (1, CAST(NULL AS INTEGER), '학습 목표'),
+        (2, CAST(NULL AS INTEGER), '핵심 용어'),
+        (2, CAST(NULL AS INTEGER), '개념 모델링'),
+        (2, CAST(NULL AS INTEGER), '기초 원리'),
+        (3, CAST(NULL AS INTEGER), '개발 환경'),
+        (3, CAST(NULL AS INTEGER), '도구 설정'),
+        (3, CAST(NULL AS INTEGER), '워크플로우'),
+        (4, CAST(NULL AS INTEGER), '기초 실습'),
+        (4, CAST(NULL AS INTEGER), '기능 구현'),
+        (4, CAST(NULL AS INTEGER), '피드백 루프'),
+        (5, CAST(NULL AS INTEGER), '데이터 모델링'),
+        (5, CAST(NULL AS INTEGER), '상태 관리'),
+        (5, CAST(NULL AS INTEGER), '요구사항 분석'),
+        (6, CAST(NULL AS INTEGER), '테스트'),
+        (6, CAST(NULL AS INTEGER), '품질 관리'),
+        (6, CAST(NULL AS INTEGER), '오류 처리'),
+        (7, CAST(NULL AS INTEGER), '문서화'),
+        (7, CAST(NULL AS INTEGER), '코드 리뷰'),
+        (7, CAST(NULL AS INTEGER), '협업'),
+        (8, 1, '성능 측정'),
+        (8, 1, '병목 분석'),
+        (8, 1, '최적화'),
+        (9, 1, '자동화'),
+        (9, 1, '모니터링'),
+        (9, 1, '배포'),
+        (8, 2, '아키텍처'),
+        (8, 2, '모듈화'),
+        (8, 2, '확장성'),
+        (9, 2, '보안'),
+        (9, 2, '안정성'),
+        (9, 2, '장애 대응'),
+        (10, CAST(NULL AS INTEGER), '프로젝트 설계'),
+        (10, CAST(NULL AS INTEGER), 'MVP'),
+        (10, CAST(NULL AS INTEGER), '실전 구현'),
+        (11, CAST(NULL AS INTEGER), '포트폴리오'),
+        (11, CAST(NULL AS INTEGER), '면접 준비'),
+        (11, CAST(NULL AS INTEGER), '기술 설명')
+),
+target_nodes AS (
+    SELECT
+        target.display_name,
+        rn.node_id,
+        rn.sort_order,
+        rn.branch_group,
+        target.display_name ||
+            CASE
+                WHEN rn.branch_group IS NULL AND rn.sort_order <= 3 THEN ' Fundamentals'
+                WHEN rn.branch_group IS NULL AND rn.sort_order <= 7 THEN ' Practice'
+                ELSE ' Advanced'
+            END AS stage_tag
+    FROM target_roadmaps target
+    JOIN roadmap_nodes rn ON rn.roadmap_id = target.roadmap_id
+),
+node_tag_candidates AS (
+    SELECT node_id, display_name AS tag_name
+    FROM target_nodes
+    UNION ALL
+    SELECT node_id, stage_tag AS tag_name
+    FROM target_nodes
+    UNION ALL
+    SELECT target_nodes.node_id, target_nodes.display_name || ' ' || detail_seed.detail_suffix AS tag_name
+    FROM target_nodes
+    JOIN detail_tag_seed detail_seed
+        ON detail_seed.sort_order = target_nodes.sort_order
+       AND (
+           detail_seed.branch_group = target_nodes.branch_group
+           OR (detail_seed.branch_group IS NULL AND target_nodes.branch_group IS NULL)
+       )
+    UNION ALL
+    SELECT target_nodes.node_id, core_seed.core_tag AS tag_name
+    FROM target_nodes
+    JOIN core_tag_seed core_seed
+        ON core_seed.sort_order = target_nodes.sort_order
+       AND (
+           core_seed.branch_group = target_nodes.branch_group
+           OR (core_seed.branch_group IS NULL AND target_nodes.branch_group IS NULL)
+       )
+)
+SELECT DISTINCT node_tags.node_id, tag_item.tag_id
+FROM node_tag_candidates node_tags
+JOIN tags tag_item ON tag_item.name = node_tags.tag_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM node_required_tags existing
+    WHERE existing.node_id = node_tags.node_id
+      AND existing.tag_id = tag_item.tag_id
+);

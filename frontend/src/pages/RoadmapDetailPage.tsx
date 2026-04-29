@@ -17,6 +17,7 @@ import type {
   RecommendationChangeHistory,
   NodeStatus,
   ChangeType,
+  MyRoadmapSummary,
 } from '../types/roadmap'
 
 function readAuthViewFromLocation(): AuthView | null {
@@ -35,6 +36,18 @@ function syncAuthViewInLocation(view: AuthView | null) {
   }
 
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
+function readPositiveNumberParam(params: URLSearchParams, key: string) {
+  const rawValue = params.get(key)
+  if (!rawValue) return 0
+
+  const value = Number(rawValue)
+  return Number.isInteger(value) && value > 0 ? value : 0
+}
+
+function findRoadmapByOriginalId(roadmaps: MyRoadmapSummary[], originalRoadmapId: number) {
+  return roadmaps.find((roadmap) => roadmap.originalRoadmapId === originalRoadmapId) ?? null
 }
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
@@ -1449,8 +1462,8 @@ function RoadmapPageToolbar({
 
 export default function RoadmapDetailPage() {
   const params = new URLSearchParams(window.location.search)
-  const customRoadmapId = Number(params.get('id'))
-  const originalRoadmapId = Number(params.get('original'))
+  const customRoadmapId = readPositiveNumberParam(params, 'id')
+  const originalRoadmapId = readPositiveNumberParam(params, 'original')
 
   const [session, setSession]       = useState(() => readStoredAuthSession())
   const [profileImage, setProfileImage] = useState<string | null>(null)
@@ -1522,8 +1535,10 @@ export default function RoadmapDetailPage() {
             } catch {
               // 이미 복사된 경우 기존 로드맵으로 이동
               const list = await roadmapApi.getMyRoadmaps(ctrl.signal)
-              if (list.roadmaps.length > 0) {
-                window.location.replace(`roadmap.html?id=${list.roadmaps[0].customRoadmapId}`)
+              const existingRoadmap = findRoadmapByOriginalId(list.roadmaps, originalRoadmapId)
+
+              if (existingRoadmap) {
+                window.location.replace(`roadmap.html?id=${existingRoadmap.customRoadmapId}`)
               } else {
                 window.location.replace('roadmap-hub.html')
               }

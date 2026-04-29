@@ -337,6 +337,9 @@ export default function CourseDetailApp() {
   useEffect(() => {
     if (!askModalOpen && !enrollModalOpen) return
 
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       setAskModalOpen(false)
@@ -344,7 +347,10 @@ export default function CourseDetailApp() {
     }
 
     window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleEscape)
+    }
   }, [askModalOpen, enrollModalOpen])
 
   async function handleLogout() {
@@ -406,7 +412,7 @@ export default function CourseDetailApp() {
     try {
       await enrollmentApi.enroll(displayCourse.courseId)
       setIsEnrolled(true)
-      window.location.href = learningHref
+      setEnrollModalOpen(true)
     } catch {
       setToastMessage('수강 신청에 실패했습니다.')
     } finally {
@@ -970,11 +976,22 @@ export default function CourseDetailApp() {
             if (event.target === event.currentTarget) setEnrollModalOpen(false)
           }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" />
-          <div className="modal-animate relative mx-4 w-full max-w-[380px] overflow-hidden rounded-3xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex justify-center">
-              <div className="flex h-20 w-20 animate-bounce items-center justify-center rounded-full bg-green-50 duration-1000">
-                <i className="fas fa-check text-4xl text-brand" />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setEnrollModalOpen(false)}
+          />
+          <div className="modal-animate relative mx-4 w-full max-w-[380px] overflow-hidden rounded-2xl bg-white px-8 py-10 shadow-2xl">
+            <div className="mb-8 flex justify-center">
+              <div className="flex h-[72px] w-[72px] animate-bounce items-center justify-center rounded-full bg-green-50 duration-1000">
+                <svg className="h-10 w-10 text-brand" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M5 12.5L9.2 16.5L19 7"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
             </div>
 
@@ -991,16 +1008,16 @@ export default function CourseDetailApp() {
               <button
                 type="button"
                 onClick={() => setEnrollModalOpen(false)}
-                className="rounded-xl border border-gray-200 py-3.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+                className="rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
               >
-                닫기
+                나중에
               </button>
               <button
                 type="button"
                 onClick={() => {
                   window.location.href = learningHref
                 }}
-                className="rounded-xl bg-brand py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-green-600 hover:shadow-lg"
+                className="rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-md transition hover:bg-green-600 hover:shadow-lg"
               >
                 바로 학습하기
               </button>

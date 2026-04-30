@@ -113,6 +113,7 @@ type PipVideoElement = HTMLVideoElement & {
 const COURSE_LOAD_TIMEOUT_MS = 4000
 const LESSON_LOAD_TIMEOUT_MS = 2500
 const QNA_LOAD_TIMEOUT_MS = 6000
+const STUDENT_PREVIEW_QUERY_VALUE = 'student'
 const ASSIGNMENT_LOADING_MESSAGES = [
   '코드 및 스크립트 검사 중...',
   '제출된 파일을 실행하고 있습니다...',
@@ -171,6 +172,39 @@ async function requestWithTimeout<T>(timeoutMs: number, executor: (signal: Abort
 
 function createDefaultPlayerConfig(lessonId: number): LearningPlayerConfig {
   return { lessonId, defaultPlaybackRate: 1, pipEnabled: false }
+}
+
+function readStudentPreviewFromLocation() {
+  return new URLSearchParams(window.location.search).get('preview') === STUDENT_PREVIEW_QUERY_VALUE
+}
+
+function readNonNegativeNumberSearchParam(name: string) {
+  const value = new URLSearchParams(window.location.search).get(name)
+  const parsed = value ? Number(value) : NaN
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+function readEnabledSearchParam(name: string) {
+  const value = new URLSearchParams(window.location.search).get(name)
+  return value === '1' || value === 'true'
+}
+
+function readSafeReturnHref(fallbackHref: string) {
+  const value = new URLSearchParams(window.location.search).get('returnTo')
+  if (!value) {
+    return fallbackHref
+  }
+
+  try {
+    const nextUrl = new URL(value, window.location.origin)
+    if (nextUrl.origin !== window.location.origin) {
+      return fallbackHref
+    }
+
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+  } catch {
+    return fallbackHref
+  }
 }
 
 function createQuestionFormState(): QuestionFormState {
@@ -671,6 +705,7 @@ function toQuestionSummary(question: QnaQuestionDetail): QnaQuestionSummary {
     authorId: question.authorId,
     authorName: question.authorName,
     courseId: question.courseId,
+    lessonId: question.lessonId,
     templateType: question.templateType,
     difficulty: question.difficulty,
     title: question.title,
@@ -747,6 +782,9 @@ function ErrorView(props: { title: string; message: string; actionHref: string; 
 export default function LearningPlayerApp() {
   const initialCourseId = useMemo(() => readNumberSearchParam('courseId'), [])
   const initialLessonId = useMemo(() => readNumberSearchParam('lessonId'), [])
+  const isStudentPreview = useMemo(() => readStudentPreviewFromLocation(), [])
+  const initialTimestampSeconds = useMemo(() => readNonNegativeNumberSearchParam('t'), [])
+  const shouldAutoplayPreview = useMemo(() => isStudentPreview && readEnabledSearchParam('autoplay'), [isStudentPreview])
 
   const [session, setSession] = useState<AuthSession | null>(() => readStoredAuthSession())
   const [course, setCourse] = useState<LearningCourseDetail | null>(null)
@@ -809,14 +847,33 @@ export default function LearningPlayerApp() {
   const resumeTimeRef = useRef(0)
   const lastRenderedSecondRef = useRef(-1)
   const pendingVideoLoadRef = useRef(false)
+  const previewAutoplayLessonIdRef = useRef<number | null>(null)
   const completedPersistedLessonIdRef = useRef<number | null>(null)
   const courseCompletionShownRef = useRef<number | null>(null)
   const lessonProgressByIdRef = useRef<Record<number, LearningLessonProgress>>({})
 
   const lessons = useMemo(() => (course ? getFlattenedLessons(course) : []), [course])
+  const resolveInitialPlaybackSeconds = useCallback((lessonId: number, fallbackSeconds: number) => {
+    if (initialTimestampSeconds === null) {
+      return fallbackSeconds
+    }
+
+    if (initialLessonId && initialLessonId !== lessonId) {
+      return fallbackSeconds
+    }
+
+    return initialTimestampSeconds
+  }, [initialLessonId, initialTimestampSeconds])
+
   const lessonLockMap = useMemo(() => {
     const locks = new Map<number, { locked: boolean; prerequisiteLessonId: number | null; prerequisiteLessonTitle: string | null }>()
     if (!course) return locks
+    if (isStudentPreview) {
+      lessons.forEach((item) => {
+        locks.set(item.lessonId, { locked: false, prerequisiteLessonId: null, prerequisiteLessonTitle: null })
+      })
+      return locks
+    }
 
     let previousLesson: LearningLesson | null = null
     course.sections.forEach((section) => {
@@ -838,7 +895,7 @@ export default function LearningPlayerApp() {
     })
 
     return locks
-  }, [course, lessonProgressById])
+  }, [course, isStudentPreview, lessonProgressById, lessons])
   const firstUnlockedLessonId = useMemo(
     () => lessons.find((item) => !lessonLockMap.get(item.lessonId)?.locked)?.lessonId ?? null,
     [lessonLockMap, lessons],
@@ -933,6 +990,10 @@ export default function LearningPlayerApp() {
   const courseDetailHref = initialCourseId
     ? `course-detail.html?courseId=${course?.courseId ?? initialCourseId}`
     : 'lecture-list.html'
+  const studentPreviewReturnHref = useMemo(
+    () => readSafeReturnHref(courseDetailHref),
+    [courseDetailHref],
+  )
   const deferredQnaSearch = useDeferredValue(qnaSearch.trim().toLowerCase())
   const templateOptions = useMemo(
     () => [...qnaTemplates].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
@@ -1047,6 +1108,7 @@ export default function LearningPlayerApp() {
     totalSeconds: number,
     options: PersistCompletionOptions = {},
   ) => {
+    if (isStudentPreview) return
     if (completedPersistedLessonIdRef.current === lessonId) return
     completedPersistedLessonIdRef.current = lessonId
 
@@ -1095,6 +1157,7 @@ export default function LearningPlayerApp() {
         completedPersistedLessonIdRef.current = null
       })
   }, [
+    isStudentPreview,
     mergeLessonProgress,
     openCourseCompletionOverlay,
     playerConfig?.defaultPlaybackRate,
@@ -1181,6 +1244,14 @@ export default function LearningPlayerApp() {
       return
     }
 
+    if (isStudentPreview) {
+      setLessonProgressById(Object.fromEntries(
+        lessons.map((item) => [item.lessonId, createDefaultProgress(item.lessonId)]),
+      ))
+      setLoadingLessonProgressMap(false)
+      return
+    }
+
     let cancelled = false
 
     async function loadLessonProgressMap() {
@@ -1207,7 +1278,7 @@ export default function LearningPlayerApp() {
 
     void loadLessonProgressMap()
     return () => { cancelled = true }
-  }, [lessons, session])
+  }, [isStudentPreview, lessons, session])
 
   useEffect(() => {
     if (!course || loadingLessonProgressMap || !selectedLessonId) return
@@ -1230,7 +1301,7 @@ export default function LearningPlayerApp() {
   }, [course, firstUnlockedLessonId, lessonLockMap, lessons, loadingLessonProgressMap, selectedLessonId])
 
   useEffect(() => {
-    if (!sessionUserId) {
+    if (isStudentPreview || !sessionUserId) {
       setAssignmentHistoryByAssignmentId({})
       return
     }
@@ -1264,9 +1335,17 @@ export default function LearningPlayerApp() {
 
     void loadAssignmentHistory()
     return () => { cancelled = true }
-  }, [sessionUserId])
+  }, [isStudentPreview, sessionUserId])
 
   useEffect(() => {
+    if (isStudentPreview) {
+      setQnaQuestions([])
+      setQnaDetails({})
+      setQnaError(null)
+      setLoadingQna(false)
+      return
+    }
+
     if (!session || !course?.courseId) return
     let cancelled = false
     const courseId = course.courseId
@@ -1308,7 +1387,7 @@ export default function LearningPlayerApp() {
 
     void loadQna()
     return () => { cancelled = true }
-  }, [course?.courseId, session, sessionUserId])
+  }, [course?.courseId, isStudentPreview, session, sessionUserId])
 
   useEffect(() => {
     if (!lesson || selectedLessonLocked || !isAssignmentLesson(lesson)) {
@@ -1374,7 +1453,10 @@ export default function LearningPlayerApp() {
       const storedProgress = readJsonStorage(getProgressStorageKey(lesson.lessonId), createDefaultProgress(lesson.lessonId))
       const storedNotes = readJsonStorage(getNotesStorageKey(lesson.lessonId), [] as TimestampNote[])
 
-      const initialProgressSeconds = shouldResumePlayback ? storedProgress.progressSeconds : 0
+      const initialProgressSeconds = resolveInitialPlaybackSeconds(
+        lesson.lessonId,
+        shouldResumePlayback ? storedProgress.progressSeconds : 0,
+      )
       resumeTimeRef.current = initialProgressSeconds
       lastRenderedSecondRef.current = initialProgressSeconds
       setProgress(storedProgress)
@@ -1382,6 +1464,23 @@ export default function LearningPlayerApp() {
       setNotes(storedNotes)
       setCurrentTime(initialProgressSeconds)
       setDuration(lesson.durationSeconds ?? 0)
+
+      if (isStudentPreview) {
+        const previewProgress: LearningLessonProgress = {
+          ...createDefaultProgress(lesson.lessonId),
+          progressPercent: lesson.durationSeconds && lesson.durationSeconds > 0
+            ? Math.max(0, Math.min(100, Math.round((initialProgressSeconds / lesson.durationSeconds) * 100)))
+            : 0,
+          progressSeconds: initialProgressSeconds,
+        }
+        setProgress(previewProgress)
+        setLessonProgressById((current) => ({
+          ...current,
+          [lesson.lessonId]: previewProgress,
+        }))
+        setLoadingLesson(false)
+        return
+      }
 
       try {
         const [sessionProgress, config, fetchedNotes] = await Promise.all([
@@ -1398,7 +1497,10 @@ export default function LearningPlayerApp() {
           pipEnabled: config?.pipEnabled ?? sessionProgress.pipEnabled ?? false,
         }
 
-        const nextResumeSeconds = shouldResumePlayback ? nextProgress.progressSeconds : 0
+        const nextResumeSeconds = resolveInitialPlaybackSeconds(
+          lesson.lessonId,
+          shouldResumePlayback ? nextProgress.progressSeconds : 0,
+        )
         resumeTimeRef.current = nextResumeSeconds
         lastRenderedSecondRef.current = nextResumeSeconds
         setProgress(nextProgress)
@@ -1427,7 +1529,7 @@ export default function LearningPlayerApp() {
 
     void loadLessonState()
     return () => { cancelled = true }
-  }, [lesson, mergeLessonProgress, selectedLessonLocked, shouldResumePlayback])
+  }, [isStudentPreview, lesson, mergeLessonProgress, resolveInitialPlaybackSeconds, selectedLessonLocked, shouldResumePlayback])
 
   useEffect(() => {
     const video = videoRef.current
@@ -1442,7 +1544,7 @@ export default function LearningPlayerApp() {
     const handleLoadedMetadata = () => {
       const total = getPlaybackLimit(video)
       setDuration(total)
-      if (shouldResumePlayback && resumeTimeRef.current > 0 && video.currentTime < 0.5) {
+      if ((shouldResumePlayback || isStudentPreview) && resumeTimeRef.current > 0 && video.currentTime < 0.5) {
         video.currentTime = Math.min(resumeTimeRef.current, total || resumeTimeRef.current)
       }
     }
@@ -1455,6 +1557,26 @@ export default function LearningPlayerApp() {
       setVideoFailed(false)
       if (pendingVideoLoadRef.current) setNotice(null)
       pendingVideoLoadRef.current = false
+
+      if (!shouldAutoplayPreview || previewAutoplayLessonIdRef.current === lesson.lessonId) {
+        return
+      }
+
+      previewAutoplayLessonIdRef.current = lesson.lessonId
+      void video.play().catch(async (error) => {
+        if (!isPlaybackBlockedError(error)) {
+          return
+        }
+
+        try {
+          video.muted = true
+          setIsMuted(true)
+          await video.play()
+          setNotice('브라우저 정책 때문에 음소거 상태로 먼저 재생했습니다. 필요하면 음소거를 해제해 주세요.')
+        } catch {
+          setNotice('브라우저 자동재생 정책 때문에 재생 버튼을 눌러야 합니다.')
+        }
+      })
     }
     const handleTimeUpdate = () => {
       const total = getPlaybackLimit(video)
@@ -1514,9 +1636,10 @@ export default function LearningPlayerApp() {
       video.removeEventListener('enterpictureinpicture', handleEnterPip)
       video.removeEventListener('leavepictureinpicture', handleLeavePip)
     }
-  }, [getPlaybackLimit, lesson, persistCompletedLesson, playerConfig?.defaultPlaybackRate, resolvedVideoUrl, shouldResumePlayback])
+  }, [getPlaybackLimit, isStudentPreview, lesson, persistCompletedLesson, playerConfig?.defaultPlaybackRate, resolvedVideoUrl, shouldAutoplayPreview, shouldResumePlayback])
 
   const persistProgress = useEffectEvent(async (lessonId: number) => {
+    if (isStudentPreview) return
     if (!lesson || lesson.lessonId !== lessonId) return
     const video = videoRef.current
     const total = getPlaybackLimit(video)
@@ -1555,6 +1678,7 @@ export default function LearningPlayerApp() {
   })
 
   useEffect(() => {
+    if (isStudentPreview) return
     if (!lesson) return
     const lessonId = lesson.lessonId
     const intervalId = window.setInterval(() => void persistProgress(lessonId), 15000)
@@ -1565,7 +1689,7 @@ export default function LearningPlayerApp() {
       window.removeEventListener('pagehide', handlePageHide)
       void persistProgress(lessonId)
     }
-  }, [lesson])
+  }, [isStudentPreview, lesson])
 
   useEffect(() => {
     if (!noteMessage && !notice && !questionMessage) return
@@ -1896,6 +2020,11 @@ export default function LearningPlayerApp() {
   }
 
   async function handleAssignmentSubmit() {
+    if (isStudentPreview) {
+      setAssignmentMessage('미리보기에서는 과제를 제출할 수 없습니다.')
+      return
+    }
+
     if (!sessionUserId) {
       setAssignmentMessage('로그인이 필요합니다.')
       return
@@ -2089,6 +2218,11 @@ export default function LearningPlayerApp() {
   }
 
   async function handleSubmitQuestion() {
+    if (isStudentPreview) {
+      setQuestionMessage('미리보기에서는 질문을 등록할 수 없습니다.')
+      return
+    }
+
     if (!course) {
       setQuestionMessage('강의 정보를 불러온 뒤 다시 시도해 주세요.')
       return
@@ -2116,6 +2250,7 @@ export default function LearningPlayerApp() {
       title,
       content,
       courseId: course.courseId,
+      lessonId: lesson?.lessonId ?? null,
       lectureTimestamp: questionForm.attachTimestamp ? formatTime(currentTime) : null,
     }
 
@@ -2174,11 +2309,11 @@ export default function LearningPlayerApp() {
         <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-4">
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? window.history.back() : window.location.assign(courseDetailHref))}
+            onClick={() => window.location.assign(isStudentPreview ? studentPreviewReturnHref : courseDetailHref)}
             className="flex items-center gap-2 text-sm font-bold text-gray-300 transition hover:text-[#00C471]"
           >
             <i className="fas fa-chevron-left" />
-            로드맵으로 돌아가기
+            {isStudentPreview ? '질문 게시판으로 돌아가기' : '로드맵으로 돌아가기'}
           </button>
           <h1 className="truncate text-sm font-bold opacity-80">{lesson.title}</h1>
         </div>

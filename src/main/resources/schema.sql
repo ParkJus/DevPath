@@ -56,6 +56,13 @@ ALTER TABLE ocr_results
 CREATE INDEX IF NOT EXISTS idx_ocr_results_user_lesson_frame
     ON ocr_results (user_id, lesson_id, frame_timestamp_second);
 
+-- QnA lesson link for opening the exact lecture screen from instructor inbox.
+ALTER TABLE qna_questions
+    ADD COLUMN IF NOT EXISTS lesson_id BIGINT;
+
+CREATE INDEX IF NOT EXISTS idx_qna_questions_lesson_id
+    ON qna_questions (lesson_id);
+
 -- Recommendation support columns for history, warning, and supplement tracking.
 ALTER TABLE recommendation_histories
     ADD COLUMN IF NOT EXISTS recommendation_id BIGINT;

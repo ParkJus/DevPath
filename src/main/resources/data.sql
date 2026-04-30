@@ -13411,6 +13411,24 @@ WHERE NOT EXISTS (
       AND q.course_id = c.course_id
 );
 
+UPDATE qna_questions q
+SET lesson_id = first_lesson.lesson_id
+FROM (
+    SELECT DISTINCT ON (c.course_id)
+        c.course_id,
+        l.lesson_id
+    FROM courses c
+    JOIN course_sections cs ON cs.course_id = c.course_id
+    JOIN lessons l ON l.section_id = cs.section_id
+    WHERE COALESCE(cs.is_published, TRUE) = TRUE
+      AND COALESCE(l.is_published, TRUE) = TRUE
+      AND l.lesson_type = 'VIDEO'
+    ORDER BY c.course_id, cs.sort_order, l.sort_order, l.lesson_id
+) first_lesson
+WHERE q.course_id = first_lesson.course_id
+  AND q.lesson_id IS NULL
+  AND q.lecture_timestamp IS NOT NULL;
+
 INSERT INTO review (
     course_id, learner_id, rating, content, status,
     is_hidden, is_deleted, issue_tags_raw, created_at, updated_at

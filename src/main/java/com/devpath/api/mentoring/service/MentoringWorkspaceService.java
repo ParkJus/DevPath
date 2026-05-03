@@ -6,6 +6,7 @@ import com.devpath.common.exception.ErrorCode;
 import com.devpath.domain.mentoring.entity.Mentoring;
 import com.devpath.domain.mentoring.repository.MentoringMissionRepository;
 import com.devpath.domain.mentoring.repository.MentoringRepository;
+import com.devpath.domain.review.repository.PullRequestSubmissionRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class MentoringWorkspaceService {
 
   private final MentoringRepository mentoringRepository;
   private final MentoringMissionRepository mentoringMissionRepository;
+  private final PullRequestSubmissionRepository pullRequestSubmissionRepository;
 
   public MentoringWorkspaceResponse.Workspace getWorkspace(Long mentoringId) {
     Mentoring mentoring = getActiveMentoring(mentoringId);
@@ -43,10 +45,10 @@ public class MentoringWorkspaceService {
   }
 
   private MentoringWorkspaceResponse.Stats buildStats(Long mentoringId) {
-    // 5단계에서 생성된 MentoringMissionRepository로 실제 미션 개수를 집계한다.
+    // 삭제되지 않은 미션만 대시보드 집계에 포함한다.
     long missionCount = countMissions(mentoringId);
 
-    // 7단계 이후 PullRequestSubmissionRepository가 생기면 실제 PR 제출 개수로 교체한다.
+    // 삭제되지 않은 PR 제출만 대시보드 집계에 포함한다.
     long pullRequestCount = countPullRequests(mentoringId);
 
     // 10단계 이후 MentoringQuestionRepository가 생기면 실제 질문 개수로 교체한다.
@@ -68,13 +70,12 @@ public class MentoringWorkspaceService {
   }
 
   private long countMissions(Long mentoringId) {
-    // 삭제되지 않은 미션만 대시보드 집계에 포함한다.
     return mentoringMissionRepository.countByMentoring_IdAndIsDeletedFalse(mentoringId);
   }
 
   private long countPullRequests(Long mentoringId) {
-    // 후속 단계에서 실제 Repository count 쿼리로 교체한다.
-    return 0L;
+    return pullRequestSubmissionRepository
+        .countByMissionSubmission_Mission_Mentoring_IdAndIsDeletedFalse(mentoringId);
   }
 
   private long countQuestions(Long mentoringId) {

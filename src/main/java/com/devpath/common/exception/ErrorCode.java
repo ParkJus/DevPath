@@ -110,9 +110,18 @@ public enum ErrorCode {
   MENTORING_MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "멘토링 미션을 찾을 수 없습니다."),
   MENTORING_MISSION_WEEK_DUPLICATED(HttpStatus.CONFLICT, "이미 해당 주차의 멘토링 미션이 존재합니다."),
   MENTORING_MISSION_FORBIDDEN(HttpStatus.FORBIDDEN, "멘토링 미션을 관리할 권한이 없습니다."),
+  MENTORING_MISSION_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "이미 마감된 멘토링 미션입니다."),
   MENTORING_MATERIAL_NOT_FOUND(HttpStatus.NOT_FOUND, "멘토링 미션 자료를 찾을 수 없습니다."),
   MENTORING_MATERIAL_FORBIDDEN(HttpStatus.FORBIDDEN, "멘토링 미션 자료를 관리할 권한이 없습니다."),
   MENTORING_MATERIAL_INVALID_PAYLOAD(HttpStatus.BAD_REQUEST, "자료 타입에 맞는 필수값이 누락되었습니다."),
+
+  REVIEW_PULL_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "PR 제출을 찾을 수 없습니다."),
+  REVIEW_PULL_REQUEST_FORBIDDEN(HttpStatus.FORBIDDEN, "PR 제출 또는 리뷰를 처리할 권한이 없습니다."),
+  REVIEW_DECISION_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 리뷰를 승인 또는 반려할 권한이 없습니다."),
+  REVIEW_MISSION_SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "미션 제출을 찾을 수 없습니다."),
+  REVIEW_MISSION_SUBMISSION_FORBIDDEN(HttpStatus.FORBIDDEN, "미션 제출을 판정할 권한이 없습니다."),
+  REVIEW_MISSION_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 해당 미션에 제출했습니다."),
+  REVIEW_MISSION_SUBMISSION_ALREADY_DECIDED(HttpStatus.BAD_REQUEST, "이미 최종 판정된 미션 제출입니다."),
 
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 

@@ -6,6 +6,7 @@ import com.devpath.common.exception.ErrorCode;
 import com.devpath.domain.mentoring.entity.Mentoring;
 import com.devpath.domain.mentoring.repository.MentoringMissionRepository;
 import com.devpath.domain.mentoring.repository.MentoringRepository;
+import com.devpath.domain.qna.repository.MentoringQuestionRepository;
 import com.devpath.domain.review.repository.PullRequestSubmissionRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class MentoringWorkspaceService {
   private final MentoringRepository mentoringRepository;
   private final MentoringMissionRepository mentoringMissionRepository;
   private final PullRequestSubmissionRepository pullRequestSubmissionRepository;
+  private final MentoringQuestionRepository mentoringQuestionRepository;
 
   public MentoringWorkspaceResponse.Workspace getWorkspace(Long mentoringId) {
     Mentoring mentoring = getActiveMentoring(mentoringId);
@@ -51,7 +53,7 @@ public class MentoringWorkspaceService {
     // 삭제되지 않은 PR 제출만 대시보드 집계에 포함한다.
     long pullRequestCount = countPullRequests(mentoringId);
 
-    // 10단계 이후 MentoringQuestionRepository가 생기면 실제 질문 개수로 교체한다.
+    // 삭제되지 않은 멘토링 질문만 대시보드 집계에 포함한다.
     long questionCount = countQuestions(mentoringId);
 
     // 13단계 이후 MeetingRoomRepository가 생기면 실제 회의 개수로 교체한다.
@@ -79,8 +81,7 @@ public class MentoringWorkspaceService {
   }
 
   private long countQuestions(Long mentoringId) {
-    // 후속 단계에서 실제 Repository count 쿼리로 교체한다.
-    return 0L;
+    return mentoringQuestionRepository.countByMentoring_IdAndIsDeletedFalse(mentoringId);
   }
 
   private long countMeetings(Long mentoringId) {

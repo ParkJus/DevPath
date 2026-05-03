@@ -128,6 +128,10 @@ public enum ErrorCode {
   APPLICATION_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST, "이미 처리된 라운지 신청입니다."),
   APPLICATION_FORBIDDEN(HttpStatus.FORBIDDEN, "라운지 신청을 처리할 권한이 없습니다."),
   APPLICATION_MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "라운지 신청 메시지를 조회하거나 작성할 권한이 없습니다."),
+  QNA_MENTORING_QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "멘토링 질문을 찾을 수 없습니다."),
+  QNA_WORKSPACE_QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "워크스페이스 질문을 찾을 수 없습니다."),
+  QNA_FORBIDDEN(HttpStatus.FORBIDDEN, "Q&A를 처리할 권한이 없습니다."),
+  QNA_QUESTION_CLOSED(HttpStatus.BAD_REQUEST, "닫힌 질문에는 답변을 작성할 수 없습니다."),
 
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 

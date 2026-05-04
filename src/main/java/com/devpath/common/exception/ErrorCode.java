@@ -137,6 +137,13 @@ public enum ErrorCode {
 
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
 
+  MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "회의방을 찾을 수 없습니다."),
+  MEETING_FORBIDDEN(HttpStatus.FORBIDDEN, "회의를 관리하거나 참가할 권한이 없습니다."),
+  MEETING_ALREADY_ENDED(HttpStatus.BAD_REQUEST, "이미 종료된 회의입니다."),
+  MEETING_ALREADY_JOINED(HttpStatus.CONFLICT, "이미 회의에 참가 중입니다."),
+  MEETING_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "회의 참가자를 찾을 수 없습니다."),
+  MEETING_ATTENDANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "회의 출석 이력을 찾을 수 없습니다."),
+
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
   private final HttpStatus status;

@@ -151,6 +151,11 @@ public enum ErrorCode {
   VOICE_ALREADY_JOINED(HttpStatus.CONFLICT, "이미 보이스 채널에 참여 중입니다."),
   VOICE_FORBIDDEN(HttpStatus.FORBIDDEN, "보이스 채널을 처리할 권한이 없습니다."),
 
+  AIREVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 코드 리뷰를 찾을 수 없습니다."),
+  AIREVIEW_FORBIDDEN(HttpStatus.FORBIDDEN, "AI 코드 리뷰를 요청할 권한이 없습니다."),
+  AIREVIEW_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 리뷰 코멘트를 찾을 수 없습니다."),
+  AIREVIEW_COMMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "AI 리뷰 코멘트를 처리할 권한이 없습니다."),
+
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 
   private final HttpStatus status;

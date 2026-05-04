@@ -143,6 +143,8 @@ public enum ErrorCode {
   MEETING_ALREADY_JOINED(HttpStatus.CONFLICT, "이미 회의에 참가 중입니다."),
   MEETING_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "회의 참가자를 찾을 수 없습니다."),
   MEETING_ATTENDANCE_NOT_FOUND(HttpStatus.NOT_FOUND, "회의 출석 이력을 찾을 수 없습니다."),
+  MEETING_AI_SUMMARY_NOT_FOUND(HttpStatus.NOT_FOUND, "AI 회의 요약을 찾을 수 없습니다."),
+  MEETING_AI_SUMMARY_FORBIDDEN(HttpStatus.FORBIDDEN, "AI 회의 요약을 저장할 권한이 없습니다."),
 
   VOICE_CHANNEL_NOT_FOUND(HttpStatus.NOT_FOUND, "보이스 채널을 찾을 수 없습니다."),
   VOICE_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "보이스 채널 참가자를 찾을 수 없습니다."),
